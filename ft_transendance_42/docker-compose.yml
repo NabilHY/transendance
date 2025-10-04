@@ -1,0 +1,50 @@
+services:
+  auth-backend:
+    build: ./services/auth-backend
+    command: npm run dev  
+    ports:
+      - 8005:8005
+    env_file: ./services/auth-backend/.env
+    networks:
+      - ft_transendance
+    volumes:
+      - ./services/auth-backend:/usr/src/app
+      - /usr/src/app/node_modules
+      - auth_db_data:/usr/src/app/db
+
+  frontend:
+    build: ./services/frontend
+    command: npm run dev
+    ports:
+      - 8080:8080
+    networks:
+      - ft_transendance
+    depends_on:
+      - auth-backend
+    volumes:
+      - ./services/frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "1025:1025"  # SMTP server port
+      - "8025:8025"  # Web UI port
+    networks:
+      - ft_transendance
+    environment:
+      - MP_SMTP_AUTH_ACCEPT_ANY=1
+      - MP_SMTP_AUTH_ALLOW_INSECURE=1
+
+networks:
+  ft_transendance:
+    driver: bridge
+
+volumes:
+  auth_db_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/leetsolutions1337/trancendance_volumes/auth-db
