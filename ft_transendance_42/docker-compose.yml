@@ -1,28 +1,34 @@
 services:
   auth-backend:
-    build: ./services/auth-backend
+    build: ./auth-backend
     command: npm run dev  
     ports:
       - 8005:8005
-    env_file: ./services/auth-backend/.env
+    env_file: ./auth-backend/.env
     networks:
       - ft_transendance
     volumes:
-      - ./services/auth-backend:/usr/src/app
+      - ./auth-backend:/usr/src/app
       - /usr/src/app/node_modules
       - auth_db_data:/usr/src/app/db
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8005/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
 
   frontend:
-    build: ./services/frontend
+    build: ./frontend
     command: npm run dev
     ports:
       - 8080:8080
     networks:
       - ft_transendance
     depends_on:
-      - auth-backend
+      auth-backend:
+        condition: service_healthy
     volumes:
-      - ./services/frontend:/app
+      - ./frontend:/app
       - /app/node_modules
       - /app/.next
 
@@ -36,6 +42,21 @@ services:
     environment:
       - MP_SMTP_AUTH_ACCEPT_ANY=1
       - MP_SMTP_AUTH_ALLOW_INSECURE=1
+
+  usr-manag:
+    build: ./usr-manag
+    command: npm start
+    ports:
+      - 4000:4000
+    networks:
+      - ft_transendance
+    depends_on:
+      auth-backend:
+        condition: service_healthy
+    volumes:
+      - ./usr-manag:/usr/src/app
+      - /usr/src/app/node_modules
+
 
 networks:
   ft_transendance:

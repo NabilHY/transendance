@@ -1,5 +1,0 @@
-services: {}
-
-networks:
-  ping_pong:
-    name: ping_pong

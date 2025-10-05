@@ -148,8 +148,7 @@ top:
 stats:
 	docker stats
 
-# Environment commands
-env:
+# Environment commandsservices
 	@echo "Backend environment:"
 	@docker compose exec auth-backend env | grep -E "(NODE_ENV|JWT|REDIS|DB)" || echo "No environment variables found"
 	@echo "Frontend environment:"

@@ -1,1 +1,0 @@
-this folder will make it easier for the team to evolve the database without everyone rebuilding it from scratch each time.
