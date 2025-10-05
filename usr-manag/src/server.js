@@ -1,0 +1,82 @@
+const fastify = require('fastify')({ logger: true });
+const config = require('../config');
+
+fastify.setErrorHandler(function (err, req, reply) {
+    // Handle validation errors with custom messages
+    if (err.validation) {
+        const messages = err.validation.map(validationErr => {
+            if (validationErr.keyword === 'required') {
+                return `${validationErr.params.missingProperty} is required`;
+            }
+            return `${validationErr.instancePath} ${validationErr.message}`;
+        });
+        
+        return reply.code(400).send({
+            error: 'Validation failed',
+            details: messages
+        });
+    }
+    
+    // Preserve the original status code if it exists, otherwise default to 500
+    const statusCode = err.statusCode || 500;
+    reply.code(statusCode).send({
+        error: err.message || 'Internal server error'
+    });
+});
+
+// Register plugins
+fastify.register(require('@fastify/cors'), {
+    origin: [config.FRONTEND_URL],
+    credentials: true
+});
+
+fastify.register(require('../plugins/db'));
+fastify.register(require('../plugins/auth'));
+fastify.register(require('../plugins/swagger'));
+
+// Health check
+fastify.get('/health', async (request, reply) => {
+    return { 
+        status: 'ok', 
+        service: config.SERVICE_NAME,
+        version: config.SERVICE_VERSION,
+        timestamp: new Date().toISOString()
+    };
+});
+
+// Service discovery endpoint
+fastify.get('/service-info', async (request, reply) => {
+    return {
+        service: config.SERVICE_NAME,
+        version: config.SERVICE_VERSION,
+        endpoints: [
+            'GET /health',
+            'GET /service-info',
+            'GET /users',
+            'GET /me',
+            'GET /users/:id',
+            'PATCH /me/status',
+            'DELETE /me',
+            'POST /users/:id/friend',
+            'POST /users/:id/block'
+        ],
+        dependencies: ['auth-backend']
+    };
+});
+
+// Register routes
+fastify.register(require('../routes/users'), { prefix: '' });
+
+const start = async () => {
+    try {
+        await fastify.listen({ port: config.PORT, host: '0.0.0.0' });
+        fastify.log.info(`User Management Service listening on port ${config.PORT}`);
+        fastify.log.info(`Auth Service URL: ${config.AUTH_SERVICE_URL}`);
+        fastify.log.info(`API Documentation: http://localhost:${config.PORT}/docs`);
+    } catch (err) {
+        fastify.log.error(err);
+        process.exit(1);
+    }
+}
+
+start();

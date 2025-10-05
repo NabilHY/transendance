@@ -1,0 +1,26 @@
+{
+  "name": "usr-manag",
+  "version": "1.0.0",
+  "description": "User Management Microservice",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.0",
+    "@fastify/swagger": "^9.1.0",
+    "@fastify/swagger-ui": "^5.2.3",
+    "axios": "^1.6.0",
+    "better-sqlite3": "^12.2.0",
+    "fastify": "^5.1.0",
+    "fastify-plugin": "^4.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "keywords": ["microservice", "user-management", "fastify"],
+  "author": "",
+  "license": "ISC"
+}
