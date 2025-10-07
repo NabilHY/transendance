@@ -2,7 +2,6 @@ const fp = require('fastify-plugin');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
-const { initializeDatabase } = require('..' + path.sep + 'utils' + path.sep + 'dbSchema');
 
 module.exports = fp(async function (fastify) {
     const dbPath = process.env.DB_FILE || path.join(__dirname, '..', 'db', 'sqlite.db');
@@ -22,10 +21,8 @@ module.exports = fp(async function (fastify) {
         }
     }
 
-    await initializeDatabase(db);
-    
-    console.log('Tables created successfully');
+    console.log('✅ Auth service connected to shared database');
 
     fastify.decorate('db', db);
     fastify.addHook('onClose', async () => db.close());
-})
+});

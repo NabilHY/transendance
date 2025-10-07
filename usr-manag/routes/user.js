@@ -4,19 +4,19 @@ module.exports = async function (fastify) {
         const { search } = request.query || {};
         
         let sql = `
-            SELECT up.user_id as id, up.username, up.first_name, up.last_name, 
-                   up.profile_pic, up.is_online, up.created_at
-            FROM user_profiles up
+            SELECT id, username, first_name, last_name, 
+                   profile_pic, is_online, created_at
+            FROM users
         `;
         let params = [];
         
         if (search) {
-            sql += ` WHERE up.username LIKE ? OR up.first_name LIKE ? OR up.last_name LIKE ?`;
+            sql += ` WHERE username LIKE ? OR first_name LIKE ? OR last_name LIKE ?`;
             const searchTerm = `%${search}%`;
             params = [searchTerm, searchTerm, searchTerm];
         }
         
-        sql += ` ORDER BY up.created_at DESC`;
+        sql += ` ORDER BY created_at DESC`;
         
         const users = fastify.db.prepare(sql).all(...params);
         return users;
@@ -27,10 +27,10 @@ module.exports = async function (fastify) {
         const { id } = request.params;
         
         const profile = fastify.db.prepare(`
-            SELECT user_id as id, username, first_name, last_name, 
+            SELECT id, username, first_name, last_name, 
                    profile_pic, is_online, created_at, updated_at
-            FROM user_profiles 
-            WHERE user_id = ?
+            FROM users 
+            WHERE id = ?
         `).get(id);
         
         if (!profile) {
@@ -78,7 +78,7 @@ module.exports = async function (fastify) {
             VALUES (?, ?, ?, 'pending', datetime('now'))
         `).run(uuid, userId, id);
         
-        return reply.code(201).send({ 
+        return reply.code(201).send({
             success: true, 
             message: 'Friend request sent', 
             requestId: uuid 

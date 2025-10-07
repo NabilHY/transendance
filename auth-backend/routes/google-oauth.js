@@ -77,6 +77,8 @@ module.exports = async function (fastify) {
             state: state,
         });
         
+        console.log(' ++++++ google stuff ++++++ : authUrl', authUrl);
+        
         return rep.redirect(authUrl);
     });
     

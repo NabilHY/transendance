@@ -4,18 +4,18 @@ module.exports = async function (fastify) {
         const userId = request.user.id;
         
         const profile = fastify.db.prepare(`
-            SELECT user_id as id, username, first_name, last_name, 
+            SELECT id, username, first_name, last_name, 
                    profile_pic, is_online, created_at, updated_at
-            FROM user_profiles 
-            WHERE user_id = ?
+            FROM users 
+            WHERE id = ?
         `).get(userId);
         
         if (!profile) {
             // Create default profile if doesn't exist
             fastify.db.prepare(`
-                INSERT INTO user_profiles (user_id, username, created_at)
-                VALUES (?, ?, datetime('now'))
-            `).run(userId, `user_${userId}`);
+                UPDATE users SET username = ?, updated_at = datetime('now')
+                WHERE id = ?
+            `).run(`user_${userId}`, userId);
             
             return {
                 id: userId,
@@ -38,12 +38,11 @@ module.exports = async function (fastify) {
         const userId = request.user.id;
         
         fastify.db.prepare(`
-            INSERT INTO user_profiles (user_id, is_online, updated_at)
-            VALUES (?, ?, datetime('now'))
-            ON CONFLICT(user_id) DO UPDATE SET 
-                is_online = excluded.is_online,
+            UPDATE users SET 
+                is_online = ?,
                 updated_at = datetime('now')
-        `).run(userId, is_online ? 1 : 0);
+            WHERE id = ?
+        `).run(is_online ? 1 : 0, userId);
         
         return { success: true, is_online: !!is_online };
     });
@@ -52,7 +51,16 @@ module.exports = async function (fastify) {
     fastify.delete('/me', { preHandler: [fastify.authenticate] }, async (request, reply) => {
         const userId = request.user.id;
         
-        const changes = fastify.db.prepare('DELETE FROM user_profiles WHERE user_id = ?').run(userId).changes;
+        const changes = fastify.db.prepare(`
+            UPDATE users SET 
+                username = NULL,
+                first_name = NULL,
+                last_name = NULL,
+                profile_pic = NULL,
+                is_online = 0,
+                updated_at = datetime('now')
+            WHERE id = ?
+        `).run(userId).changes;
         
         if (changes === 0) {
             return reply.code(404).send({ error: 'Profile not found' });

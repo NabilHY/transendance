@@ -2,7 +2,6 @@ const fp = require('fastify-plugin');
 const Database = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
-const { initializeDatabase } = require('..' + path.sep + 'utils' + path.sep + 'dbSchema');
 
 module.exports = fp(async function (fastify) {
     const config = require('../config');
@@ -28,9 +27,7 @@ module.exports = fp(async function (fastify) {
         }
     }
 
-    initializeDatabase(db);
-    
-    console.log('User Management Database initialized successfully');
+    console.log('✅ User management service connected to shared database');
 
     fastify.decorate('db', db);
     fastify.addHook('onClose', async () => db.close());
