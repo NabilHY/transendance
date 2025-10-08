@@ -60,7 +60,6 @@ export default function HomePage() {
 				<h1>Dashboard</h1>
 				<nav style={{ display: 'flex', gap: 12 }}>
 					{!isLoggedIn && <Link href="/login">Login</Link>}
-					<Link href="/register">Register</Link>
 					{isLoggedIn && (
 						<>
 							<Link href="/profile">Profile</Link>

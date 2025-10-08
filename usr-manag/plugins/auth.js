@@ -9,7 +9,6 @@ async function authPlugin(fastify) {
         try {
             const token = request.cookies?.accessToken || 
                          request.headers?.authorization?.replace('Bearer ', '');
-            
             if (!token) {
                 return reply.code(401).send({ error: 'No token provided' });
             }
