@@ -3,7 +3,7 @@ FROM node:20-alpine
 WORKDIR /usr/src/app
 
 # Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ curl
 
 # Copy package files
 COPY package*.json ./

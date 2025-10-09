@@ -1,71 +1,27 @@
 services:
-  # Database Initialization Service (runs first)
-  db-init:
-    build: ./db-init
-    command: npm start
-    ports:
-      - 3000:3000
-    networks:
-      - ft_transendance
-    volumes:
-      - shared_db_data:/usr/src/app/db
-    environment:
-      - DATABASE_PATH=/usr/src/app/db/shared.sqlite
-      - DATABASE_DIR=/usr/src/app/db
-      - DB_INIT_PORT=3000
-
-  # Auth Backend (depends on db-init)
   auth-backend:
     build: ./auth-backend
     command: npm run dev  
     ports:
-      - 8005:8005
-    env_file: ./auth-backend/.env
+      - ${AUTH_PORT:-8005}:${AUTH_PORT:-8005}
+    env_file: .env
     networks:
       - ft_transendance
     volumes:
       - ./auth-backend:/usr/src/app
       - /usr/src/app/node_modules
-      - shared_db_data:/usr/src/app/db
-    environment:
-      - DB_FILE=/usr/src/app/db/shared.sqlite
-    depends_on:
-      - db-init
+      - users_data:/usr/src/app/db
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8005/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:${AUTH_PORT:-8005}/health"]
       interval: 5s
       timeout: 3s
       retries: 24
 
-  # User Management (depends on db-init)
-  usr-manag:
-    build: ./usr-manag
-    command: npm start
-    ports:
-      - 4000:4000
-    networks:
-      - ft_transendance
-    depends_on:
-      - db-init
-    volumes:
-      - ./usr-manag:/usr/src/app
-      - /usr/src/app/node_modules
-      - shared_db_data:/usr/src/app/data
-    environment:
-      - AUTH_SERVICE_URL=http://auth-backend:8005
-      - DATABASE_PATH=/usr/src/app/data/shared.sqlite
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Frontend (depends on auth-backend)
   frontend:
     build: ./frontend
     command: npm run dev
     ports:
-      - 8080:8080
+      - ${FRONTEND_PORT:-8080}:${FRONTEND_PORT:-8080}
     networks:
       - ft_transendance
     depends_on:
@@ -76,7 +32,6 @@ services:
       - /app/node_modules
       - /app/.next
 
-  # Mailpit (email testing)
   mailpit:
     image: axllent/mailpit
     ports:
@@ -88,14 +43,35 @@ services:
       - MP_SMTP_AUTH_ACCEPT_ANY=1
       - MP_SMTP_AUTH_ALLOW_INSECURE=1
 
+  usr-manag:
+    build: ./usr-manag
+    command: npm start
+    ports:
+      - ${USR_MANAG_PORT:-4000}:${USR_MANAG_PORT:-4000}
+    networks:
+      - ft_transendance
+    depends_on:
+      auth-backend:
+        condition: service_healthy
+    volumes:
+      - ./usr-manag:/usr/src/app
+      - /usr/src/app/node_modules
+      - users_data:/usr/src/app/db
+    env_file: .env
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${USR_MANAG_PORT:-4000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   ft_transendance:
     driver: bridge
 
 volumes:
-  shared_db_data:
+  users_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/trancendance_volumes/shared-db
+      device: /home/nab/transendance_volumes/users_db

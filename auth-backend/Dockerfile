@@ -5,6 +5,7 @@ WORKDIR /usr/src/app
 # Install SQLite3 and other dependencies
 RUN apt-get update && apt-get install -y \
     sqlite3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
