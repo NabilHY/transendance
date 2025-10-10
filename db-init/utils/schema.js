@@ -28,6 +28,7 @@ const initializeDatabase = (db) => {
                         failed_login_attempts INTEGER DEFAULT 0,
                         
                         -- Profile fields (from user_profiles)
+                        profile_completed INTEGER DEFAULT 0,Start db-init first so schema is created before others boot.
                         username TEXT UNIQUE,
                         first_name TEXT,
                         last_name TEXT,
@@ -75,23 +76,36 @@ const initializeDatabase = (db) => {
                                 )
                             `, (err) => {
                                 if (err) return reject(err);
-                                
-                                // Create friends table (references users.id instead of user_profiles.user_id)
+
+                                // Create account lockouts table (moved from auth-backend)
                                 db.run(`
-                                    CREATE TABLE IF NOT EXISTS friends (
-                                        id TEXT PRIMARY KEY,
-                                        user_id INTEGER NOT NULL,
-                                        friend_id INTEGER NOT NULL,
-                                        status TEXT CHECK(status IN ('pending', 'accepted', 'blocked')) DEFAULT 'pending',
-                                        created_at TEXT DEFAULT (datetime('now')),
-                                        FOREIGN KEY (user_id) REFERENCES users(id),
-                                        FOREIGN KEY (friend_id) REFERENCES users(id)
+                                    CREATE TABLE IF NOT EXISTS account_lockouts (
+                                        identifier TEXT PRIMARY KEY,
+                                        failed_attempts INTEGER DEFAULT 0,
+                                        first_attempt INTEGER,
+                                        locked_until INTEGER,
+                                        created_at INTEGER DEFAULT (strftime('%s', 'now')),
+                                        updated_at INTEGER DEFAULT (strftime('%s', 'now'))
                                     )
                                 `, (err) => {
                                     if (err) return reject(err);
-                                    
-                                    // Create all indexes
-                                    const indexes = [
+
+                                    // Create friends table (references users.id instead of user_profiles.user_id)
+                                    db.run(`
+                                        CREATE TABLE IF NOT EXISTS friends (
+                                            id TEXT PRIMARY KEY,
+                                            user_id INTEGER NOT NULL,
+                                            friend_id INTEGER NOT NULL,
+                                            status TEXT CHECK(status IN ('pending', 'accepted', 'blocked')) DEFAULT 'pending',
+                                            created_at TEXT DEFAULT (datetime('now')),
+                                            FOREIGN KEY (user_id) REFERENCES users(id),
+                                            FOREIGN KEY (friend_id) REFERENCES users(id)
+                                        )
+                                    `, (err) => {
+                                        if (err) return reject(err);
+
+                                        // Create all indexes
+                                        const indexes = [
                                         'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id) WHERE google_id IS NOT NULL',
                                         'CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)',
                                         'CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON refresh_tokens(expires_at)',
@@ -113,15 +127,16 @@ const initializeDatabase = (db) => {
                                             resolve();
                                             return;
                                         }
-                                        
+
                                         db.run(indexes[indexCount], (err) => {
                                             if (err) return reject(err);
                                             indexCount++;
                                             createNextIndex();
                                         });
                                     };
-                                    
+
                                     createNextIndex();
+                                });
                                 });
                             });
                         });

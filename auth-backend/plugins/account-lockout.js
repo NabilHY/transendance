@@ -1,22 +1,6 @@
 const fp = require('fastify-plugin');
 
 async function accountLockoutPlugin(fastify) {
-    await new Promise((resolve, reject) => {
-        fastify.db.run(`
-            CREATE TABLE IF NOT EXISTS account_lockouts (
-                identifier TEXT PRIMARY KEY,
-                failed_attempts INTEGER DEFAULT 0,
-                first_attempt INTEGER,
-                locked_until INTEGER,
-                created_at INTEGER DEFAULT (strftime('%s', 'now')),
-                updated_at INTEGER DEFAULT (strftime('%s', 'now'))
-            )
-        `, (err) => {
-            if (err) reject(err);
-            else resolve();
-        });
-    });
-    
     fastify.decorate('accountLockout', {
         async isLocked(identifier) {
             return new Promise((resolve, reject) => {

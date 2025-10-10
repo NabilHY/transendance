@@ -57,7 +57,7 @@ services:
       - ./usr-manag:/usr/src/app
       - /usr/src/app/node_modules
       - users_data:/usr/src/app/db
-    env_file: .env
+    env_file: usr-manag/.env
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${USR_MANAG_PORT:-4000}/health"]
       interval: 30s
@@ -74,4 +74,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/nab/transendance_volumes/users_db
+      device: /home/${USER}/transendance_volumes/users_db

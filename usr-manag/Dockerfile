@@ -9,7 +9,7 @@ RUN apk add --no-cache python3 make g++ curl
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --omit=dev
+RUN npm install
 
 # Copy source code
 COPY . .

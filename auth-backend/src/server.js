@@ -49,6 +49,9 @@ fastify.register(require('../plugins/csrf'));
 fastify.register(require('../routes/csrf-token'), { prefix: '/api' });
 fastify.register(require('../plugins/account-lockout'));
 fastify.register(require('../routes/forgot-password'), { prefix: '/api/auth' });
+
+fastify.register(require('../routes/service-auth'), { prefix: '/api/auth'});
+
 fastify.get('/health', async (_req, reply) => {
     return reply.send({ status: 'ok' });
 });

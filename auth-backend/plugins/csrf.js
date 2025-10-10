@@ -39,7 +39,8 @@ async function csrfPlugin(fastify) {
     // Skip CSRF check for GET requests, CSRF token endpoint, and auth endpoints
     if (request.method === 'GET' || 
         request.url === '/api/csrf-token' ||
-        request.url.startsWith('/api/auth/')) {
+        request.url.startsWith('/api/auth/')
+        || request.url.startsWith('/api/auth/service-auth/')) {
       return;
     }
 
