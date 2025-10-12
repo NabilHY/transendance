@@ -46,10 +46,10 @@ async function fetchJson<T = any>(path: string, options: RequestInit = {}, csrfT
 	return { ok: res.ok, status: res.status, data };
 }
 
-export async function umUpdateProfile(profile: UMUser, csrfToken?: string | null): Promise<ApiResult<boolean>> {
-	return fetchUserMgmtJson<boolean>('/me/profile', { 
+export async function umUpdateProfile(profile: UpdateProfileBody, csrfToken?: string | null): Promise<ApiResult<{ success: boolean }>> {
+	return fetchUserMgmtJson<{ success: boolean }>('/me/profile', { 
 		method: 'PATCH',
-		body: JSON.stringify(profile)
+		body: JSON.stringify({ profile })
 	}, csrfToken);
 }
 

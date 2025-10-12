@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 
-const validateToken = async (token) => {
+const validateToken = (token) => {
     if (!token) {
         return {
             valid: false,

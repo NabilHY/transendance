@@ -20,6 +20,7 @@ module.exports = async function (fastify) {
                 last_name = ?,
                 profile_pic = ?,
                 updated_at = datetime('now')
+            WHERE id = ?
         `).run(username, first_name, last_name, profile_pic, userId).changes;
 
         if (changes === 0) {
@@ -30,15 +31,14 @@ module.exports = async function (fastify) {
     }
 );
 
-    fastify.post('/me/profile/complete', { preHandler: [fastify.authenticate], schema: {
+    fastify.get('/me/profile/complete', { preHandler: [fastify.authenticate], schema: {
         tags: ['Profile'],
         summary: 'Check if profile is complete',
         security: [{ bearerAuth: [] }],
-        body: { type: 'object', properties: { profile: { type: 'object' } }, required: ['profile'] },
         response: {
              200: { type: 'object', properties: { complete: { type: 'boolean' } }, required: ['complete'] },
              401: { type: 'object', properties: { error: { type: 'string' } } }
-        },
+        }
     } }, async (request, reply) => {
         const userId = request.user.id;
         
