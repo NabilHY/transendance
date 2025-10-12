@@ -1,4 +1,62 @@
 module.exports = async function (fastify) {
+
+    fastify.patch('/me/profile', {
+        preHandler: [fastify.authenticate],
+        schema: {
+            tags: ['Profile'],
+            summary: 'Update current user profile',
+            security: [{ bearerAuth: [] }],
+            body: { type: 'object', properties: { profile: { type: 'object' } }, required: ['profile'] },
+        }
+    }, async (req, rep) => {
+        const { profile } = req.body;
+        const { username, first_name, last_name, profile_pic } = profile;
+        const userId = req.user.id;
+
+        const changes = fastify.db.prepare(`
+            UPDATE users SET
+                username = ?,
+                first_name = ?,
+                last_name = ?,
+                profile_pic = ?,
+                updated_at = datetime('now')
+        `).run(username, first_name, last_name, profile_pic, userId).changes;
+
+        if (changes === 0) {
+            return rep.code(404).send({ error: 'Profile not found' });
+        }
+
+        return { success: true };
+    }
+);
+
+    fastify.post('/me/profile/complete', { preHandler: [fastify.authenticate], schema: {
+        tags: ['Profile'],
+        summary: 'Check if profile is complete',
+        security: [{ bearerAuth: [] }],
+        body: { type: 'object', properties: { profile: { type: 'object' } }, required: ['profile'] },
+        response: {
+             200: { type: 'object', properties: { complete: { type: 'boolean' } }, required: ['complete'] },
+             401: { type: 'object', properties: { error: { type: 'string' } } }
+        },
+    } }, async (request, reply) => {
+        const userId = request.user.id;
+        
+        const profile = fastify.db.prepare(`
+            SELECT id, username, first_name, last_name, profile_pic, is_online, created_at, updated_at
+            FROM users
+            WHERE id = ?
+        `).get(userId);
+
+        if (!profile) {
+            return reply.code(404).send({ error: 'Profile not found' });
+        }
+        
+        const isComplete = !!(profile.username && profile.first_name && profile.last_name && profile.profile_pic);
+        
+        return { complete: isComplete };
+    });
+    
     // Get current user profile
     fastify.get('/me', { preHandler: [fastify.authenticate], schema: {
         tags: ['Profile'],

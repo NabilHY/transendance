@@ -6,6 +6,13 @@ export type ApiResult<T = any> = {
 	data: T | { error?: string } | null;
 };
 
+export type UpdateProfileBody = {
+	username?: string;
+	first_name?: string;
+	last_name?: string;
+	profile_pic?: string;
+}
+
 function isJsonContentType(headers: HeadersInit | undefined): boolean {
 	if (!headers) return false;
 	const map = new Headers(headers as HeadersInit);
@@ -37,6 +44,13 @@ async function fetchJson<T = any>(path: string, options: RequestInit = {}, csrfT
 	}
 
 	return { ok: res.ok, status: res.status, data };
+}
+
+export async function umUpdateProfile(profile: UMUser, csrfToken?: string | null): Promise<ApiResult<boolean>> {
+	return fetchUserMgmtJson<boolean>('/me/profile', { 
+		method: 'PATCH',
+		body: JSON.stringify(profile)
+	}, csrfToken);
 }
 
 export type CsrfResponse = { csrfToken: string };
@@ -113,6 +127,17 @@ export async function twofaDisable(body: TwoFADisableBody, csrfToken?: string | 
 export type TwoFAStatusResponse = { enabled: boolean };
 export async function twofaStatus(csrfToken?: string | null) {
     return fetchJson<TwoFAStatusResponse>('/api/auth/2fa/status', {}, csrfToken);
+}
+
+export function isProfileComplete(profile: UMUser): boolean {
+	// Check if username is NOT the default format (user_123)
+	const hasCustomUsername = profile.username && !profile.username.match(/^user_\d+$/);
+
+	// Check if first_name and last_name are filled
+	const hasFirstName = !!profile.first_name?.trim();
+	const hasLastName = !!profile.last_name?.trim();
+	
+	return !!(hasCustomUsername && hasFirstName && hasLastName);
 }
 
 // User-management endpoints (usr-manag microservice)
