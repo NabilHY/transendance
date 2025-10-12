@@ -30,7 +30,6 @@ services:
       usr-manag:
         condition: service_healthy
     volumes:
-      - ./frontend:/app
       - /app/.next
       # - /app/node_modules
 
