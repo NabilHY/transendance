@@ -119,7 +119,7 @@ module.exports = async function (fastify) {
         }
         
         // Check if target user exists in profiles
-        const targetUser = fastify.db.prepare('SELECT user_id FROM users WHERE user_id = ?').get(id);
+        const targetUser = fastify.db.prepare('SELECT id FROM users WHERE id = ?').get(id);
         if (!targetUser) {
             return reply.code(404).send({ error: 'Target user not found' });
         }
@@ -174,7 +174,7 @@ module.exports = async function (fastify) {
         }
         
         // Check if target user exists in profiles
-        const targetUser = fastify.db.prepare('SELECT user_id FROM users WHERE user_id = ?').get(id);
+        const targetUser = fastify.db.prepare('SELECT id FROM users WHERE id = ?').get(id);
         if (!targetUser) {
             return reply.code(404).send({ error: 'Target user not found' });
         }

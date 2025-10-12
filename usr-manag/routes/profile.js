@@ -32,10 +32,11 @@ module.exports = async function (fastify) {
         
         if (!profile) {
             // Create default profile if doesn't exist
+            const now = new Date().toISOString();
             fastify.db.prepare(`
-                UPDATE users SET username = ?, updated_at = datetime('now')
-                WHERE id = ?
-            `).run(`user_${userId}`, userId);
+                INSERT OR IGNORE INTO users (id, username, created_at, updated_at, is_online)
+                VALUES (?, ?, datetime('now'), datetime('now'), 0)
+            `).run(userId, `user_${userId}`);
             
             return {
                 id: userId,
@@ -44,8 +45,8 @@ module.exports = async function (fastify) {
                 last_name: null,
                 profile_pic: null,
                 is_online: 0,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                created_at: now,
+                updated_at: now
             };
         }
         

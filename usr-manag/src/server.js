@@ -36,7 +36,6 @@ fastify.register(require('@fastify/cors'), {
 fastify.register(require('../plugins/db'));
 fastify.register(require('../plugins/auth'));
 fastify.register(require('../plugins/swagger'));
-fastify.register
 
 // Health check
 fastify.get('/health', {

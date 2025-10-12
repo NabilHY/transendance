@@ -13,4 +13,6 @@ module.exports = {
     
     INTERNAL_SERVICE_KEY: process.env.INTERNAL_SERVICE_KEY,
 
+    JWT_SECRET: process.env.JWT_SECRET,
+
 };
