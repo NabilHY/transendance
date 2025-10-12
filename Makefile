@@ -1,6 +1,11 @@
 # Makefile for ft_transendance_42 project
 # Docker Compose commands for managing microservices (auth-backend, usr-manag, frontend)
 
+# Volumes :
+VOLUMES_DIR=/home/${USER}/transendance_volumes
+users_db_dir=${VOLUMES_DIR}/users_db
+
+
 .PHONY: help setup setup-full init build up down restart logs ps clean rebuild install-deps test smoke-test
 
 # Default target
@@ -21,21 +26,15 @@ help:
 	@echo "  init        - Complete setup (env + deps + build + start)"
 	@echo "  dev         - Start all services and show logs"
 
-# Environment setup commands
-setup:
-	@echo "Setting up development environment..."
-	./scripts/quick-setup.sh
-
-setup-full:
-	@echo "Interactive environment setup..."
-	./scripts/generate-env.sh
+${users_db_dir}:
+	mkdir -p ${users_db_dir}
 
 # Build commands
-build:
+build: 
 	docker compose build
 
 # Start commands
-up:
+up: ${users_db_dir}
 	docker compose up -d
 
 # Stop commands

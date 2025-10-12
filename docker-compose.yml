@@ -8,8 +8,6 @@ services:
     networks:
       - ft_transendance
     volumes:
-      # - ./auth-backend:/usr/src/app
-      # - /usr/src/app/node_modules
       - users_data:/usr/src/app/db
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${AUTH_PORT:-8005}/health"]
@@ -29,9 +27,9 @@ services:
         condition: service_healthy
       usr-manag:
         condition: service_healthy
-    volumes:
-      - /app/.next
-      # - /app/node_modules
+    env_file: .env
+    # volumes:
+    #   - /app/.next
 
   mailpit:
     image: axllent/mailpit
@@ -55,10 +53,8 @@ services:
       auth-backend:
         condition: service_healthy
     volumes:
-      # - ./usr-manag:/usr/src/app
       - users_data:/usr/src/app/db
-      # - /usr/src/app/node_modules
-    env_file: usr-manag/.env
+    env_file: .env
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${USR_MANAG_PORT:-4000}/health"]
       interval: 30s
