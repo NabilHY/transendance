@@ -1,4 +1,20 @@
 services:
+  db-init:
+    build: ./db-init
+    command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
+    ports:
+      - ${DB_INIT_PORT:-3000}:${DB_INIT_PORT:-3000}
+    env_file: .env
+    networks:
+      - ft_transendance
+    volumes:
+      - users_data:/usr/src/app/db
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${DB_INIT_PORT:-3000}/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+
   auth-backend:
     build: ./auth-backend
     command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
@@ -9,6 +25,9 @@ services:
       - ft_transendance
     volumes:
       - users_data:/usr/src/app/db
+    depends_on:
+      db-init:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${AUTH_PORT:-8005}/health"]
       interval: 5s
@@ -50,6 +69,8 @@ services:
     networks:
       - ft_transendance
     depends_on:
+      db-init:
+        condition: service_healthy
       auth-backend:
         condition: service_healthy
     volumes:

@@ -10,8 +10,7 @@ const initializeDatabase = (db) => {
                 if (err) return reject(err);
                 
                 // Create unified users table (combines auth + profile data)
-                db.run(`
-                    CREATE TABLE IF NOT EXISTS users (
+                db.run(`CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         email TEXT UNIQUE NOT NULL,
                         password_hash TEXT,
@@ -28,7 +27,7 @@ const initializeDatabase = (db) => {
                         failed_login_attempts INTEGER DEFAULT 0,
                         
                         -- Profile fields (from user_profiles)
-                        profile_completed INTEGER DEFAULT 0,Start db-init first so schema is created before others boot.
+                        profile_completed INTEGER DEFAULT 0,
                         username TEXT UNIQUE,
                         first_name TEXT,
                         last_name TEXT,
