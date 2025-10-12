@@ -5,9 +5,22 @@ const config = require('../config');
 module.exports = async function (fastify) {
     fastify.post('/forgot-password', {
         schema: {
-            description: 'Forgot password',
+            description: 'Generate a password reset token and send email with link',
             tags: ['Authentication'],
-            summary: 'Forgot password',
+            summary: 'Request password reset',
+            body: {
+                type: 'object',
+                required: ['email', 'password'],
+                properties: {
+                    email: { type: 'string', format: 'email' },
+                    password: { type: 'string', minLength: 12, maxLength: 128 }
+                }
+            },
+            response: {
+                200: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] },
+                400: { type: 'object', properties: { error: { type: 'string' }, details: { type: 'array', items: { type: 'string' } } }, required: ['error'] },
+                500: { type: 'object', properties: { error: { type: 'string' } }, required: ['error'] }
+            }
         }, 
         preValidation: async (request, reply) => {
             const { email, password } = request.body || {};

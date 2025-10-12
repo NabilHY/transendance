@@ -5,24 +5,15 @@ WORKDIR /usr/src/app
 # Install build dependencies for native modules
 RUN apk add --no-cache python3 make g++ curl
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy source code
+# Copy source code (no host node_modules)
 COPY . .
-
-# Create database directory
-RUN mkdir -p /usr/src/app/data
+RUN chmod +x docker/run.sh && mkdir -p /usr/src/app/db
 
 # Expose port
 EXPOSE 4000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:4000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 CMD node -e "require('http').get('http://localhost:4000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the service
-CMD ["npm", "start"]
+# Start the service with runtime install
+CMD ["sh", "-lc", "./docker/run.sh"]

@@ -1,6 +1,7 @@
 const fastify = require('fastify')({ logger: true });
 const config = require('../config');
 
+
 fastify.setErrorHandler(function (err, req, reply) {
     // Handle validation errors with custom messages
     if (err.validation) {
@@ -24,6 +25,8 @@ fastify.setErrorHandler(function (err, req, reply) {
     });
 });
 
+fastify.register(require('@fastify/cookie'));
+
 // Register plugins
 fastify.register(require('@fastify/cors'), {
     origin: [config.FRONTEND_URL],
@@ -33,11 +36,29 @@ fastify.register(require('@fastify/cors'), {
 fastify.register(require('../plugins/db'));
 fastify.register(require('../plugins/auth'));
 fastify.register(require('../plugins/swagger'));
+fastify.register
 
 // Health check
-fastify.get('/health', async (request, reply) => {
-    return { 
-        status: 'ok', 
+fastify.get('/health', {
+    schema: {
+        tags: ['System'],
+        summary: 'Health check',
+        security: [],
+        response: {
+            200: {
+                type: 'object',
+                properties: {
+                    status: { type: 'string' },
+                    service: { type: 'string' },
+                    version: { type: 'string' },
+                    timestamp: { type: 'string' }
+                }
+            }
+        }
+    }
+}, async (request, reply) => {
+    return {
+        status: 'ok',
         service: config.SERVICE_NAME,
         version: config.SERVICE_VERSION,
         timestamp: new Date().toISOString()
@@ -45,7 +66,24 @@ fastify.get('/health', async (request, reply) => {
 });
 
 // Service discovery endpoint
-fastify.get('/service-info', async (request, reply) => {
+fastify.get('/service-info', {
+    schema: {
+        tags: ['System'],
+        summary: 'Service metadata',
+        security: [],
+        response: {
+            200: {
+                type: 'object',
+                properties: {
+                    service: { type: 'string' },
+                    version: { type: 'string' },
+                    endpoints: { type: 'array', items: { type: 'string' } },
+                    dependencies: { type: 'array', items: { type: 'string' } }
+                }
+            }
+        }
+    }
+}, async (request, reply) => {
     return {
         service: config.SERVICE_NAME,
         version: config.SERVICE_VERSION,

@@ -26,7 +26,13 @@ async function swaggerPlugin(fastify) {
                         bearerFormat: 'JWT'
                     }
                 }
-            }
+            },
+            tags: [
+                { name: 'Users', description: 'User directory and lookup' },
+                { name: 'Profile', description: 'Current user profile management' },
+                { name: 'System', description: 'Service health and metadata' }
+            ],
+            security: [{ bearerAuth: [] }]
         }
     });
 

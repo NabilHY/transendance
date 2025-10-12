@@ -1,6 +1,39 @@
 module.exports = async function (fastify) {
     // Get all users or search users
-    fastify.get('/users', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    fastify.get('/users', { preHandler: [fastify.authenticate], schema: {
+        tags: ['Users'],
+        summary: 'List or search users',
+        security: [{ bearerAuth: [] }],
+        querystring: {
+            type: 'object',
+            properties: {
+                search: { type: 'string', description: 'Search by username, first or last name' }
+            }
+        },
+        response: {
+            200: {
+                description: 'List of users',
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'integer' },
+                        username: { type: 'string', nullable: true },
+                        first_name: { type: 'string', nullable: true },
+                        last_name: { type: 'string', nullable: true },
+                        profile_pic: { type: 'string', nullable: true },
+                        is_online: { type: 'integer', enum: [0,1] },
+                        created_at: { type: 'string' }
+                    }
+                }
+            },
+            401: {
+                description: 'Unauthorized',
+                type: 'object',
+                properties: { error: { type: 'string' } }
+            }
+        }
+    } }, async (request, reply) => {
         const { search } = request.query || {};
         
         let sql = `
@@ -23,7 +56,32 @@ module.exports = async function (fastify) {
     });
 
     // Get user by ID
-    fastify.get('/users/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    fastify.get('/users/:id', { preHandler: [fastify.authenticate], schema: {
+        tags: ['Users'],
+        summary: 'Get user by id',
+        security: [{ bearerAuth: [] }],
+        params: {
+            type: 'object',
+            properties: { id: { type: 'integer' } },
+            required: ['id']
+        },
+        response: {
+            200: {
+                type: 'object',
+                properties: {
+                    id: { type: 'integer' },
+                    username: { type: 'string', nullable: true },
+                    first_name: { type: 'string', nullable: true },
+                    last_name: { type: 'string', nullable: true },
+                    profile_pic: { type: 'string', nullable: true },
+                    is_online: { type: 'integer', enum: [0,1] },
+                    created_at: { type: 'string' },
+                    updated_at: { type: 'string' }
+                }
+            },
+            404: { type: 'object', properties: { error: { type: 'string' } } }
+        }
+    } }, async (request, reply) => {
         const { id } = request.params;
         
         const profile = fastify.db.prepare(`
@@ -41,7 +99,18 @@ module.exports = async function (fastify) {
     });
 
     // Add friend
-    fastify.post('/users/:id/friend', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    fastify.post('/users/:id/friend', { preHandler: [fastify.authenticate], schema: {
+        tags: ['Users'],
+        summary: 'Send friend request',
+        security: [{ bearerAuth: [] }],
+        params: { type: 'object', properties: { id: { type: 'integer' } }, required: ['id'] },
+        response: {
+            201: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, requestId: { type: 'string' } }, required: ['success','message','requestId'] },
+            400: { type: 'object', properties: { error: { type: 'string' } } },
+            403: { type: 'object', properties: { error: { type: 'string' } } },
+            404: { type: 'object', properties: { error: { type: 'string' } } }
+        }
+    } }, async (request, reply) => {
         const { id } = request.params;
         const userId = request.user.id;
         
@@ -86,7 +155,17 @@ module.exports = async function (fastify) {
     });
 
     // Block user
-    fastify.post('/users/:id/block', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    fastify.post('/users/:id/block', { preHandler: [fastify.authenticate], schema: {
+        tags: ['Users'],
+        summary: 'Block a user',
+        security: [{ bearerAuth: [] }],
+        params: { type: 'object', properties: { id: { type: 'integer' } }, required: ['id'] },
+        response: {
+            201: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' } }, required: ['success','message'] },
+            400: { type: 'object', properties: { error: { type: 'string' } } },
+            404: { type: 'object', properties: { error: { type: 'string' } } }
+        }
+    } }, async (request, reply) => {
         const { id } = request.params;
         const userId = request.user.id;
         

@@ -1,7 +1,36 @@
 const config = require('../config');
 
 module.exports = async function (fastify) {
-    fastify.post('/verify-token', async (req, reply) => {
+    fastify.post('/verify-token', {
+        schema: {
+            description: 'Validate an access token from another internal service',
+            tags: ['Security'],
+            summary: 'Verify access token (internal)',
+            body: {
+                type: 'object',
+                required: ['token', 'serviceKey'],
+                properties: {
+                    token: { type: 'string', description: 'JWT access token' },
+                    serviceKey: { type: 'string', description: 'Shared internal service key' }
+                }
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        valid: { type: 'boolean' },
+                        userId: { type: 'integer', nullable: true },
+                        type: { type: 'string', nullable: true }
+                    },
+                    required: ['valid']
+                },
+                400: { type: 'object', properties: { valid: { type: 'boolean' }, error: { type: 'string' } }, required: ['valid','error'] },
+                401: { type: 'object', properties: { valid: { type: 'boolean' }, error: { type: 'string' } }, required: ['valid','error'] },
+                403: { type: 'object', properties: { valid: { type: 'boolean' }, error: { type: 'string' } }, required: ['valid','error'] },
+                500: { type: 'object', properties: { valid: { type: 'boolean' }, error: { type: 'string' } }, required: ['valid','error'] }
+            }
+        }
+    }, async (req, reply) => {
         // Service key validation
         
         
@@ -21,7 +50,7 @@ module.exports = async function (fastify) {
             }
 
             // verify service key
-            if (serviceKey !== config.INTEENAL_SERVICE_KEY) {
+            if (serviceKey !== config.INTERNAL_SERVICE_KEY) {
                 fastify.log.warn('Invalid service key');
                 return reply.code(403).send({
                     valid: false,

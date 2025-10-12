@@ -8,12 +8,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY package*.json ./
-
-RUN npm install && npm install -g nodemon
-
 COPY . .
+RUN chmod +x docker/run.sh
 
 EXPOSE 8005
 
-CMD ["npm", "start"]
+CMD ["sh", "-lc", "./docker/run.sh"]

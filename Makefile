@@ -105,7 +105,6 @@ usr-manag-shell:
 	docker compose exec usr-manag /bin/bash
 
 frontend-shell:
-
 	docker compose exec frontend /bin/sh
 
 # Monitoring commands

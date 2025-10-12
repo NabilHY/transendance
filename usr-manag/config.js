@@ -11,6 +11,6 @@ module.exports = {
     SERVICE_NAME: 'usr-manag',
     SERVICE_VERSION: '1.0.0',
     
-    INTEENAL_SERVICE_KEY: process.env.INTERNAL_SERVICE_KEY,
+    INTERNAL_SERVICE_KEY: process.env.INTERNAL_SERVICE_KEY,
 
 };

@@ -3,7 +3,8 @@ const fp = require('fastify-plugin');
 async function swagger(fastify, options) {
     // Register Swagger
     await fastify.register(require('@fastify/swagger'), {
-        swagger: {
+        openapi: {
+            openapi: '3.0.0',
             info: {
                 title: 'ft_transendance_42 Authentication API',
                 description: 'Secure authentication microservice with JWT, CSRF protection, and rate limiting',
@@ -17,10 +18,10 @@ async function swagger(fastify, options) {
                     url: 'https://opensource.org/licenses/MIT'
                 }
             },
-            host: 'localhost:8005',
-            schemes: ['http', 'https'],
-            consumes: ['application/json'],
-            produces: ['application/json'],
+            servers: [
+                // Note: BACKEND_URL should point to this service base URL
+                { url: process.env.BACKEND_URL || 'http://localhost:8005', description: 'Service base URL' }
+            ],
             tags: [
                 {
                     name: 'Authentication',
@@ -43,26 +44,22 @@ async function swagger(fastify, options) {
                     description: 'Google OAuth 2.0 authentication endpoints'
                 }
             ],
-            securityDefinitions: {
-                Bearer: {
-                    type: 'apiKey',
-                    name: 'Authorization',
-                    in: 'header',
-                    description: 'JWT Bearer token for authentication'
-                },
-                CSRF: {
-                    type: 'apiKey',
-                    name: 'X-CSRF-Token',
-                    in: 'header',
-                    description: 'CSRF token for state-changing requests'
+            components: {
+                securitySchemes: {
+                    Bearer: {
+                        type: 'http',
+                        scheme: 'bearer',
+                        bearerFormat: 'JWT',
+                        description: 'JWT Bearer token for authentication'
+                    },
+                    CSRF: {
+                        type: 'apiKey',
+                        name: 'X-CSRF-Token',
+                        in: 'header',
+                        description: 'CSRF token for state-changing requests'
+                    }
                 }
-            },
-            security: [
-                {
-                    Bearer: [],
-                    CSRF: []
-                }
-            ]
+            }
         }
     });
 

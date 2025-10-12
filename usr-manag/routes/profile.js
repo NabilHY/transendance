@@ -1,6 +1,26 @@
 module.exports = async function (fastify) {
     // Get current user profile
-    fastify.get('/me', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    fastify.get('/me', { preHandler: [fastify.authenticate], schema: {
+        tags: ['Profile'],
+        summary: 'Get current user profile',
+        security: [{ bearerAuth: [] }],
+        response: {
+            200: {
+                type: 'object',
+                properties: {
+                    id: { type: 'integer' },
+                    username: { type: 'string', nullable: true },
+                    first_name: { type: 'string', nullable: true },
+                    last_name: { type: 'string', nullable: true },
+                    profile_pic: { type: 'string', nullable: true },
+                    is_online: { type: 'integer', enum: [0,1] },
+                    created_at: { type: 'string' },
+                    updated_at: { type: 'string' }
+                }
+            },
+            401: { type: 'object', properties: { error: { type: 'string' } } }
+        }
+    } }, async (request, reply) => {
         const userId = request.user.id;
         
         const profile = fastify.db.prepare(`
@@ -33,7 +53,16 @@ module.exports = async function (fastify) {
     });
 
     // Update online status
-    fastify.patch('/me/status', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    fastify.patch('/me/status', { preHandler: [fastify.authenticate], schema: {
+        tags: ['Profile'],
+        summary: 'Update online status',
+        security: [{ bearerAuth: [] }],
+        body: { type: 'object', properties: { is_online: { type: 'boolean' } }, required: ['is_online'] },
+        response: {
+            200: { type: 'object', properties: { success: { type: 'boolean' }, is_online: { type: 'boolean' } }, required: ['success','is_online'] },
+            401: { type: 'object', properties: { error: { type: 'string' } } }
+        }
+    } }, async (request, reply) => {
         const { is_online } = request.body || {};
         const userId = request.user.id;
         
@@ -48,7 +77,16 @@ module.exports = async function (fastify) {
     });
 
     // Delete user profile (not the auth account)
-    fastify.delete('/me', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    fastify.delete('/me', { preHandler: [fastify.authenticate], schema: {
+        tags: ['Profile'],
+        summary: 'Delete current user profile data',
+        security: [{ bearerAuth: [] }],
+        response: {
+            200: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' } }, required: ['success','message'] },
+            401: { type: 'object', properties: { error: { type: 'string' } } },
+            404: { type: 'object', properties: { error: { type: 'string' } } }
+        }
+    } }, async (request, reply) => {
         const userId = request.user.id;
         
         const changes = fastify.db.prepare(`

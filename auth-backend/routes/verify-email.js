@@ -4,7 +4,17 @@ const crypto = require('crypto');
 
 
 module.exports = async function (fastify) {
-    fastify.post('/verify-email/request', async (req, reply) => {
+    fastify.post('/verify-email/request', {
+        schema: {
+            description: 'Request email verification link to be sent again',
+            tags: ['Authentication'],
+            summary: 'Request verification email',
+            body: { type: 'object', required: ['email'], properties: { email: { type: 'string', format: 'email' } } },
+            response: {
+                200: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] }
+            }
+        }
+    }, async (req, reply) => {
         const { email } = req.body || {};
         try {
             const user = await new Promise((resolve, reject) => {
@@ -42,7 +52,18 @@ module.exports = async function (fastify) {
     });
 
     // POST /api/auth/verify-email/confirm { token }
-	fastify.post('/verify-email/confirm', async (req, reply) => {
+	fastify.post('/verify-email/confirm', {
+        schema: {
+            description: 'Confirm email verification via token in request body',
+            tags: ['Authentication'],
+            summary: 'Confirm email (body token)',
+            body: { type: 'object', required: ['token'], properties: { token: { type: 'string' } } },
+            response: {
+                200: { type: 'object', properties: { message: { type: 'string' }, error: { type: 'string' } } },
+                400: { type: 'object', properties: { error: { type: 'string' } }, required: ['error'] }
+            }
+        }
+    }, async (req, reply) => {
 		const { token } = req.body || {};
 		
 		const tokenRecord = await new Promise((resolve, reject) => {
@@ -87,7 +108,18 @@ module.exports = async function (fastify) {
 	});
 
     // GET /api/auth/verify-email/confirm?token=...
-    fastify.get('/verify-email/confirm', async (req, reply) => {
+    fastify.get('/verify-email/confirm', {
+        schema: {
+            description: 'Confirm email verification via token in querystring',
+            tags: ['Authentication'],
+            summary: 'Confirm email (query token)',
+            querystring: { type: 'object', required: ['token'], properties: { token: { type: 'string' } } },
+            response: {
+                302: { description: 'Redirect to frontend on success' },
+                400: { type: 'object', properties: { error: { type: 'string' } }, required: ['error'] }
+            }
+        }
+    }, async (req, reply) => {
         const q = req.query || {};
         const token = q.token;
         if (!token || typeof token !== 'string') {
