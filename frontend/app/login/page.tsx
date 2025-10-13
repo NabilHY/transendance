@@ -16,7 +16,7 @@ export default function LoginPage() {
 	const [forgotPassword, setForgotPassword] = useState(false);
 
 	useEffect(() => {
-		if (isLoggedIn) router.replace('/');
+		if (isLoggedIn) router.repylace('/');
 	}, [isLoggedIn, router]);
 
 	useEffect(() => {
