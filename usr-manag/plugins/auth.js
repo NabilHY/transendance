@@ -1,24 +1,26 @@
 const fp = require('fastify-plugin');
 const { validateToken } = require('../utils/validateToken');
 
-async function authPlugin(fastify) {
-    fastify.decorate('authenticate', function (request, reply) {
-            const token = request.cookies?.accessToken || 
-                         request.headers?.authorization?.replace('Bearer ', '');
-            
-            const result = validateToken(token);
+module.exports = fp(async function authPlugin(fastify) {
+    fastify.decorate('authenticate', function (request, reply, done) {
+        const token = request.cookies?.accessToken ||
+            request.headers?.authorization?.replace('Bearer ', '');
 
-            if (!result.valid) {
-                return reply.code(401).send({ error: result.error });
-            }
+        // Optional: debug
+        // console.log('Token:', token);
 
-            request.user = {
-                id: result.userId,
-                type: result.type,
-            }
+        const result = validateToken(token);
+        if (!result.valid) {
+            reply.code(401).send({ error: result.error });
+            return;
+        }
+
+        request.user = {
+            id: result.userId,
+            type: result.type,
+        };
+        done();
     });
-    
-    console.log('Auth plugin: authenticate function decorated');
-}
 
-module.exports = fp(authPlugin);
+    console.log('Auth plugin: authenticate function decorated');
+});
