@@ -1,8 +1,10 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { UMUser, isProfileComplete, umGetMe } from '@/lib/api';
+import { UMUser, isProfileComplete, umGetMe, umProfileComplete } from '@/lib/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
 
@@ -18,7 +20,8 @@ type AuthContextValue = {
 	requires2FA: boolean;
 	loading: boolean;
 	error: string | null;
-	profileCheckRedirect: boolean | null;
+	profileCheckRedirect: string | null;
+	checkProfileAndRedirect: () => Promise<string>;
 	ensureCsrf: () => Promise<string | null>;
 	fetchMe: () => Promise<void>;
 	login: (email: string, password: string) => Promise<{ requires2FA?: boolean } | void>;
@@ -31,18 +34,6 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-// function checkProfileAndRedirect(profile: UMUser) {
-// 	const complete = isProfileComplete(profile);
-	
-// 	if (!complete) {
-// 		window.location.href = '/complete-profile';
-// 	}
-
-// 	window.location.href = '/dashboard';
-
-// 	return complete;
-// }
 
 function isJsonContentType(headers: HeadersInit | undefined): boolean {
 	if (!headers) return false;
@@ -58,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [requires2FA, setRequires2FA] = useState<boolean>(false);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
-	const [profileCheckRedirect, setProfileCheckRedirect] = useState<boolean>(false);
+	const [profileCheckRedirect, setProfileCheckRedirect] = useState<string | null>(null);
 	const initializingRef = useRef<boolean>(true);
 
 	const apiFetch = useCallback(async (path: string, options: RequestInit = {}) => {
@@ -101,31 +92,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			return null;
 		}
 	}, [csrfToken]);
+	
+	const router = useRouter();
 
 	const checkProfileAndRedirect = useCallback(async () => {
+		console.log('+++ checkProfileAndRedirect +++');
 		try {
 			const csrf = await ensureCsrf();
-			const result = await umGetMe(csrf);
-
-			if (result.ok && result.data) {
-				const profile = result.data as UMUser;
-				const complete = isProfileComplete(profile);
-				if (!complete) {
-					setProfileCheckRedirect('/complete-profile');
-					return '/complete-profile';
-				} else {
-					setProfileCheckRedirect('/dashboard');
-					return '/dashboard';
-				}
-			}
-			setProfileCheckRedirect('/dashboard');
-			return '/dashboard';
-		} catch (error) {
-			console.error('Error checking profile and redirecting:', error);
-			setProfileCheckRedirect('/dashboard');
-			return '/dashboard';
+			console.log('+++ csrf +++', csrf);
+			const res = await umProfileComplete(csrf);
+			console.log('+++ res +++', res);
+			const dest = res.ok && (res.data as any)?.complete ? '/' : '/complete-profile';
+			console.log('+++ dest +++', dest);
+			setProfileCheckRedirect(dest);
+			router.replace(dest);
+			return dest;
+		} catch (_error) {
+			// Fail-safe: if the profile completion check fails, send user to complete-profile
+			setProfileCheckRedirect('/complete-profile');
+			router.replace('/complete-profile');
+			return '/complete-profile';
 		}
-	}, [ensureCsrf]);
+	}, [ensureCsrf, router]);
 
 	const checkPre2FAToken = useCallback(() => {
 		// Check if we have a pre2faToken cookie (indicates 2FA is required)
@@ -349,6 +337,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		loading,
 		error,
 		profileCheckRedirect,
+		checkProfileAndRedirect,
 		ensureCsrf,
 		fetchMe,
 		login,
@@ -367,6 +356,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		loading,
 		error,
 		profileCheckRedirect,
+		checkProfileAndRedirect,
 		ensureCsrf,
 		fetchMe,
 		login,
@@ -393,5 +383,3 @@ export function useAuth(): AuthContextValue {
 	}
 	return ctx;
 }
-
-

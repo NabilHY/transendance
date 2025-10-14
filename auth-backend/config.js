@@ -1,4 +1,6 @@
 module.exports = {
+	PORT: process.env.AUTH_PORT || 8005,
+
 	NODE_ENV: process.env.NODE_ENV,
 	JWT_SECRET: process.env.JWT_SECRET,
 	JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN,
@@ -9,7 +11,7 @@ module.exports = {
 	GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
 	FRONTEND_URL: process.env.FRONTEND_URL,
 	
-	BACKEND_URL: process.env.BACKEND_URL,
+	BACKEND_URL: process.env.AUTH_BACKEND_URL,
 	SMTP_HOST: process.env.SMTP_HOST,
 	SMTP_PORT: process.env.SMTP_PORT,
 	SMTP_USER: process.env.SMTP_USER,

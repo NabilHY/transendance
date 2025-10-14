@@ -71,7 +71,7 @@ function FetchInterceptor({ children }: { children?: React.ReactNode }) {
 function OAuthCallbackHandler({ children }: { children?: React.ReactNode }) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	const { checkOAuth2FA } = useAuth();
+    const { checkOAuth2FA, checkProfileAndRedirect, isLoggedIn } = useAuth();
 
 	useEffect(() => {
 		// Handle OAuth callback parameters
@@ -88,15 +88,20 @@ function OAuthCallbackHandler({ children }: { children?: React.ReactNode }) {
 				router.push('/twofa?oauth=true');
 			} else {
 				// No 2FA needed, redirect to home
-				console.log('✅ [OAuth Debug] No 2FA needed, redirecting to home');
-				router.push('/');
+				( async () => { await checkProfileAndRedirect(); } )();
 			}
 		} else if (errorParam) {
 			console.log('❌ [OAuth Debug] OAuth error:', errorParam);
 			// Redirect to login page with error
 			router.push(`/login?error=${errorParam}`);
 		}
-	}, [searchParams, router, checkOAuth2FA]);
+    }, [searchParams, router, checkOAuth2FA, checkProfileAndRedirect]);
+
+    // Global guard: when user is logged in, ensure profile completion redirect is applied
+    useEffect(() => {
+        if (!isLoggedIn) return;
+        (async () => { await checkProfileAndRedirect(); })();
+    }, [isLoggedIn, checkProfileAndRedirect]);
 
 	return <>{children}</>;
 }

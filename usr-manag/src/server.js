@@ -1,6 +1,10 @@
 const fastify = require('fastify')({ logger: true });
 const config = require('../config');
+// Define allowed origins (single FRONTEND_URL or comma-separated FRONTEND_URLS)
 
+const allowedOrigins = config.FRONTEND_URL;
+
+console.log('allowedOrigins ::::::', allowedOrigins);
 
 fastify.setErrorHandler(function (err, req, reply) {
     // Handle validation errors with custom messages
@@ -29,8 +33,16 @@ fastify.register(require('@fastify/cookie'));
 
 // Register plugins
 fastify.register(require('@fastify/cors'), {
-    origin: [config.FRONTEND_URL],
-    credentials: true
+    origin: (origin, cb) => {
+        if (!origin) return cb(null, true);
+        const allowed = allowedOrigins.includes(origin);
+        cb(null, allowed);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+    exposedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+    maxAge: 600,
 });
 
 fastify.register(require('../plugins/db'));
@@ -93,6 +105,7 @@ fastify.get('/service-info', {
             'GET /me',
             'GET /users/:id',
             'PATCH /me/status',
+            'PATCH /me/profile',
             'DELETE /me',
             'POST /users/:id/friend',
             'POST /users/:id/block'
@@ -103,13 +116,14 @@ fastify.get('/service-info', {
 
 // Register routes
 fastify.register(require('../routes/users'), { prefix: '' });
+// fastify.register(require('../routes/profile'), { prefix: '' });
 
 const start = async () => {
     try {
-        await fastify.listen({ port: config.PORT, host: '0.0.0.0' });
-        fastify.log.info(`User Management Service listening on port ${config.PORT}`);
-        fastify.log.info(`Auth Service URL: ${config.AUTH_SERVICE_URL}`);
-        fastify.log.info(`API Documentation: http://localhost:${config.PORT}/docs`);
+        await fastify.listen({ port: `${config.USR_MANAG_PORT}`, host: '0.0.0.0' });
+        fastify.log.info(`User Management Service listening on port ${config.USR_MANAG_PORT}`);
+        fastify.log.info(`Auth Service URL: ${config.AUTH_BACKEND_URL}`);
+        fastify.log.info(`API Documentation: http://localhost:${config.USR_MANAG_PORT}/docs`);
     } catch (err) {
         fastify.log.error(err);
         process.exit(1);

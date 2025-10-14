@@ -1,5 +1,5 @@
+const config = require('../config');
 const fastify = require('fastify')( { logger: true } );
-const PORT = 8005
 
 fastify.setErrorHandler(function (err, req, reply) {
     // Handle validation errors with custom messages
@@ -58,8 +58,8 @@ fastify.get('/health', async (_req, reply) => {
 
 const start = async () => {
     try {
-        await fastify.listen({ port: PORT, host: '0.0.0.0' });
-        fastify.log.info(`Server is running on ${fastify.server.address().port}`);
+        fastify.listen({ port: config.PORT || 8005, host: '0.0.0.0' });
+        fastify.log.info(`Server is running on ${config.PORT || 8005}`);
     } catch (err) {
         fastify.log.error(err);
         process.exit(1);

@@ -9,6 +9,7 @@ services:
       - ft_transendance
     volumes:
       - users_data:/usr/src/app/db
+      - ./db-init:/usr/src/app
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${DB_INIT_PORT:-3000}/health"]
       interval: 5s
@@ -24,6 +25,7 @@ services:
     networks:
       - ft_transendance
     volumes:
+      - ./auth-backend:/usr/src/app
       - users_data:/usr/src/app/db
     depends_on:
       db-init:
@@ -41,14 +43,14 @@ services:
       - ${FRONTEND_PORT:-8080}:${FRONTEND_PORT:-8080}
     networks:
       - ft_transendance
-    depends_on: 
+    depends_on:
       auth-backend:
         condition: service_healthy
       usr-manag:
         condition: service_healthy
     env_file: .env
-    # volumes:
-    #   - /app/.next
+    volumes:
+      - ./frontend:/app
 
   mailpit:
     image: axllent/mailpit
@@ -57,9 +59,7 @@ services:
       - "8025:8025"  # Web UI port
     networks:
       - ft_transendance
-    environment:
-      - MP_SMTP_AUTH_ACCEPT_ANY=1
-      - MP_SMTP_AUTH_ALLOW_INSECURE=1
+    env_file: .env
 
   usr-manag:
     build: ./usr-manag
@@ -73,14 +73,17 @@ services:
         condition: service_healthy
       auth-backend:
         condition: service_healthy
+      mailpit:
+        condition: service_healthy
     volumes:
+      - ./usr-manag:/usr/src/app
       - users_data:/usr/src/app/db
     env_file: .env
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${USR_MANAG_PORT:-4000}/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 24
 
 networks:
   ft_transendance:

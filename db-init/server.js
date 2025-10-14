@@ -8,8 +8,8 @@ const config = require('./config');
 
 // Simple config
 const PORT = config.PORT;
-const DATABASE_PATH = config.DATABASE_PATH;
-const DATABASE_DIR = config.DATABASE_DIR;
+const DATABASE_PATH = config.DATABASE_PATH || '/usr/src/app/db/shared.sqlite';
+const DATABASE_DIR = '/usr/src/app/db';
 
 let db = null;
 let isDatabaseReady = false;

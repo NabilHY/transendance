@@ -1,7 +1,7 @@
 module.exports = {
     NODE_ENV: process.env.NODE_ENV,
-    PORT: process.env.PORT || 4000,
-    AUTH_SERVICE_URL: process.env.AUTH_SERVICE_URL || 'http://localhost:8005',
+    USR_MANAG_PORT: process.env.USR_MANAG_PORT || 4000,
+    AUTH_BACKEND_URL: process.env.AUTH_BACKEND_URL || 'http://localhost:8005',
     DATABASE_PATH: process.env.DATABASE_PATH || './db/sqlite.db',
     
     // CORS settings

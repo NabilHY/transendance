@@ -47,7 +47,7 @@ async function fetchJson<T = any>(path: string, options: RequestInit = {}, csrfT
 }
 
 export async function umUpdateProfile(profile: UpdateProfileBody, csrfToken?: string | null): Promise<ApiResult<{ success: boolean }>> {
-	return fetchUserMgmtJson<{ success: boolean }>('/me/profile', { 
+	return fetchUserMgmtJson<{ success: boolean }>('/me/profile', {
 		method: 'PATCH',
 		body: JSON.stringify({ profile })
 	}, csrfToken);
@@ -173,8 +173,8 @@ async function fetchUserMgmtJson<T = any>(path: string, options: RequestInit = {
     return { ok: res.ok, status: res.status, data };
 }
 
-export type UMUser = { 
-    id: number; 
+export type UMUser = {
+    id: number;
     username: string; 
     first_name?: string; 
     last_name?: string; 
@@ -183,6 +183,11 @@ export type UMUser = {
     created_at: string; 
     updated_at?: string; 
 };
+
+export type ProfileCompleteResponse = { complete: boolean };
+export async function umProfileComplete(csrfToken?: string | null) {
+	return fetchUserMgmtJson<ProfileCompleteResponse>('/me/profile/complete', {}, csrfToken);
+}
 
 export async function umListUsers(search?: string, csrfToken?: string | null) {
     const qs = search ? `?search=${encodeURIComponent(search)}` : '';
@@ -219,5 +224,3 @@ export async function umBlockUser(targetId: string | number, csrfToken?: string 
         method: 'POST'
     }, csrfToken);
 }
-
-

@@ -40,6 +40,9 @@ module.exports = async function (fastify) {
              401: { type: 'object', properties: { error: { type: 'string' } } }
         }
     } }, async (request, reply) => {
+    
+        console.log('+++++ 🔍 [Profile Debug] Checking if profile is complete ++++++');
+    
         const userId = request.user.id;
         
         const profile = fastify.db.prepare(`
@@ -52,7 +55,14 @@ module.exports = async function (fastify) {
             return reply.code(404).send({ error: 'Profile not found' });
         }
         
-        const isComplete = !!(profile.username && profile.first_name && profile.last_name && profile.profile_pic);
+        // Profile is considered complete if:
+        // - username is NOT the auto-generated default (user_<id>)
+        // - first_name and last_name are present (non-empty)
+        // Note: profile_pic is NOT required
+        const hasCustomUsername = !!(profile.username && !/^user_\d+$/.test(String(profile.username)));
+        const hasFirstName = !!(profile.first_name && String(profile.first_name).trim());
+        const hasLastName = !!(profile.last_name && String(profile.last_name).trim());
+        const isComplete = !!(hasCustomUsername && hasFirstName && hasLastName);
         
         return { complete: isComplete };
     });
@@ -83,7 +93,7 @@ module.exports = async function (fastify) {
         
         const profile = fastify.db.prepare(`
             SELECT id, username, first_name, last_name, 
-                   profile_pic, is_online, created_at, updated_at
+                profile_pic, is_online, created_at, updated_at
             FROM users 
             WHERE id = ?
         `).get(userId);

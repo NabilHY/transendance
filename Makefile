@@ -101,7 +101,7 @@ backend-shell:
 	docker compose exec auth-backend /bin/bash
 
 usr-manag-shell:
-	docker compose exec usr-manag /bin/bash
+	docker compose exec usr-manag /bin/sh
 
 frontend-shell:
 	docker compose exec frontend /bin/sh

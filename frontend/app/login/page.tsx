@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
-	const { login, requires2FA, isLoggedIn, error, clearError } = useAuth();
+	const { login, requires2FA, isLoggedIn, error, clearError, checkProfileAndRedirect } = useAuth();
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [email, setEmail] = useState('');
@@ -16,8 +16,10 @@ export default function LoginPage() {
 	const [forgotPassword, setForgotPassword] = useState(false);
 
 	useEffect(() => {
-		if (isLoggedIn) router.repylace('/');
-	}, [isLoggedIn, router]);
+		if (isLoggedIn) {
+			( async () => { await checkProfileAndRedirect(); } )();
+		}
+	}, [isLoggedIn, checkProfileAndRedirect]);
 
 	useEffect(() => {
 		if (requires2FA) router.replace('/twofa');
@@ -53,7 +55,7 @@ export default function LoginPage() {
 		}
 	}, [searchParams]);
 
-	async function onSubmit(e: any) {
+	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		clearError();
 		setSubmitting(true);
@@ -70,11 +72,11 @@ export default function LoginPage() {
 			<form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
 				<label>
 					<span>Le Email</span>
-					<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: 8 }} />
+				<input type="email" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} required style={{ width: '100%', padding: 8 }} />
 				</label>
 				<label>
 					<span>Le Password</span>
-					<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: 8 }} />
+				<input type="password" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} required style={{ width: '100%', padding: 8 }} />
 				</label>
 				<button type="submit" disabled={submitting} style={{ padding: 10 }}>
 					{submitting ? 'Signing in…' : 'Sign in'}
