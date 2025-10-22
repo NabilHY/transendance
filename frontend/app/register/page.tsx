@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { getCsrfToken, register as apiRegister } from '@/lib/api';
+import { useRequireGuest } from '@/hooks/useAuthGuard';
 
 export default function RegisterPage() {
 	const [email, setEmail] = useState('');
@@ -10,6 +11,12 @@ export default function RegisterPage() {
 	const [submitting, setSubmitting] = useState(false);
 	const [message, setMessage] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	
+	const { loading } = useRequireGuest();
+	
+	if (loading) {
+		return <div>Loading...</div>;
+	}
 
 	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();

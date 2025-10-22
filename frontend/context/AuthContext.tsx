@@ -21,7 +21,10 @@ type AuthContextValue = {
 	loading: boolean;
 	error: string | null;
 	profileCheckRedirect: string | null;
+	profileComplete: boolean;
+	checkingProfileCompletion: boolean;
 	checkProfileAndRedirect: () => Promise<string>;
+	checkProfileCompletion: () => Promise<boolean>;
 	ensureCsrf: () => Promise<string | null>;
 	fetchMe: () => Promise<void>;
 	login: (email: string, password: string) => Promise<{ requires2FA?: boolean } | void>;
@@ -51,7 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [error, setError] = useState<string | null>(null);
 	const [profileCheckRedirect, setProfileCheckRedirect] = useState<string | null>(null);
 	const initializingRef = useRef<boolean>(true);
-
+	
+	const [profileComplete, setProfileComplete] = useState<boolean>(false);
+	const [checkingProfileCompletion, setCheckingProfileCompletion] = useState<boolean>(false);
+	
 	const apiFetch = useCallback(async (path: string, options: RequestInit = {}) => {
 		const url = `${API_BASE}${path}`;
 		const headers: HeadersInit = new Headers(options.headers);
@@ -94,26 +100,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	}, [csrfToken]);
 	
 	const router = useRouter();
+	
+	const checkProfileCompletion = useCallback( async (): Promise<boolean> => {
+		console.log(' +++ Check Profile Completion +++');
+		setCheckingProfileCompletion(true);
+		
+		try {
+			const csrf = await ensureCsrf();
+			const res = await umProfileComplete(csrf);
+			const isComplete = res.ok && (res.data as any)?.complete;
+			setProfileComplete(!!isComplete);
+			return isComplete;
+		} catch (error) {
+			setProfileComplete(false);
+			return false;
+		} finally {
+			setCheckingProfileCompletion(false);
+		}
+	}, [ensureCsrf])
 
 	const checkProfileAndRedirect = useCallback(async () => {
 		console.log('+++ checkProfileAndRedirect +++');
-		try {
-			const csrf = await ensureCsrf();
-			console.log('+++ csrf +++', csrf);
-			const res = await umProfileComplete(csrf);
-			console.log('+++ res +++', res);
-			const dest = res.ok && (res.data as any)?.complete ? '/' : '/complete-profile';
-			console.log('+++ dest +++', dest);
-			setProfileCheckRedirect(dest);
-			router.replace(dest);
-			return dest;
-		} catch (_error) {
-			// Fail-safe: if the profile completion check fails, send user to complete-profile
-			setProfileCheckRedirect('/complete-profile');
-			router.replace('/complete-profile');
-			return '/complete-profile';
-		}
-	}, [ensureCsrf, router]);
+		const isComplete = await checkProfileCompletion();
+		const dest = isComplete ? '/' : '/complete-profile';
+		router.replace(dest);
+		return dest;
+	}, [checkProfileCompletion, router]);
+	
 
 	const checkPre2FAToken = useCallback(() => {
 		// Check if we have a pre2faToken cookie (indicates 2FA is required)
@@ -224,9 +237,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			setIsLoggedIn(true);
 			setRequires2FA(false);
 
+			await checkProfileCompletion();
 			await checkProfileAndRedirect();
 		}
-	}, [apiFetch, ensureCsrf]);
+	}, [apiFetch, ensureCsrf, checkProfileCompletion, checkProfileAndRedirect]);
 
 	const login2fa = useCallback(async (token: string) => {
 		setError(null);
@@ -337,7 +351,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		loading,
 		error,
 		profileCheckRedirect,
+		profileComplete,
+		checkingProfileCompletion,
 		checkProfileAndRedirect,
+		checkProfileCompletion,
 		ensureCsrf,
 		fetchMe,
 		login,
@@ -356,7 +373,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		loading,
 		error,
 		profileCheckRedirect,
+		profileComplete,
+		checkingProfileCompletion,
 		checkProfileAndRedirect,
+		checkProfileCompletion,
 		ensureCsrf,
 		fetchMe,
 		login,

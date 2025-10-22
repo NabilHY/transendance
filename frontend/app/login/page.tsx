@@ -4,9 +4,16 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useRequireAuth, useRequireGuest } from '@/hooks/useAuthGuard';
 
 export default function LoginPage() {
 	const { login, requires2FA, isLoggedIn, error, clearError, checkProfileAndRedirect } = useAuth();
+	const { loading } = useRequireGuest();
+	
+	if (loading) {
+		return <div>Loading...</div>;
+	}
+	
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [email, setEmail] = useState('');
@@ -14,19 +21,6 @@ export default function LoginPage() {
 	const [submitting, setSubmitting] = useState(false);
 	const [oauthError, setOauthError] = useState<string | null>(null);
 	const [forgotPassword, setForgotPassword] = useState(false);
-
-
-	// useEffect(() => {
-	// 	if (isLoggedIn) {
-	// 		( async () => { await checkProfileAndRedirect(); } )();
-	// 	}
-	// }, [isLoggedIn, checkProfileAndRedirect]);
-	// useEffect(() => {
-	// 	if (requires2FA) router.replace('/twofa');
-	// }, [requires2FA, router]);
-	// useEffect(() => {
-	// 	if (forgotPassword) router.push('/forgot-password');
-	// }, [forgotPassword, router]);
 
 	useEffect(() => {
 		if (requires2FA) router.replace('/twofa');

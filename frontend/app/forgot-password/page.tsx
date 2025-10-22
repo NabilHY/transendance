@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRequireGuest } from '@/hooks/useAuthGuard';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
 
@@ -12,6 +13,12 @@ export default function ForgotPasswordPage() {
 	const [message, setMessage] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
+	
+	const { loading } = useRequireGuest();
+	
+	if (loading) {
+		return <div>Loading...</div>;
+	}
 
 	function isValidEmail(value: string): boolean {
 		const trimmed = value.trim();

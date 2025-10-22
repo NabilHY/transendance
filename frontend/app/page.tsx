@@ -7,10 +7,12 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useUser } from '@/context/UserContext';
 import { twofaDisable, twofaSetupStart, twofaSetupVerify, twofaStatus } from '@/lib/api';
+import { useRequireAuth } from '@/hooks/useAuthGuard';
 
 export default function HomePage() {
 	const { isLoggedIn, user, fetchMe, logout, error, clearError, ensureCsrf, requires2FA, checkOAuth2FA } = useAuth();
 	const { profile, loading: profileLoading } = useUser();
+	const { loading: authLoading } = useRequireAuth();
 	const router = useRouter();
 	const [qr, setQr] = useState<string | null>(null);
 	const [setupToken, setSetupToken] = useState('');
@@ -18,6 +20,10 @@ export default function HomePage() {
 	const [msg, setMsg] = useState<string | null>(null);
 	const [err, setErr] = useState<string | null>(null);
 	const [twofaEnabled, setTwofaEnabled] = useState<boolean | null>(null);
+	
+	if (authLoading) {
+		return <div>Loading...</div>;
+	}
 
 	useEffect(() => {
 		console.log('🔄 [OAuth Debug] Main page useEffect triggered');

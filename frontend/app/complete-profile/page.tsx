@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { umUpdateProfile, getCsrfToken } from '@/lib/api';
+import { useRequireAuth } from '@/hooks/useAuthGuard';
 
 export default function CompleteProfilePage() {
     const router = useRouter();
@@ -15,12 +16,24 @@ export default function CompleteProfilePage() {
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    
+    const { loading: authLoading, isProfileComplete } = useRequireAuth();
 
     useEffect(() => {
-        if (profileCheckRedirect) {
-            router.push(profileCheckRedirect);
+        if (!authLoading && isProfileComplete) {
+            router.push('/');
         }
-    }, [profileCheckRedirect, router]);
+    }, [authLoading, isProfileComplete, router]);
+    
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, []);
 
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault();

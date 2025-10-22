@@ -91,9 +91,14 @@ export function useRequireProfileComplete(): AuthGuardResult {
         if (!loading && isLoggedIn) {
             checkProfileCompletion();
         }
-        
-        
     }, [loading, isLoggedIn, router]);
+    
+    // Separate useEffect to handle redirect when profile is incomplete
+    useEffect(() => {
+        if (!loading && !profileLoading && isLoggedIn && !isProfileComplete) {
+            router.replace('/complete-profile');
+        }
+    }, [loading, profileLoading, isLoggedIn, isProfileComplete, router]);
     
     const checkProfileCompletion = async () => {
         setProfileLoading(true);
@@ -104,7 +109,7 @@ export function useRequireProfileComplete(): AuthGuardResult {
             setIsProfileComplete(!!complete);
         } catch (error) {
             console.error('Error checking profile completion:', error);
-            router.replace('/complete-profile');
+            setIsProfileComplete(false);
         } finally {
             setProfileLoading(false);
         }

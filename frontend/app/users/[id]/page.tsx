@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
 import { umGetUser, UMUser } from '@/lib/api';
+import { useRequireProfileComplete } from '@/hooks/useAuthGuard';
 
 export default function UserDetailPage() {
     const params = useParams();
@@ -13,11 +14,20 @@ export default function UserDetailPage() {
     const userId = params?.id as string;
     const { user: currentUser, ensureCsrf } = useAuth();
     const { addFriend, blockUser, clearError } = useUser();
+    const { loading: authLoading } = useRequireProfileComplete();
     
     const [user, setUser] = useState<UMUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
+
+    if (authLoading) {
+        return (
+            <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
+                <h1>Loading...</h1>
+            </main>
+        );
+    }
 
     useEffect(() => {
         if (userId) {

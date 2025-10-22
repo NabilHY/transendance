@@ -98,10 +98,10 @@ function OAuthCallbackHandler({ children }: { children?: React.ReactNode }) {
     }, [searchParams, router, checkOAuth2FA, checkProfileAndRedirect]);
 
     // Global guard: when user is logged in, ensure profile completion redirect is applied
-    useEffect(() => {
-        if (!isLoggedIn) return;
-        (async () => { await checkProfileAndRedirect(); })();
-    }, [isLoggedIn, checkProfileAndRedirect]);
+    // useEffect(() => {
+    //     if (!isLoggedIn) return;
+    //     (async () => { await checkProfileAndRedirect(); })();
+    // }, [isLoggedIn, checkProfileAndRedirect]);
 
 	return <>{children}</>;
 }
