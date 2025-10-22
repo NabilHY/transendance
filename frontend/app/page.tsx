@@ -20,10 +20,6 @@ export default function HomePage() {
 	const [msg, setMsg] = useState<string | null>(null);
 	const [err, setErr] = useState<string | null>(null);
 	const [twofaEnabled, setTwofaEnabled] = useState<boolean | null>(null);
-	
-	if (authLoading) {
-		return <div>Loading...</div>;
-	}
 
 	useEffect(() => {
 		console.log('🔄 [OAuth Debug] Main page useEffect triggered');
@@ -59,6 +55,10 @@ export default function HomePage() {
 			} catch { /* ignore */ }
 		})();
 	}, [isLoggedIn, ensureCsrf]);
+
+	if (authLoading) {
+		return <div>Loading...</div>;
+	}
 
 	return (
 		<main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>

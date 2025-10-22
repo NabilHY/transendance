@@ -13,7 +13,7 @@ export default function RegisterPage() {
 	const [error, setError] = useState<string | null>(null);
 	
 	const { loading } = useRequireGuest();
-	
+
 	if (loading) {
 		return <div>Loading...</div>;
 	}

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
-import { useRequireProfileComplete } from '@/hooks/useAuthGuard';
+import { useRequireAuth } from '@/hooks/useAuthGuard';
 
 export default function UsersPage() {
     const { 
@@ -19,7 +19,7 @@ export default function UsersPage() {
         blockUser, 
         clearError 
     } = useUser();
-    const { loading: authLoading} = useRequireProfileComplete();
+    const { loading: authLoading} = useRequireAuth();
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     
     useEffect(() => {

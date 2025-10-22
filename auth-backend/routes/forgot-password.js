@@ -10,10 +10,9 @@ module.exports = async function (fastify) {
             summary: 'Request password reset',
             body: {
                 type: 'object',
-                required: ['email', 'password'],
+                required: ['email'],
                 properties: {
-                    email: { type: 'string', format: 'email' },
-                    password: { type: 'string', minLength: 12, maxLength: 128 }
+                    email: { type: 'string', format: 'email' }
                 }
             },
             response: {
@@ -23,12 +22,8 @@ module.exports = async function (fastify) {
             }
         }, 
         preValidation: async (request, reply) => {
-            const { email, password } = request.body || {};
+            const { email } = request.body || {};
             if (!email) return reply.code(400).send({ error: 'Email is required' });
-            if (!password) return reply.code(400).send({ error: 'Password is required' });
-            const { validatePassword } = require('../utils/passwordPolicy');
-            const validation = validatePassword(password, email);
-            if (!validation.isValid) return reply.code(400).send({ error: validation.errors[0], details: validation.errors });
         },
     }, async (req, reply) => {
             const { email } = req.body || {};

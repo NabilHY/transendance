@@ -15,7 +15,7 @@ export default function ForgotPasswordPage() {
 	const router = useRouter();
 	
 	const { loading } = useRequireGuest();
-	
+
 	if (loading) {
 		return <div>Loading...</div>;
 	}

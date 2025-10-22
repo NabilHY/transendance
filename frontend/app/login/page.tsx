@@ -9,11 +9,6 @@ import { useRequireAuth, useRequireGuest } from '@/hooks/useAuthGuard';
 export default function LoginPage() {
 	const { login, requires2FA, isLoggedIn, error, clearError, checkProfileAndRedirect } = useAuth();
 	const { loading } = useRequireGuest();
-	
-	if (loading) {
-		return <div>Loading...</div>;
-	}
-	
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [email, setEmail] = useState('');
@@ -55,6 +50,10 @@ export default function LoginPage() {
 			setOauthError('Email verified. You can now log in.');
 		}
 	}, [searchParams]);
+
+	if (loading) {
+		return <div>Loading...</div>;
+	}
 
 	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();

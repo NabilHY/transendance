@@ -4,12 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
-import { useRequireProfileComplete } from '@/hooks/useAuthGuard';
+import { useRequireAuth } from '@/hooks/useAuthGuard';
 
 export default function ProfilePage() {
     const { profile, loading, error, updateOnlineStatus, clearError } = useUser();
     
-    const { loading: authLoading, isProfileComplete } = useRequireProfileComplete();
+    const { loading: authLoading, isProfileComplete } = useRequireAuth();
     
     const { logout } = useAuth();
     
