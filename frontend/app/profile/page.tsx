@@ -4,11 +4,24 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
+import { useRequireAuth } from '@/hooks/useAuthGuard';
 
 export default function ProfilePage() {
     const { profile, loading, error, updateOnlineStatus, clearError } = useUser();
-    const { isLoggedIn, logout } = useAuth();
+    
+    const { loading: authLoading } = useRequireAuth();
+    
+    const { logout } = useAuth();
+    
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    
+    if (authLoading || loading) {
+        return (
+            <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
+                <h1>Loading...</h1>
+            </main>
+        );
+    }
 
     const handleStatusToggle = async () => {
         if (!profile) return;
@@ -20,23 +33,6 @@ export default function ProfilePage() {
             setIsUpdatingStatus(false);
         }
     };
-
-    if (!isLoggedIn) {
-        return (
-            <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
-                <h1>Access Denied</h1>
-                <p>Please <Link href="/login">login</Link> to view your profile.</p>
-            </main>
-        );
-    }
-
-    if (loading) {
-        return (
-            <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
-                <h1>Loading Profile...</h1>
-            </main>
-        );
-    }
 
     return (
         <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>

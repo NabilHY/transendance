@@ -15,20 +15,27 @@ export default function LoginPage() {
 	const [oauthError, setOauthError] = useState<string | null>(null);
 	const [forgotPassword, setForgotPassword] = useState(false);
 
-	useEffect(() => {
-		if (isLoggedIn) {
-			( async () => { await checkProfileAndRedirect(); } )();
-		}
-	}, [isLoggedIn, checkProfileAndRedirect]);
+
+	// useEffect(() => {
+	// 	if (isLoggedIn) {
+	// 		( async () => { await checkProfileAndRedirect(); } )();
+	// 	}
+	// }, [isLoggedIn, checkProfileAndRedirect]);
+	// useEffect(() => {
+	// 	if (requires2FA) router.replace('/twofa');
+	// }, [requires2FA, router]);
+	// useEffect(() => {
+	// 	if (forgotPassword) router.push('/forgot-password');
+	// }, [forgotPassword, router]);
 
 	useEffect(() => {
 		if (requires2FA) router.replace('/twofa');
 	}, [requires2FA, router]);
 	
-	useEffect(() => {
+	useEffect(() => { 
 		if (forgotPassword) router.push('/forgot-password');
 	}, [forgotPassword, router]);
-
+	
 	// Handle OAuth error parameters
 	useEffect(() => {
 		const errorParam = searchParams.get('error');

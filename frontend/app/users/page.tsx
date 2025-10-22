@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
+import { useRequireAuth } from '@/hooks/useAuthGuard';
 
 export default function UsersPage() {
     const { 
@@ -18,14 +19,21 @@ export default function UsersPage() {
         blockUser, 
         clearError 
     } = useUser();
-    const { isLoggedIn, user } = useAuth();
+    // const { isLoggedIn, user } = useAuth();
+    const { loading: authLoading} = useRequireAuth();
     const [actionLoading, setActionLoading] = useState<number | null>(null);
 
+    // useEffect(() => {
+    //     if (isLoggedIn) {
+    //         fetchUsers();
+    //     }
+    // }, [isLoggedIn, fetchUsers]);
+    
     useEffect(() => {
-        if (isLoggedIn) {
+        if (!authLoading) {
             fetchUsers();
         }
-    }, [isLoggedIn, fetchUsers]);
+    }, [authLoading, fetchUsers]);
 
     const handleSearch = async (query: string) => {
         if (query.trim()) {
@@ -68,15 +76,15 @@ export default function UsersPage() {
             setActionLoading(null);
         }
     };
-
-    if (!isLoggedIn) {
+    
+    if (authLoading) {
         return (
             <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
-                <h1>Access Denied</h1>
-                <p>Please <Link href="/login">login</Link> to view users.</p>
+                <h1>Loading...</h1>
             </main>
         );
     }
+
 
     return (
         <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
