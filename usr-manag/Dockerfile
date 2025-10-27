@@ -1,9 +1,14 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /usr/src/app
 
-# Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++ curl
+# Install build dependencies for native modules (Debian/apt)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy source code (no host node_modules)
 COPY . .
@@ -16,4 +21,8 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 CMD node -e "require('http').get('http://localhost:4000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start the service with runtime install
-CMD ["sh", "-lc", "./docker/run.sh"]
+# CMD ["sh", "-lc", "./docker/run.sh"]
+
+RUN npm install --no-package-lock
+
+CMD ["npm", "run", "dev"]

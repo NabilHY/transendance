@@ -5,7 +5,10 @@ set -e
 export NPM_CONFIG_PACKAGE_LOCK=false
 
 # Clean install to ensure native modules match container libc
-rm -rf node_modules package-lock.json
+# If node_modules is a mounted volume, removing the directory can fail (busy). Clear contents instead.
+rm -f package-lock.json || true
+mkdir -p node_modules
+sh -lc 'find node_modules -mindepth 1 -maxdepth 1 -exec rm -rf {} +' || true
 npm install --no-package-lock
 
 # Rebuild native deps if needed (sqlite3)

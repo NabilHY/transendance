@@ -57,6 +57,7 @@ export default function HomePage() {
 	}, [isLoggedIn, ensureCsrf]);
 
 	if (authLoading) {
+	
 		return <div>Loading...</div>;
 	}
 
