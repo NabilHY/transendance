@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci --omit=dev
 
 # Copy the rest of the source code
 COPY . .
@@ -31,23 +31,14 @@ FROM node:20-slim
 
 WORKDIR /usr/src/app
 
-# Install build tools for native modules (needed for development rebuilds)
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    sqlite3 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
 # Create database directory
 RUN mkdir -p /usr/src/app/db
 
 # Copy built app and dependencies from build stage
 COPY --from=build /usr/src/app ./
 
-# # Expose chat port (default: 4009)
-# EXPOSE ${CHAT_PORT:-8006}
+# Expose chat port (default: 4009)
+EXPOSE ${CHAT_PORT:-4009}
 
 # Optional healthcheck (uncomment if your app has /health endpoint)
 # HEALTHCHECK --interval=10s --timeout=3s --retries=12 \

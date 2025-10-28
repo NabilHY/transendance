@@ -10,7 +10,6 @@ services:
     volumes:
       - users_data:/usr/src/app/db
       # - ./db-init:/usr/src/app
-
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${DB_INIT_PORT:-3000}/health"]
       interval: 5s
@@ -183,7 +182,6 @@ services:
     volumes:
       - ./chat:/usr/src/app
       - users_data:/usr/src/app/db
-
     env_file: .env
     
   cadvisor:
@@ -220,9 +218,6 @@ services:
       - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
     env_file: .env
 
-networks:
-  ft_transendance:
-    driver: bridge
 
 volumes:
   users_data:
@@ -230,10 +225,12 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/${USER}/transendance_volumes/users_db
-
-  grafana_data:
-    driver: local
-    
-  prometheus_data:
-    driver: local
+      device: /home/${USER}/transendance_volumes/users_data
+  # auth-backend-node_modules:
+  #   driver: local
+  # usr-manag-node_modules:
+  #   driver: local
+  # frontend-node_modules:
+  #   driver: local
+  # db-init-node_modules:
+  #   driver: local

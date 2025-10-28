@@ -3,18 +3,8 @@ set -e
 
 echo "🚀 Starting chat service..."
 
-# Set Python for node-gyp (better-sqlite3 needs it)
-export PYTHON=python3
+npm install
 
-# Prevent writing lockfile into bind-mounted source
-export NPM_CONFIG_PACKAGE_LOCK=false
+sleep 200
 
-# Clean install to ensure native modules match container libc
-rm -rf node_modules package-lock.json
-npm install --no-package-lock --legacy-peer-deps
-
-# Rebuild native deps if needed (better-sqlite3)
-npm rebuild better-sqlite3 --build-from-source || true
-
-# Start in dev mode for hot reload
 npm run dev
