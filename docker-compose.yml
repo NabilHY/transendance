@@ -31,93 +31,118 @@ services:
       db-init:
         condition: service_healthy
     healthcheck:
+      # test: ["CMD", "curl", "-fsS", "http://localhost:8005/health"]
       test: ["CMD", "curl", "-fsS", "http://localhost:${AUTH_PORT:-8005}/health"]
       interval: 5s
       timeout: 3s
       retries: 24
+      # disable: true
 
-  # frontend:
-  #   build: ./frontend
-  #   command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
-  #   ports:
-  #     - ${FRONTEND_PORT:-8080}:${FRONTEND_PORT:-8080}
-  #   networks:
-  #     - ft_transendance
-  #   depends_on:
-  #     auth-backend:
-  #       condition: service_healthy
-  #     usr-manag:
-  #       condition: service_healthy
-  #   env_file: .env
-  #   volumes:
-  #     - ./frontend:/app
-
-  # mailpit:
-  #   image: axllent/mailpit
-  #   ports:
-  #     - "1025:1025"  # SMTP server port
-  #     - "8025:8025"  # Web UI port
-  #   networks:
-  #     - ft_transendance
-  #   env_file: .env
-
-  # usr-manag:
-  #   build: ./usr-manag
-  #   command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
-  #   ports:
-  #     - ${USR_MANAG_PORT:-4000}:${USR_MANAG_PORT:-4000}
-  #   networks:
-  #     - ft_transendance
-  #   depends_on:
-  #     db-init:
-  #       condition: service_healthy
-  #     auth-backend:
-  #       condition: service_healthy
-  #     mailpit:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ./usr-manag:/usr/src/app
-  #     - users_data:/usr/src/app/db
-  #   env_file: .env
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-fsS", "http://localhost:${USR_MANAG_PORT:-4000}/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 24
-
-  prometheus:
-    image: prom/prometheus:latest
+  frontend:
+    build: ./frontend
+    command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
-      - ${PROMETHEUS_PORT:-3000}:${PROMETHEUS_PORT:-3000}
+      - ${FRONTEND_PORT:-8080}:${FRONTEND_PORT:-8080}
+    networks:
+      - ft_transendance
+    depends_on:
+      auth-backend:
+        condition: service_healthy
+      usr-manag:
+        condition: service_healthy
+    env_file: .env
+    volumes:
+      - ./frontend:/app
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "1025:1025"  # SMTP server port
+      - "8025:8025"  # Web UI port
+    networks:
+      - ft_transendance
+    env_file: .env
+
+  usr-manag:
+    build: ./usr-manag
+    command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
+    ports:
+      - ${USR_MANAG_PORT:-4000}:${USR_MANAG_PORT:-4000}
     networks:
       - ft_transendance
     depends_on:
       db-init:
         condition: service_healthy
-      # usr-manag:
-      #   condition: service_healthy
       auth-backend:
         condition: service_healthy
-      # frontend:
-      #   condition: service_healthy
+      mailpit:
+        condition: service_healthy
     volumes:
-      - ./prometheus:/etc/prometheus
+      - ./usr-manag:/usr/src/app
+      - users_data:/usr/src/app/db
     env_file: .env
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${USR_MANAG_PORT:-4000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 24
 
-  grafana:
-    image: grafana/grafana:latest
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   ports:
+  #     - ${PROMETHEUS_PORT:-3000}:${PROMETHEUS_PORT:-3000}
+  #   networks:
+  #     - ft_transendance
+  #   depends_on:
+  #     db-init:
+  #       condition: service_healthy
+  #     usr-manag:
+  #       condition: service_healthy
+  #     auth-backend:
+  #       condition: service_healthy
+  #     frontend:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./prometheus:/etc/prometheus
+  #   env_file: .env
+
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   ports:
+  #     - ${GRAFANA_PORT:-4010}:${GRAFANA_PORT:-4010}
+  #   networks:
+  #     - ft_transendance
+  #   depends_on:
+  #     prometheus:
+  #       condition: service_started
+  #   env_file: .env
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #     - ./grafana/provisioning:/etc/grafana/provisioning
+
+  chat:
+    build: ./chat
+    command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
-      - ${GRAFANA_PORT:-4010}:${GRAFANA_PORT:-4010}
+      - ${CHAT_PORT:-4000}:${CHAT_PORT:-4009}
     networks:
       - ft_transendance
     depends_on:
-      prometheus:
-        condition: service_started
-    env_file: .env
+      db-init:
+        condition: service_healthy
+      auth-backend:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
     volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-
+      - ./chat:/usr/src/app
+      - users_data:/usr/src/app/db
+    env_file: .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${CHAT_PORT:-4009}/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 24
 networks:
   ft_transendance:
     driver: bridge
@@ -130,5 +155,17 @@ volumes:
       type: none
       o: bind
       device: /home/${USER}/transendance_volumes/users_db
+
   grafana_data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/transendance_volumes/grafana_db
+
+  chat_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/transendance_volumes/chat_db

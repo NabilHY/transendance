@@ -31,7 +31,7 @@ ${users_db_dir}:
 
 # Build commands
 build: 
-	docker compose build
+	docker compose build --no-cache
 
 # Start commands
 up: ${users_db_dir}
@@ -40,7 +40,6 @@ up: ${users_db_dir}
 # Stop commands
 down:
 	docker compose down
-	
 
 # Restart commands
 restart:
