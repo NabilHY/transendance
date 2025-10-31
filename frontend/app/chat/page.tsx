@@ -29,6 +29,32 @@ export interface Conversation {
   receiver_id?: string;
 }
 
+const chatPort = process.env.NEXT_PUBLIC_CHAT_PORT || "4009";
+const userMgntPort = process.env.NEXT_PUBLIC_USR_MANAG_PORT || "4000";
+
+async function fetchCurrentUser() {
+  try {
+    const res = await fetch(`http://localhost:${userMgntPort}/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        console.warn("User not authenticated");
+        return null;
+      }
+      throw new Error(`Server error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.error("Failed to fetch current user:", err);
+    return null;
+  }
+}
+
 const Chat = () => {
   // return <div>Chat Page</div>;
     const [ws, setWs] = useState<WebSocket | null>(null);
@@ -81,78 +107,108 @@ const Chat = () => {
     status: "online",
     receiver_id: "u6",
   },
-]);
-
+  ]);
 
   const [activeConversation, setActiveConversation] = useState<string>("f4bebbee-d06c-43d5-bcd3-32e4a0196a0e");
 
   const [searchQuery, setSearchQuery] = useState("");
 
-  const currentUser = {
-  id: "u4",
-  name: "Simo al-asad",
-  avatar: "https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"
-};
+//   const currentUser = {
+//   id: "u4",
+//   name: "Simo al-asad",
+//   avatar: "https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"
+// };
+
+let currentUser: { id: string; name: string; avatar?: string };
+
+// currentUser = undefined as any;
 
 useEffect(() => {
+
+  console.log("hello from useEffect");
+  
+
   let websocket: WebSocket | null = null;
 
+  const run = async () => {
+    const res = await fetch(`http://localhost:${userMgntPort}/users`, {
+      method: "GET",
+      credentials: "include"
+    });
+
+
+    currentUser = await fetchCurrentUser();
+    if (!currentUser) {
+      console.error("No current user, cannot establish WebSocket connection.");
+      return;
+    }
+
+    const data = await res.json();
+
+    console.log("users data: ", data);
+
     const connectWebSocket = () => {
-    websocket = new WebSocket(`ws://localhost:3001/ws?userId=${currentUser.id}`);
+      console.log("* CLIENT: ", currentUser);
 
-    websocket.onopen = () => {
-      console.log("✅ Connected to WebSocket server");
-      setWs(websocket);
-    };
+      websocket = new WebSocket(`ws://localhost:${chatPort}/ws?userId=${currentUser.id}`);
+      // websocket = new WebSocket(`ws://localhost:${chatPort}/ws`);
 
-    websocket.onmessage = (event) => {
-      console.log("wtf: ", event.data);
-      
-      try {
-        // console.log("message id: ", JSON.parse(event.data));
-        const message: Message = JSON.parse(event.data);
+      websocket.onopen = () => {
+        console.log("✅ Connected to WebSocket server");
+        setWs(websocket);
+      };
 
-        console.log("message received: ", message);
+      websocket.onmessage = (event) => {
+        console.log("wtf: ", event.data);
         
-        if (message.sender_id === "system") return;
+        try {
+          // console.log("message id: ", JSON.parse(event.data));
+          const message: Message = JSON.parse(event.data);
 
-        setMessages(prev => [...prev, message]);
+          console.log("message received: ", message);
+          
+          if (message.sender_id === "system") return;
 
-        setConversations(prev =>
-          prev.map(conv =>
-            conv.id === message.channel_id
-              ? {
-                  ...conv,
-                  lastMessage: message.content,
-                  timestamp: new Date(message.sent_at).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
+          setMessages(prev => [...prev, message]);
 
-                  }),
-                }
-              : conv
-          )
-        );
-      } catch (error) {
-        console.log("* ERROR: ");
-        
-        console.error("❌ Error parsing message:", error);
-      }
+          setConversations(prev =>
+            prev.map(conv =>
+              conv.id === message.channel_id
+                ? {
+                    ...conv,
+                    lastMessage: message.content,
+                    timestamp: new Date(message.sent_at).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+
+                    }),
+                  }
+                : conv
+            )
+          );
+        } catch (error) {
+          console.log("* ERROR: ");
+          
+          console.error("❌ Error parsing message:", error);
+        }
+      };
+
+      websocket.onclose = () => {
+        console.log("⚠️ WebSocket connection closed, retrying in 3s...");
+        setWs(null);
+        setTimeout(connectWebSocket, 3000);
+      };
+
+      websocket.onerror = (error) => {
+        console.warn("⚠️ WebSocket error:", error);
+        setWs(null);
+      };
     };
 
-    websocket.onclose = () => {
-      console.log("⚠️ WebSocket connection closed, retrying in 3s...");
-      setWs(null);
-      setTimeout(connectWebSocket, 3000);
-    };
-
-    websocket.onerror = (error) => {
-      console.warn("⚠️ WebSocket error:", error);
-      setWs(null);
-    };
+    connectWebSocket();
   };
 
-  connectWebSocket();
+  run();
 
   // Cleanup on unmount
   return () => {
@@ -196,32 +252,40 @@ useEffect(() => {
   const conversationMessages = messages.filter(msg => msg.channel_id === activeConversation);
 
   return (
-    <div className={styles.container}>
-      <Header />
-      <div className={styles.mainContent}>
-        <Sidebar activeItem="chat" />
-        <div className={styles.chatSection}>
-          <ConversationsList
-            conversations={filteredConversations}
-            activeConversation={activeConversation}
-            onConversationSelect={setActiveConversation}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-          />
-          <div className={styles.rightPanel}>
-            {activeConv && (
-              <ChatWindow
-                conversation={activeConv}
-                messages={conversationMessages}
-                currentUserId={currentUser.id}
-                onSendMessage={sendMessage}
+    <>
+      {currentUser != undefined && (
+        <>
+        <div className={styles.container}>
+          <Header />
+          <div className={styles.mainContent}>
+            <Sidebar activeItem="chat" />
+            <div className={styles.chatSection}>
+              <ConversationsList
+                conversations={filteredConversations}
+                activeConversation={activeConversation}
+                onConversationSelect={setActiveConversation}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
               />
-            )}
-            <QuickActions />
+              <div className={styles.rightPanel}>
+                {activeConv && (
+                  <ChatWindow
+                    conversation={activeConv}
+                    messages={conversationMessages}
+                    currentUserId={currentUser.id}
+                    onSendMessage={sendMessage}
+                  />
+                )}
+                <QuickActions />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </>
+    )}
+    
+    </>
+    
   );
 }
 

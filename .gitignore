@@ -27,3 +27,4 @@ Thumbs.db
 sqlite*
 *.md
 /node_modules
+users_mails.txt

@@ -7,16 +7,7 @@ import metricsPlugin from "../plugins/metrics/index.js";
 import dbPlugin from "../plugins/db.js";
 import config from "../config.js";
 
-<<<<<<< HEAD
 const PORT = Number(config.PORT) || 8006;
-=======
-const PORT = Number(process.env.CHAT_PORT) || 4001;
-// const DATABASE = process.env.DATABASE_PATH;
-const DATABASE = "/usr/src/app/db/shared.sqlite";
-// const DATABASE = "";
-
-console.log("port: ", PORT);
->>>>>>> 9a7ed06 (merging frontend)
 
 const fastify = Fastify();
 
@@ -52,7 +43,6 @@ function sendPendingMessages(socket, userId, db) {
       socket.send(JSON.stringify(msg));
     }
 
-    // db.prepare("UPDATE Messages SET delivered = 0 WHERE receiver_id = ?").run(userId);
   } catch (err) {
     console.error("Error fetching pending messages:", err);
   }
@@ -118,10 +108,6 @@ function sendToChannel(message, db) {
     message.receiver_id = memberId;
 
     sendToReceiver(message, db);
-    // const memberSocket = connectedUsers.get(memberId);
-    // if (memberSocket && memberSocket.readyState === 1) {
-    //   memberSocket.send(JSON.stringify(message));
-    // }
   }
 }
 
@@ -140,7 +126,6 @@ function isPrivateChannel(channelId, db) {
   
   try {
     const channel = db.prepare("SELECT * FROM Channels WHERE id = ? AND is_private = 1").get(channelId);
-    // console.log("channel: ", channel);
     return true;
   } catch (err) {
     console.log("cannot find the channel");
@@ -148,11 +133,37 @@ function isPrivateChannel(channelId, db) {
   }
 }
 
-fastify.get("/health", async (request, reply) => {
-  return reply.send({ status: "ok" });
-});
+fastify.get('/health', {
+    schema: {
+        tags: ['System'],
+        summary: 'Health check',
+        security: [],
+        response: {
+            200: {
+                type: 'object',
+                properties: {
+                    status: { type: 'string' },
+                    service: { type: 'string' },
+                    version: { type: 'string' },
+                    timestamp: { type: 'string' }
+                }
+            }
+        }
+    }
+}, async (request, reply) => {
+    return {
+        status: 'ok',
+        service: config.SERVICE_NAME,
+        version: config.SERVICE_VERSION,
+        timestamp: new Date().toISOString()
+    };
+}); 
 
 fastify.get("/ws", { websocket: true }, (socket, req) => {
+
+  console.warn("* CHAT: new client connected to websocket");
+  
+
   const userId = req.query.userId;
   if (!userId) {
     console.warn("Missing userId in query params");
