@@ -124,7 +124,7 @@ services:
     build: ./chat
     command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
-      - ${CHAT_PORT:-4000}:${CHAT_PORT:-4009}
+      - ${PROMETHEUS_PORT:-9090}:${PROMETHEUS_PORT:-9090}
     networks:
       - ft_transendance
     depends_on:
@@ -135,18 +135,26 @@ services:
       mailpit:
         condition: service_healthy
     volumes:
-      - ./chat:/usr/src/app
-      - users_data:/usr/src/app/db
+      - ./prometheus:/etc/prometheus
     env_file: .env
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:${CHAT_PORT:-4009}/health || exit 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 24
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - ${GRAFANA_PORT:-4010}:${GRAFANA_PORT:-4010}
+    networks:
+      - ft_transendance
+    depends_on:
+      prometheus:
+        condition: service_started
+    env_file: .env
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+
 networks:
   ft_transendance:
     driver: bridge
-
 
 volumes:
   users_data:
@@ -158,14 +166,3 @@ volumes:
 
   grafana_data:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /home/${USER}/transendance_volumes/grafana_db
-
-  chat_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /home/${USER}/transendance_volumes/chat_db
