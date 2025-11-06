@@ -57,13 +57,22 @@ export default fp(async function metricsPlugin(fastify) {
   });
 
   const httpResponseSize = getOrCreateHistogram({
-    name: 'http_response_size_bytes',
-    help: 'HTTP response size in bytes',
-    labelNames: ['method', 'route', 'status_code'],
-    buckets: sizeBuckets,
+      name: 'http_response_size_bytes',
+      help: 'HTTP response size in bytes',
+      labelNames: ['method', 'route', 'status_code'],
+      buckets: sizeBuckets,
   });
-
   
+  // define once near other metrics
+  const httpRequestErrors = client.register.getSingleMetric('http_request_errors_total')
+  || new client.Counter({
+    name: 'http_request_errors_total',
+    help: 'HTTP error responses',
+    labelNames: ['method', 'route', 'status_code'],
+  });
+  
+  
+
   fastify.addHook('onRequest', (req, _reply, done) => {
     const route = req.routerPath || req.url || 'unknown';
     req.__metrics = req.__metrics || {};
@@ -149,6 +158,11 @@ export default fp(async function metricsPlugin(fastify) {
         ? clNum
         : ((req.__metrics && typeof req.__metrics.responseSizeBytes === 'number') ? req.__metrics.responseSizeBytes : 0);
       httpResponseSize.observe({ method, route, status_code: reply.statusCode }, respSize);
+      
+      // Initialize error counter labelset with 0 and increment on errors
+      const errLabels = { method, route, status_code: reply.statusCode };
+      const incValue = reply.statusCode >= 400 ? 1 : 0;
+      httpRequestErrors.inc(errLabels, incValue);
     } finally {
       done();
     }
