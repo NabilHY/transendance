@@ -44,9 +44,14 @@ fastify.register(require('../plugins/schemas'));
 fastify.register(require('../plugins/rate-limit'));
 fastify.register(require('../plugins/jwt'));
 fastify.register(require('../plugins/swagger'));
+
+fastify.register(require('../plugins/metrics'), { prefix: '/metrics' });
+
 fastify.register(require('../routes/auth'), { prefix: '/api/auth' });
 fastify.register(require('../plugins/csrf'));
+
 fastify.register(require('../routes/csrf-token'), { prefix: '/api' });
+
 fastify.register(require('../plugins/account-lockout'));
 fastify.register(require('../routes/forgot-password'), { prefix: '/api/auth' });
 
