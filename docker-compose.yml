@@ -87,38 +87,39 @@ services:
       timeout: 10s
       retries: 24
 
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   ports:
-  #     - ${PROMETHEUS_PORT:-3000}:${PROMETHEUS_PORT:-3000}
-  #   networks:
-  #     - ft_transendance
-  #   depends_on:
-  #     db-init:
-  #       condition: service_healthy
-  #     usr-manag:
-  #       condition: service_healthy
-  #     auth-backend:
-  #       condition: service_healthy
-  #     frontend:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ./prometheus:/etc/prometheus
-  #   env_file: .env
+  prometheus:
+    build: ./monitoring/prometheus
+    ports:
+      - ${PROMETHEUS_PORT:-9090}:${PROMETHEUS_PORT:-9090}
+    networks:
+      - ft_transendance
+    depends_on:
+      # db-init:
+      #   condition: service_healthy
+      # usr-manag:
+      #   condition: service_healthy
+      auth-backend:
+        condition: service_healthy
+      # frontend:
+      #   condition: service_healthy
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    env_file: .env
 
-  # grafana:
-  #   image: grafana/grafana:latest
-  #   ports:
-  #     - ${GRAFANA_PORT:-4010}:${GRAFANA_PORT:-4010}
-  #   networks:
-  #     - ft_transendance
-  #   depends_on:
-  #     prometheus:
-  #       condition: service_started
-  #   env_file: .env
-  #   volumes:
-  #     - grafana_data:/var/lib/grafana
-  #     - ./grafana/provisioning:/etc/grafana/provisioning
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - ${GRAFANA_PORT:-4010}:${GRAFANA_PORT:-4010}
+    networks:
+      - ft_transendance
+    depends_on:
+      prometheus:
+        condition: service_started
+    env_file: .env
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
 
   chat:
     build: ./chat
@@ -138,20 +139,6 @@ services:
       - ./prometheus:/etc/prometheus
     env_file: .env
 
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - ${GRAFANA_PORT:-4010}:${GRAFANA_PORT:-4010}
-    networks:
-      - ft_transendance
-    depends_on:
-      prometheus:
-        condition: service_started
-    env_file: .env
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-
 networks:
   ft_transendance:
     driver: bridge
@@ -165,4 +152,7 @@ volumes:
       device: /home/${USER}/transendance_volumes/users_db
 
   grafana_data:
+    driver: local
+    
+  prometheus_data:
     driver: local
