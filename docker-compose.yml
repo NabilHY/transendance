@@ -90,7 +90,7 @@ services:
   prometheus:
     build: ./monitoring/prometheus
     ports:
-      - ${PROMETHEUS_PORT:-9090}:${PROMETHEUS_PORT:-9090}
+      - ${PROMETHEUS_PORT:-9090}:9090
     networks:
       - ft_transendance
     depends_on:
@@ -105,6 +105,10 @@ services:
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+    develop:
+      watch:
+        - path: ./monitoring/prometheus
+          action: restart
     env_file: .env
 
   grafana:
@@ -113,19 +117,20 @@ services:
       - ${GRAFANA_PORT:-4010}:${GRAFANA_PORT:-4010}
     networks:
       - ft_transendance
+    environment:
+      - GF_SERVER_HTTP_PORT=${GRAFANA_PORT:-4010}
     depends_on:
       prometheus:
         condition: service_started
     env_file: .env
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
   chat:
     build: ./chat
     command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
-      - ${PROMETHEUS_PORT:-9090}:${PROMETHEUS_PORT:-9090}
+      - ${CHAT_PORT:-8006}:${CHAT_PORT:-8006}
     networks:
       - ft_transendance
     depends_on:
@@ -135,8 +140,6 @@ services:
         condition: service_healthy
       mailpit:
         condition: service_healthy
-    volumes:
-      - ./prometheus:/etc/prometheus
     env_file: .env
 
 networks:

@@ -5,7 +5,7 @@ import Database from "better-sqlite3";
 import crypto from "crypto";
 import { SocketAddress } from "net";
 
-const PORT = Number(process.env.PORT) || 3001;
+const PORT = Number(process.env.PORT) || 8006;
 // const DATABASE = process.env.DATABASE_PATH;
 const DATABASE = "/usr/src/app/db/shared.sqlite";
 // const DATABASE = "";
