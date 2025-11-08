@@ -45,7 +45,8 @@ fastify.register(require('../plugins/rate-limit'));
 fastify.register(require('../plugins/jwt'));
 fastify.register(require('../plugins/swagger'));
 
-fastify.register(require('../plugins/metrics'), { prefix: '/metrics' });
+fastify.register(require('../plugins/metrics/metrics'), { prefix: '/metrics' });
+fastify.register(require('../plugins/metrics/HTTP-Metrics'));
 
 fastify.register(require('../routes/auth'), { prefix: '/api/auth' });
 fastify.register(require('../plugins/csrf'));

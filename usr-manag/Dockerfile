@@ -3,7 +3,7 @@ FROM node:20-alpine
 WORKDIR /usr/src/app
 
 # Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++ curl
+RUN apk add --no-cache python3 py3-setuptools build-base libc6-compat sqlite-dev
 
 # Copy source code (no host node_modules)
 COPY . .

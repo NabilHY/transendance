@@ -70,13 +70,13 @@ services:
       - ${USR_MANAG_PORT:-4000}:${USR_MANAG_PORT:-4000}
     networks:
       - ft_transendance
-    depends_on:
-      db-init:
-        condition: service_healthy
-      auth-backend:
-        condition: service_healthy
-      mailpit:
-        condition: service_healthy
+    # depends_on:
+    #   db-init:
+    #     condition: service_healthy
+    #   auth-backend:
+    #     condition: service_healthy
+    #   mailpit:
+    #     condition: service_healthy
     volumes:
       - ./usr-manag:/usr/src/app
       - users_data:/usr/src/app/db

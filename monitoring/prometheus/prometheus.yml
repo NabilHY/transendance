@@ -12,3 +12,9 @@ scrape_configs:
       - targets: ['auth-backend:8005']
         labels:
           service: auth-backend
+  - job_name: usr_manag
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['usr-manag:4000']
+        labels:
+          service: usr-manag

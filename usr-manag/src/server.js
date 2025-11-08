@@ -117,7 +117,7 @@ fastify.get('/service-info', {
 // Register routes
 fastify.register(require('../routes/users'), { prefix: '' });
 // fastify.register(require('../routes/profile'), { prefix: '' });
-
+fastify.register(require('../plugins/metrics'), { prefix: '/metrics' });
 const start = async () => {
     try {
         await fastify.listen({ port: `${config.USR_MANAG_PORT}`, host: '0.0.0.0' });
