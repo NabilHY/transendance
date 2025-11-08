@@ -39,14 +39,13 @@ fastify.register(require('@fastify/cors'), {
   credentials: true
 });
 
+// Initialize metrics (registry and /metrics endpoint) before DB so labels apply
+fastify.register(require('../plugins/metrics'));
 fastify.register(require('../plugins/db'));
 fastify.register(require('../plugins/schemas'));
 fastify.register(require('../plugins/rate-limit'));
 fastify.register(require('../plugins/jwt'));
 fastify.register(require('../plugins/swagger'));
-
-fastify.register(require('../plugins/metrics/metrics'), { prefix: '/metrics' });
-fastify.register(require('../plugins/metrics/HTTP-Metrics'));
 
 fastify.register(require('../routes/auth'), { prefix: '/api/auth' });
 fastify.register(require('../plugins/csrf'));

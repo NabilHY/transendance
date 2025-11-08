@@ -50,8 +50,8 @@
         "title": "DB p99 by operation (top 5)",
         "targets": [
           {
-            "expr": "topk(5, histogram_quantile(0.99, sum by (operation, le)(rate(db_query_duration_seconds_bucket{service=\"$service\"}[5m]))))",
-            "legendFormat": "{{operation}}",
+            "expr": "topk(5, histogram_quantile(0.99, sum by (op, le)(rate(db_query_duration_seconds_bucket{service=\"$service\"}[5m]))))",
+            "legendFormat": "{{op}}",
             "datasource": "Prometheus",
             "refId": "A"
           }
@@ -64,8 +64,8 @@
         "title": "DB error rate (by operation)",
         "targets": [
           {
-            "expr": "sum(rate(db_errors_total{service=\"$service\"}[$__rate_interval])) by (operation)",
-            "legendFormat": "{{operation}}",
+            "expr": "sum(rate(db_query_errors_total{service=\"$service\"}[$__rate_interval])) by (op)",
+            "legendFormat": "{{op}}",
             "datasource": "Prometheus",
             "refId": "A"
           }

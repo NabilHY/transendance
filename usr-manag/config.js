@@ -1,6 +1,7 @@
 module.exports = {
     NODE_ENV: process.env.NODE_ENV,
     USR_MANAG_PORT: process.env.USR_MANAG_PORT || 4000,
+    SERVICE_NAME: process.env.TARGET_2 || 'usr-manag',
     AUTH_BACKEND_URL: process.env.AUTH_BACKEND_URL || 'http://localhost:8005',
     DATABASE_PATH: process.env.DATABASE_PATH || './db/sqlite.db',
     
@@ -14,5 +15,4 @@ module.exports = {
     INTERNAL_SERVICE_KEY: process.env.INTERNAL_SERVICE_KEY,
 
     JWT_SECRET: process.env.JWT_SECRET,
-
 };

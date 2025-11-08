@@ -144,13 +144,13 @@ module.exports = async function (fastify) {
         reply.clearCookie('oauth_state', {path: '/'});
         
         try {
-            const { tokens } = await client.getToken(code);
+            const { tokens } = await fastify.trackExternal('google-oauth', () => client.getToken(code));
             client.setCredentials(tokens);
 
-            const ticket = await client.verifyIdToken({
+            const ticket = await fastify.trackExternal('google-oauth', () => client.verifyIdToken({
                 idToken: tokens.id_token,
                 audience: config.GOOGLE_CLIENT_ID
-            });
+            }));
             
             const payload = ticket.getPayload();
             

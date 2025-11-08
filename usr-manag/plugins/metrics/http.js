@@ -1,64 +1,49 @@
-// src/plugins/metrics/HTTP-Metrics.js
-import fp from 'fastify-plugin';
-import client from 'prom-client';
+import { client, getOrCreateGauge, getOrCreateHistogram } from './registry.js';
 
-export default fp(async function httpMetricsPlugin(fastify) {
-  const register = client.register;
+// Shared HTTP metrics
+const httpRequestDuration = getOrCreateHistogram({
+  name: 'http_request_duration_seconds',
+  help: 'Request duration in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.05, 0.1, 0.5, 1, 3, 5, 10],
+});
 
-  function getOrCreateHistogram(opts) {
-    const existing = register.getSingleMetric(opts.name);
-    if (existing) return existing;
-    return new client.Histogram(opts);
-  }
+const httpRequestsInFlight = getOrCreateGauge({
+  name: 'http_requests_in_flight',
+  help: 'In-flight HTTP requests',
+  labelNames: ['method', 'route'],
+});
 
-  function getOrCreateGauge(opts) {
-    const existing = register.getSingleMetric(opts.name);
-    if (existing) return existing;
-    return new client.Gauge(opts);
-  }
+const sizeBuckets = [
+  200, 500,
+  1024, 2048, 5120,
+  10240, 51200, 102400,
+  524288, 1048576, 5242880,
+];
 
-  const httpRequestDuration = getOrCreateHistogram({
-    name: 'http_request_duration_seconds',
-    help: 'Request duration in seconds',
+const httpRequestSize = getOrCreateHistogram({
+  name: 'http_request_size_bytes',
+  help: 'HTTP request size in bytes',
+  labelNames: ['method', 'route'],
+  buckets: sizeBuckets,
+});
+
+const httpResponseSize = getOrCreateHistogram({
+  name: 'http_response_size_bytes',
+  help: 'HTTP response size in bytes',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: sizeBuckets,
+});
+
+const httpRequestErrors =
+  client.register.getSingleMetric('http_request_errors_total') ||
+  new client.Counter({
+    name: 'http_request_errors_total',
+    help: 'HTTP error responses',
     labelNames: ['method', 'route', 'status_code'],
-    buckets: [0.05, 0.1, 0.5, 1, 3, 5, 10],
   });
 
-  const httpRequestsInFlight = getOrCreateGauge({
-    name: 'http_requests_in_flight',
-    help: 'In-flight HTTP requests',
-    labelNames: ['method', 'route'],
-  });
-
-  const sizeBuckets = [
-    200, 500,
-    1024, 2048, 5120,
-    10240, 51200, 102400,
-    524288, 1048576, 5242880,
-  ];
-
-  const httpRequestSize = getOrCreateHistogram({
-    name: 'http_request_size_bytes',
-    help: 'HTTP request size in bytes',
-    labelNames: ['method', 'route'],
-    buckets: sizeBuckets,
-  });
-
-  const httpResponseSize = getOrCreateHistogram({
-    name: 'http_response_size_bytes',
-    help: 'HTTP response size in bytes',
-    labelNames: ['method', 'route', 'status_code'],
-    buckets: sizeBuckets,
-  });
-
-  const httpRequestErrors =
-    client.register.getSingleMetric('http_request_errors_total') ||
-    new client.Counter({
-      name: 'http_request_errors_total',
-      help: 'HTTP error responses',
-      labelNames: ['method', 'route', 'status_code'],
-    });
-
+export function registerHttpHooks(fastify) {
   fastify.addHook('onRequest', (req, _reply, done) => {
     const route = req.routerPath || req.url || 'unknown';
     req.__metrics = req.__metrics || {};
@@ -117,17 +102,13 @@ export default fp(async function httpMetricsPlugin(fastify) {
       const method = (req.__metrics && req.__metrics.method) || req.method;
       const endNs = process.hrtime.bigint();
       const duration = Number(endNs - (req.startTimeNs || endNs)) / 1e9;
-      httpRequestDuration.observe(
-        { method, route, status_code: reply.statusCode },
-        duration
-      );
+      httpRequestDuration.observe({ method, route, status_code: reply.statusCode }, duration);
 
       httpRequestsInFlight.dec({ method, route });
 
-      const reqSize =
-        (req.__metrics && typeof req.__metrics.requestSizeBytes === 'number')
-          ? req.__metrics.requestSizeBytes
-          : 0;
+      const reqSize = (req.__metrics && typeof req.__metrics.requestSizeBytes === 'number')
+        ? req.__metrics.requestSizeBytes
+        : 0;
       httpRequestSize.observe({ method, route }, reqSize);
 
       const cl = reply.getHeader && reply.getHeader('content-length');
@@ -144,6 +125,6 @@ export default fp(async function httpMetricsPlugin(fastify) {
       done();
     }
   });
-});
+}
 
 

@@ -27,9 +27,9 @@ services:
     volumes:
       - ./auth-backend:/usr/src/app
       - users_data:/usr/src/app/db
-    depends_on:
-      db-init:
-        condition: service_healthy
+    # depends_on:
+    #   db-init:
+    #     condition: service_healthy
     healthcheck:
       # test: ["CMD", "curl", "-fsS", "http://localhost:8005/health"]
       test: ["CMD", "curl", "-fsS", "http://localhost:${AUTH_PORT:-8005}/health"]
