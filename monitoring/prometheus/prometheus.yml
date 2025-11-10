@@ -23,3 +23,8 @@ scrape_configs:
       - targets: ['node-exporter:9100']
         labels:
           service: node-exporter
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: cadvisorlet it happen 1 hour

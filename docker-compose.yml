@@ -42,7 +42,7 @@ services:
     build: ./frontend
     command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
-      - ${FRONTEND_PORT:-8080}:${FRONTEND_PORT:-8080}
+      - ${FRONTEND_PORT:-3010}:${FRONTEND_PORT:-3010}
     networks:
       - ft_transendance
     depends_on:
@@ -155,6 +155,25 @@ services:
       mailpit:
         condition: service_healthy
     env_file: .env
+    
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    networks:
+      - ft_transendance
+    ports:
+      - ${CADVISOR_PORT:-8080}:${CADVISOR_PORT:-8080}
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro'
+    env_file: .env
+    depends_on:
+      node-exporter:
+        condition: service_healthy
 
 networks:
   ft_transendance:
