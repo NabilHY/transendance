@@ -18,3 +18,8 @@ scrape_configs:
       - targets: ['usr-manag:4000']
         labels:
           service: usr-manag
+  - job_name: node-exporter
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: node-exporter

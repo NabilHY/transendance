@@ -126,6 +126,20 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    pid: host
+    networks:
+      - ft_transendance
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+    env_file: .env
+  
   chat:
     build: ./chat
     command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
