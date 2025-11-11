@@ -9,6 +9,7 @@ interface ConversationsListProps {
   onConversationSelect: (id: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onSendMessage: (content: string, getPending: number) => Promise<void>;
 }
 
 export default function ConversationsList({
@@ -16,8 +17,16 @@ export default function ConversationsList({
   activeConversation,
   onConversationSelect,
   searchQuery,
-  onSearchChange
+  onSearchChange,
+  onSendMessage,
 }: ConversationsListProps) {
+
+  const handleConversationSelect = async (id: string) => {
+    onConversationSelect(id);
+    // await onSendMessage("", 1);
+    console.log("=====> selected conversation id: ", id);
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -30,12 +39,16 @@ export default function ConversationsList({
           className={styles.searchInput}
         />
       </div>
-      
+
       <div className={styles.conversationsList}>
         {conversations.map((conversation) => (
           <button
             key={conversation.id}
-            onClick={() => onConversationSelect(conversation.id)}
+            onClick={
+              () => {
+                handleConversationSelect(conversation.id);
+              }
+            }
             className={`${styles.conversationItem} ${
               activeConversation === conversation.id ? styles.active : ""
             }`}
@@ -50,6 +63,7 @@ export default function ConversationsList({
                 <div className={styles.onlineIndicator}></div>
               )}
             </div>
+
             <div className={styles.conversationContent}>
               <div className={styles.conversationHeader}>
                 <span className={styles.name}>{conversation.name}</span>

@@ -90,7 +90,7 @@ module.exports = async function (fastify) {
         }
     } }, async (request, reply) => {
         const userId = request.user.id;
-        console.log("* user: ", request.user);
+        console.log("* USR user: ", request.user);
         
         const profile = fastify.db.prepare(`
             SELECT id, username, first_name, last_name, 

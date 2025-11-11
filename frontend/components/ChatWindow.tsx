@@ -8,14 +8,14 @@ interface ChatWindowProps {
   conversation: Conversation;
   messages: Message[];
   currentUserId: string;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, getPending: number) => void;
 }
 
 export default function ChatWindow({
   conversation,
   messages,
   currentUserId,
-  onSendMessage
+  onSendMessage,
 }: ChatWindowProps) {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -32,7 +32,7 @@ export default function ChatWindow({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputValue.trim()) {
-      onSendMessage(inputValue);
+      onSendMessage(inputValue, 0);
       setInputValue("");
     }
   };
@@ -66,11 +66,12 @@ export default function ChatWindow({
       </div>
 
       <div className={styles.messagesContainer}>
+      
         {messages.map((message, index) => (
           <div
             key={index}
             className={`${styles.messageWrapper} ${
-              message.sender_id === currentUserId ? styles.sent : styles.received
+              (message.sender_id === currentUserId || message.sender_id === currentUserId.toString()) ? styles.sent : styles.received
             }`}
           >
             <div className={styles.message}>

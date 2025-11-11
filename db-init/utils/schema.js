@@ -8,7 +8,6 @@ const initializeDatabase = (db) => {
             
             db.run('PRAGMA journal_mode = WAL', (err) => {
                 if (err) return reject(err);
-                
                 // Create unified users table (combines auth + profile data)
                 db.run(`CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,

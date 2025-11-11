@@ -7,6 +7,7 @@ import ChatWindow from "../../components/ChatWindow";
 import QuickActions from "../../components/QuickActions";
 import Header from "../../components/Header";
 import styles from "./styles.module.css";
+import { login } from "@/lib/api";
 
 export interface Message {
   uuid: string;
@@ -15,22 +16,65 @@ export interface Message {
   sent_at: string;
   content: string;
   sender_name?: string;
-  receiver_id?: string;
+  receiver_id?: string[];
+  pending?: number;
 }
 
 export interface Conversation {
   id: string;
   name: string;
-  avatar: string;
-  lastMessage: string;
-  timestamp: string;
-  status?: "online" | "offline";
-  unread?: number;
-  receiver_id?: string;
+  is_private: number;
+  description: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  last_message_id: string;
+  last_message_content: string;
+  last_message_sender: string;
+  last_message_time: string;
 }
 
 const chatPort = process.env.NEXT_PUBLIC_CHAT_PORT || "4009";
 const userMgntPort = process.env.NEXT_PUBLIC_USR_MANAG_PORT || "4000";
+
+const getConversations = async (id: string) => {
+  try {
+    const res = await fetch(`http://localhost:${userMgntPort}/conversations/${id}`, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!res.ok)
+      throw new Error(`Server error: ${res.status}`);
+    const data = await res.json();
+
+    // console.log("* Conversation: ", data);
+
+    return data;
+  } catch (err) {
+    console.error("Failed to fetch conversations:", err);
+    return [];
+  }
+}
+
+const getReceivers = async (channelId: string, userId: number) => {
+  try {    
+    const res = await fetch(`http://localhost:${userMgntPort}/channel/${channelId}/members`, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!res.ok)
+      throw new Error(`Server error: ${res.status}`);
+    const data = await res.json();
+    
+    const filteredReceivers = data.filter((id: string) => id !== userId.toString());
+
+    // console.log("getting receivers: ", filteredReceivers, " | userId: ", userId);
+    return filteredReceivers;
+  } catch (err) {
+    console.error("Failed to fetch receivers:", err);
+    return [];
+  }
+}
 
 async function fetchCurrentUser() {
   try {
@@ -57,120 +101,66 @@ async function fetchCurrentUser() {
 
 const Chat = () => {
   // return <div>Chat Page</div>;
-    const [ws, setWs] = useState<WebSocket | null>(null);
+  const [ws, setWs] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar?: string } | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
-  const [conversations, setConversations] = useState<Conversation[]>([
-  {
-    id: "ch1",
-    name: "nabil",
-    // avatar: "https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1",
-    avatar: "https://cdn.intra.42.fr/users/1f9bef1830faef4b351858e05266fb47/nhayoun.jpg",
-    // lastMessage: "Welcome to the General channel!",
-    lastMessage: "rak kayn",
-    timestamp: "9:00 AM",
-    status: "online",
-    receiver_id: "u1",
-  },
-  {
-    id: "ch2",
-    name: "Gaming Squad",
-    avatar: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1",
-    lastMessage: "Who's up for a match tonight?",
-    timestamp: "10:30 AM",
-    status: "offline",
-  },
-  {
-    id: "ch3",
-    name: "Bob",
-    avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1",
-    lastMessage: "Hey Bob, ready to play?",
-    timestamp: "Yesterday",
-    status: "online",
-    receiver_id: "u2",
-  },
-  {
-    id: "ch4",
-    name: "Charlie",
-    avatar: "https://images.unsplash.com/photo-1552410260-0fd9b577afa6?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    lastMessage: "Hey charlie,you are blocked",
-    timestamp: "Yesterday",
-    status: "online",
-    receiver_id: "u5",
-  },
-  {
-    id: "ch5",
-    name: "mkawi",
-    avatar: "https://cdn.intra.42.fr/users/288d8d0158cf03ccaea8b22d8f61eb91/abdennac.jpg",
-    lastMessage: "Rak kayn",
-    timestamp: "Yesterday",
-    status: "online",
-    receiver_id: "u6",
-  },
-  ]);
-
-  const [activeConversation, setActiveConversation] = useState<string>("f4bebbee-d06c-43d5-bcd3-32e4a0196a0e");
+  const [activeConversation, setActiveConversation] = useState<string>("");
 
   const [searchQuery, setSearchQuery] = useState("");
 
-//   const currentUser = {
-//   id: "u4",
-//   name: "Simo al-asad",
-//   avatar: "https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"
-// };
-
-let currentUser: { id: string; name: string; avatar?: string };
-
-// currentUser = undefined as any;
-
 useEffect(() => {
 
-  console.log("hello from useEffect");
+  // console.log("hello from useEffect");
   
 
   let websocket: WebSocket | null = null;
 
   const run = async () => {
+
+    // ! * WARNING: this test just for testing, I must removed it later
     const res = await fetch(`http://localhost:${userMgntPort}/users`, {
       method: "GET",
       credentials: "include"
     });
 
+    const currentUser = await fetchCurrentUser();
+    // console.log("* CLIENT user: ", currentUser);
 
-    currentUser = await fetchCurrentUser();
+    setCurrentUser(currentUser);
+
     if (!currentUser) {
       console.error("No current user, cannot establish WebSocket connection.");
       return;
     }
 
+    // setConversations(await getConversations(currentUser.id));
+    setConversations(await getConversations(currentUser.id));
+    // console.log("* CLIENT: conversations ---> ", conversations);
+
     const data = await res.json();
 
-    console.log("users data: ", data);
+    // console.log("users data: ", data);
 
     const connectWebSocket = () => {
-      console.log("* CLIENT: ", currentUser);
+      // console.log("* CLIENT: current user ---> ", currentUser);
+
+      // ! WARNING: this works twice, need to fix it later
 
       websocket = new WebSocket(`ws://localhost:${chatPort}/ws?userId=${currentUser.id}`);
-      // websocket = new WebSocket(`ws://localhost:${chatPort}/ws`);
 
       websocket.onopen = () => {
-        console.log("✅ Connected to WebSocket server");
+        // console.log("✅ Connected to WebSocket server");
         setWs(websocket);
       };
 
       websocket.onmessage = (event) => {
-        console.log("wtf: ", event.data);
-        
         try {
-          // console.log("message id: ", JSON.parse(event.data));
           const message: Message = JSON.parse(event.data);
-
-          console.log("message received: ", message);
-          
-          if (message.sender_id === "system") return;
-
+          // console.log("message received: ", message);
           setMessages(prev => [...prev, message]);
-
           setConversations(prev =>
             prev.map(conv =>
               conv.id === message.channel_id
@@ -187,14 +177,13 @@ useEffect(() => {
             )
           );
         } catch (error) {
-          console.log("* ERROR: ");
-          
+          // console.log("* ERRO R: ");
           console.error("❌ Error parsing message:", error);
         }
       };
 
       websocket.onclose = () => {
-        console.log("⚠️ WebSocket connection closed, retrying in 3s...");
+        // console.log("⚠️ WebSocket connection closed, retrying in 3s...");
         setWs(null);
         setTimeout(connectWebSocket, 3000);
       };
@@ -210,6 +199,8 @@ useEffect(() => {
 
   run();
 
+  setIsSuccess(true);
+  // console.log("currentId before success: ", currentUser != null ? currentUser.id : "no user");
   // Cleanup on unmount
   return () => {
     if (websocket) {
@@ -218,20 +209,32 @@ useEffect(() => {
   };
 }, []);
 
-  const sendMessage = (content: string) => {
-    if (!ws || !content.trim()) return;
+useEffect(() => {
+  if(activeConversation === "") return;
+  console.log("* conversations updated: ", conversations);
+  sendMessage("", 1);
+}, [activeConversation]);
+
+  const sendMessage = async (content: string, getPending: number) => {
+
+    if (!ws || (getPending == 0 && !content.trim())) return;
 
     const activeConv = conversations.find(conv => conv.id === activeConversation);
+
+    let receivers: string[] = await getReceivers(activeConv.id, currentUser?.id);
 
     const message: Message = {
       uuid: crypto.randomUUID(),
       channel_id: activeConversation,
-      sender_id: currentUser.id,
+      sender_id: currentUser != null ? currentUser.id : 'unknown',
       sent_at: new Date().toISOString(),
       content: content,
-      sender_name: currentUser.name,
-      receiver_id: activeConv?.receiver_id,
+      sender_name: currentUser != null ? currentUser.name : "unknown",
+      receiver_id: receivers,
+      pending: getPending,
     };
+
+    console.log("message to send: ", message);
 
     ws.send(JSON.stringify(message));
     setMessages(prev => [...prev, message]);
@@ -253,7 +256,7 @@ useEffect(() => {
 
   return (
     <>
-      {currentUser != undefined && (
+      {isSuccess === true && (
         <>
         <div className={styles.container}>
           <Header />
@@ -266,13 +269,14 @@ useEffect(() => {
                 onConversationSelect={setActiveConversation}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                onSendMessage={sendMessage}
               />
               <div className={styles.rightPanel}>
                 {activeConv && (
                   <ChatWindow
                     conversation={activeConv}
                     messages={conversationMessages}
-                    currentUserId={currentUser.id}
+                    currentUserId={currentUser != null ? currentUser.id : "unknown"}
                     onSendMessage={sendMessage}
                   />
                 )}
@@ -283,7 +287,6 @@ useEffect(() => {
         </div>
       </>
     )}
-    
     </>
     
   );
