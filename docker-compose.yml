@@ -139,6 +139,12 @@ services:
     volumes:
       - '/:/host:ro,rslave'
     env_file: .env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:9100/metrics >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 5s
   
   chat:
     build: ./chat
@@ -169,11 +175,23 @@ services:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro'
+      - /var/lib/docker/:/var/lib/docker:ro
     env_file: .env
     depends_on:
       node-exporter:
         condition: service_healthy
+        
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+    networks:
+      - ft_transendance
+    ports:
+      - ${ALERTMANAGER_PORT:-9093}:9093
+    volumes:
+      - ./monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml:ro
+    env_file: .env
 
 networks:
   ft_transendance:

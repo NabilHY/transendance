@@ -1,0 +1,19 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default-email
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 1h
+
+receivers:
+  - name: default-email
+    email_configs:
+      - to: '{{ env "ALERTMANAGER_TO" }}'
+        from: '{{ env "ALERTMANAGER_FROM" }}'
+        smarthost: '{{ env "ALERTMANAGER_SMARTHOST" }}'
+        auth_username: '{{ env "ALERTMANAGER_SMTP_USER" | default "" }}'
+        auth_password: '{{ env "ALERTMANAGER_SMTP_PASS" | default "" }}'
+        require_tls: false
