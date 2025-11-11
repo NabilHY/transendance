@@ -48,8 +48,8 @@ services:
     depends_on:
       auth-backend:
         condition: service_healthy
-      usr-manag:
-        condition: service_healthy
+      # usr-manag:
+      #   condition: service_healthy
     env_file: .env
     volumes:
       - ./frontend:/app
