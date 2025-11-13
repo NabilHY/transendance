@@ -169,8 +169,7 @@ services:
     privileged: true
     networks:
       - ft_transendance
-    ports:
-      - ${CADVISOR_PORT:-8080}:${CADVISOR_PORT:-8080}
+
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
