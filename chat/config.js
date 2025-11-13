@@ -1,6 +1,6 @@
 export default {
     NODE_ENV: process.env.NODE_ENV,
-    CHAT_PORT: process.env.CHAT_PORT || 8006,
+    PORT: process.env.CHAT_PORT || 8006,
     SERVICE_NAME: process.env.SERVICE_NAME || 'chat',
     SERVICE_VERSION: '1.0.0',
     DATABASE_PATH: process.env.DATABASE_PATH || '/usr/src/app/db/shared.sqlite',

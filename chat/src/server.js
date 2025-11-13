@@ -4,8 +4,10 @@ import Websocket from "@fastify/websocket";
 import Database from "better-sqlite3";
 import crypto from "crypto";
 import { SocketAddress } from "net";
+import metricsPlugin from "../plugins/metrics/index.js";
+import config from "../config.js";
 
-const PORT = Number(process.env.PORT) || 8006;
+const PORT = Number(config.PORT) || 8006;
 // const DATABASE = process.env.DATABASE_PATH;
 const DATABASE = "/usr/src/app/db/shared.sqlite";
 // const DATABASE = "";
@@ -189,11 +191,12 @@ fastify.get("/ws", { websocket: true }, (socket, req) => {
   });
 });
 
-fastify.listen({ port: PORT }, (err) => {
+fastify.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
   if (err) {
     console.error("Error starting server:", err);
     fastify.log.error(err);
     process.exit(1);
   }
   console.log(`Server running on port ${PORT}`);
+  console.log("Zaba w chta sabba");
 });
