@@ -190,7 +190,8 @@ services:
     ports:
       - ${ALERTMANAGER_PORT:-9093}:9093
     volumes:
-      - ./monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml:ro
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
     env_file: .env
 
 networks:

@@ -35,10 +35,11 @@ scrape_configs:
       - targets: ['frontend:3010']
         labels:
           service: frontend
-          
-  - job_name: alertmanager
-    metrics_path: /metrics
-    static_configs:
-      - targets: ['alertmanager:9093']
-        labels:
-          service: alertmanager
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - /etc/prometheus/alerts.yml
