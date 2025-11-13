@@ -18,6 +18,9 @@ const db = new Database(DATABASE);
 const connectedUsers = new Map();
 
 await fastify.register(Websocket);
+
+await fastify.register(metricsPlugin);
+
 fastify.decorate("db", db);
 
 const channelMembers = {
