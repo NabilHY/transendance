@@ -11,9 +11,19 @@ route:
 receivers:
   - name: default-email
     email_configs:
-      - to: '{{ env "ALERTMANAGER_TO" }}'
-        from: '{{ env "ALERTMANAGER_FROM" }}'
-        smarthost: '{{ env "ALERTMANAGER_SMARTHOST" }}:{{ env "ALERTMANAGER_SMTP_PORT" | default "587" }}'
-        auth_username: '{{ env "ALERTMANAGER_SMTP_USER" | default "" }}'
-        auth_password: '{{ env "ALERTMANAGER_SMTP_PASS" | default "" }}'
+      - to: 'dev-alerts@example.test'
+        from: 'alertmanager@example.test'
+        smarthost: 'mailpit:1025'
         require_tls: false
+        send_resolved: true
+        headers:
+          Subject: 'Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>{{ .CommonAnnotations.summary }}</h2>
+          <p>{{ .CommonAnnotations.description }}</p>
+          {{ if .CommonLabels.service }}
+          <p><strong>Service:</strong> {{ .CommonLabels.service }}</p>
+          {{ end }}
+          {{ if .CommonLabels.severity }}
+          <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
+          {{ end }}

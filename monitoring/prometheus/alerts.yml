@@ -1,11 +1,35 @@
 groups:
   - name: basic-health
+    interval: 30s
     rules:
       - alert: ServiceDown
-        expr: up == 0
+        expr: up{job!="prometheus"} == 0
         for: 1m
         labels:
           severity: critical
+          service: '{{ $labels.service }}'
         annotations:
-          summary: '{{ $labels.instance }} is down'
-          description: '{{ $labels.job }} target has not responded for 1 minute.'
+          summary: 'Service {{ $labels.service }} is down'
+          description: 'Service "{{ $labels.service }}" (job: {{ $labels.job }}, instance: {{ $labels.instance }}) has been down for more than 1 minute.'
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_request_errors_total{status_code=~"5.."}[5m])) by (service) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: '{{ $labels.service }}'
+        annotations:
+          summary: 'High error rate for service {{ $labels.service }}'
+          description: 'Service "{{ $labels.service }}" has error rate of {{ printf "%.2f" $value }} errors/sec'
+
+      - alert: HighRequestLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service!=""}[5m])) by (service, le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: '{{ $labels.service }}'
+        annotations:
+          summary: 'High request latency for service {{ $labels.service }}'
+          description: 'Service "{{ $labels.service }}" has 95th percentile latency of {{ printf "%.2f" $value }}s'

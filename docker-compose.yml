@@ -104,6 +104,7 @@ services:
       #   condition: service_healthy
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus_data:/prometheus
     develop:
       watch:
@@ -202,6 +203,9 @@ services:
     image: prom/alertmanager:latest
     container_name: alertmanager
     restart: unless-stopped
+    depends_on:
+      mailpit:
+        condition: service_started
     networks:
       - ft_transendance
     ports:
