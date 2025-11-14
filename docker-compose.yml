@@ -39,6 +39,7 @@ services:
       # disable: true
 
   frontend:
+    container_name: frontend
     build: ./frontend
     command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:

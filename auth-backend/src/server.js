@@ -35,7 +35,7 @@ fastify.setErrorHandler(function (err, req, reply) {
 
 fastify.register(require('@fastify/cookie'));
 fastify.register(require('@fastify/cors'), {
-  origin: ['http://localhost:8080', 'http://localhost:9090'],
+  origin: [config.FRONTEND_URL, config.USR_MANAG_URL],
   credentials: true
 });
 
