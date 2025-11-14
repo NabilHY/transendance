@@ -1,17 +1,20 @@
 import { client, getOrCreateGauge, getOrCreateHistogram } from './registry.js';
+import config from '../../config.js';
+
+const serviceName = config.SERVICE_NAME || 'chat';
 
 // Shared HTTP metrics
 const httpRequestDuration = getOrCreateHistogram({
   name: 'http_request_duration_seconds',
   help: 'Request duration in seconds',
-  labelNames: ['method', 'route', 'status_code'],
+  labelNames: ['service', 'method', 'route', 'status_code'],
   buckets: [0.05, 0.1, 0.5, 1, 3, 5, 10],
 });
 
 const httpRequestsInFlight = getOrCreateGauge({
   name: 'http_requests_in_flight',
   help: 'In-flight HTTP requests',
-  labelNames: ['method', 'route'],
+  labelNames: ['service', 'method', 'route'],
 });
 
 const sizeBuckets = [
@@ -24,14 +27,14 @@ const sizeBuckets = [
 const httpRequestSize = getOrCreateHistogram({
   name: 'http_request_size_bytes',
   help: 'HTTP request size in bytes',
-  labelNames: ['method', 'route'],
+  labelNames: ['service', 'method', 'route'],
   buckets: sizeBuckets,
 });
 
 const httpResponseSize = getOrCreateHistogram({
   name: 'http_response_size_bytes',
   help: 'HTTP response size in bytes',
-  labelNames: ['method', 'route', 'status_code'],
+  labelNames: ['service', 'method', 'route', 'status_code'],
   buckets: sizeBuckets,
 });
 
@@ -40,7 +43,7 @@ const httpRequestErrors =
   new client.Counter({
     name: 'http_request_errors_total',
     help: 'HTTP error responses',
-    labelNames: ['method', 'route', 'status_code'],
+    labelNames: ['service', 'method', 'route', 'status_code'],
   });
 
 export function registerHttpHooks(fastify) {
@@ -51,7 +54,7 @@ export function registerHttpHooks(fastify) {
     req.__metrics.method = req.method;
     req.startTimeNs = process.hrtime.bigint();
 
-    httpRequestsInFlight.inc({ method: req.method, route });
+    httpRequestsInFlight.inc({ service: serviceName, method: req.method, route });
 
     const cl = req.headers && (req.headers['content-length'] || req.headers['Content-Length']);
     const clNum = cl ? parseInt(Array.isArray(cl) ? cl[0] : cl, 10) : NaN;
@@ -102,23 +105,23 @@ export function registerHttpHooks(fastify) {
       const method = (req.__metrics && req.__metrics.method) || req.method;
       const endNs = process.hrtime.bigint();
       const duration = Number(endNs - (req.startTimeNs || endNs)) / 1e9;
-      httpRequestDuration.observe({ method, route, status_code: reply.statusCode }, duration);
+      httpRequestDuration.observe({ service: serviceName, method, route, status_code: reply.statusCode }, duration);
 
-      httpRequestsInFlight.dec({ method, route });
+      httpRequestsInFlight.dec({ service: serviceName, method, route });
 
       const reqSize = (req.__metrics && typeof req.__metrics.requestSizeBytes === 'number')
         ? req.__metrics.requestSizeBytes
         : 0;
-      httpRequestSize.observe({ method, route }, reqSize);
+      httpRequestSize.observe({ service: serviceName, method, route }, reqSize);
 
       const cl = reply.getHeader && reply.getHeader('content-length');
       const clNum = cl ? parseInt(Array.isArray(cl) ? cl[0] : String(cl), 10) : NaN;
       const respSize = Number.isFinite(clNum)
         ? clNum
         : ((req.__metrics && typeof req.__metrics.responseSizeBytes === 'number') ? req.__metrics.responseSizeBytes : 0);
-      httpResponseSize.observe({ method, route, status_code: reply.statusCode }, respSize);
+      httpResponseSize.observe({ service: serviceName, method, route, status_code: reply.statusCode }, respSize);
 
-      const errLabels = { method, route, status_code: reply.statusCode };
+      const errLabels = { service: serviceName, method, route, status_code: reply.statusCode };
       const incValue = reply.statusCode >= 400 ? 1 : 0;
       httpRequestErrors.inc(errLabels, incValue);
     } finally {
