@@ -1,36 +1,39 @@
-const fp = require('fastify-plugin');
-const Database = require('better-sqlite3');
-const fs = require('fs');
-const path = require('path');
-const promClient = require('prom-client');
+import fp from 'fastify-plugin';
+import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
+import promClient from 'prom-client';
+import { register } from './metrics/registry.js';
+import config from '../config.js';
 
-const register = promClient.register;
 const dbQueryDuration = register.getSingleMetric('db_query_duration_seconds') || new promClient.Histogram({
     name: 'db_query_duration_seconds',
     help: 'Duration of database queries in seconds',
     labelNames: ['service', 'method', 'op'],
     buckets: [0.01, 0.05, 0.1, 0.5, 1, 5, 10],
 });
+
 const dbQueriesTotal = register.getSingleMetric('db_queries_total') || new promClient.Counter({
     name: 'db_queries_total',
     help: 'Total number of database queries',
     labelNames: ['service', 'method', 'op'],
 });
+
 const dbQueryErrors = register.getSingleMetric('db_query_errors_total') || new promClient.Counter({
     name: 'db_query_errors_total',
     help: 'Total number of database query errors',
     labelNames: ['service', 'method', 'op'],
 });
+
 const dbQueriesInFlight = register.getSingleMetric('db_queries_in_flight') || new promClient.Gauge({
     name: 'db_queries_in_flight',
     help: 'Current number of in-flight database operations',
     labelNames: ['service', 'method', 'op'],
 });
 
-module.exports = fp(async function (fastify) {
-    const config = require('../config');
-    const dbPath = config.DATABASE_PATH;
-    const serviceName = config.SERVICE_NAME || 'usr-manag';
+export default fp(async function (fastify) {
+    const dbPath = config.DATABASE_PATH || '/usr/src/app/db/shared.sqlite';
+    const serviceName = config.SERVICE_NAME || 'chat';
     
     // Create directory if it doesn't exist
     const dbDir = path.dirname(dbPath);
@@ -129,8 +132,9 @@ module.exports = fp(async function (fastify) {
         return stmt;
     };
 
-    console.log('✅ User management service connected to shared database with metrics');
+    console.log('✅ Chat service connected to shared database with metrics');
 
     fastify.decorate('db', db);
     fastify.addHook('onClose', async () => db.close());
 });
+

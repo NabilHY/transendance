@@ -1,21 +1,15 @@
 "use strict";
 import Fastify from "fastify";
 import Websocket from "@fastify/websocket";
-import Database from "better-sqlite3";
 import crypto from "crypto";
 import { SocketAddress } from "net";
 import metricsPlugin from "../plugins/metrics/index.js";
+import dbPlugin from "../plugins/db.js";
 import config from "../config.js";
 
 const PORT = Number(config.PORT) || 8006;
-// const DATABASE = process.env.DATABASE_PATH;
-const DATABASE = "/usr/src/app/db/shared.sqlite";
-// const DATABASE = "";
-
 
 const fastify = Fastify();
-
-const db = new Database(DATABASE);
 
 const connectedUsers = new Map();
 
@@ -23,7 +17,7 @@ await fastify.register(Websocket);
 
 await fastify.register(metricsPlugin);
 
-fastify.decorate("db", db);
+await fastify.register(dbPlugin);
 
 const channelMembers = {
   ch1: ["u1", "u2", "u3", "u4"],
@@ -31,7 +25,7 @@ const channelMembers = {
   ch3: ["u1", "u2"],
 };
 
-function sendPendingMessages(socket, userId) {
+function sendPendingMessages(socket, userId, db) {
   
   try {
 
@@ -55,7 +49,7 @@ function sendPendingMessages(socket, userId) {
   }
 }
 
-function storeMessage(msg, delivered) {
+function storeMessage(msg, delivered, db) {
   console.log("last thing");
   console.log("channel: ", msg.channel_id);
   
@@ -81,7 +75,7 @@ function storeMessage(msg, delivered) {
   }
 }
 
-function getChannelMembers(channel_id) {
+function getChannelMembers(channel_id, db) {
   const members = db.prepare("SELECT * FROM ChannelMembers WHERE channel_id = ?").all(channel_id);
   if (!members || members.length === 0) {
     console.warn(`No members found for channel: ${channel_id}`);
@@ -91,7 +85,7 @@ function getChannelMembers(channel_id) {
   return members.map(member => member.user_id);
 }
 
-function sendToReceiver(message) {
+function sendToReceiver(message, db) {
   const receiverSocket = connectedUsers.get(message.receiver_id);
   const isOnline = receiverSocket && receiverSocket.readyState === 1;
 
@@ -99,14 +93,14 @@ function sendToReceiver(message) {
     receiverSocket.send(JSON.stringify(message));
   }
 
-  storeMessage(message, isOnline);
+  storeMessage(message, isOnline, db);
 }
 
-function sendToChannel(message) {
-  const members = getChannelMembers(message.channel_id);
+function sendToChannel(message, db) {
+  const members = getChannelMembers(message.channel_id, db);
   for (const memberId of members) {
     if (memberId === message.sender_id) continue;
-    if (!not_blocked(memberId, message.sender_id)) {
+    if (!not_blocked(memberId, message.sender_id, db)) {
       console.log("user_id  ", memberId, "blocked the user ", message.sender_id);
 
       continue;
@@ -114,7 +108,7 @@ function sendToChannel(message) {
 
     message.receiver_id = memberId;
 
-    sendToReceiver(message);
+    sendToReceiver(message, db);
     // const memberSocket = connectedUsers.get(memberId);
     // if (memberSocket && memberSocket.readyState === 1) {
     //   memberSocket.send(JSON.stringify(message));
@@ -122,7 +116,7 @@ function sendToChannel(message) {
   }
 }
 
-function not_blocked(sender_id, receiver_id) {
+function not_blocked(sender_id, receiver_id, db) {
   try {
     const blocked = db.prepare("SELECT * FROM BlockedUsers WHERE user_id = ? AND blocked_user_id = ?").get(receiver_id, sender_id);
     return !blocked;
@@ -132,7 +126,7 @@ function not_blocked(sender_id, receiver_id) {
   }
 }
 
-function isPrivateChannel(channelId) {
+function isPrivateChannel(channelId, db) {
   console.log("channelId: ", channelId);
   
   try {
@@ -159,18 +153,18 @@ fastify.get("/ws", { websocket: true }, (socket, req) => {
 
   connectedUsers.set(userId, socket);
 
-  sendPendingMessages(socket, userId);
+  sendPendingMessages(socket, userId, fastify.db);
 
   socket.on("message", (rawMsg) => {
     try {
 
       const msg = JSON.parse(rawMsg.toString());
-      if (isPrivateChannel(msg.channel_id)) {
+      if (isPrivateChannel(msg.channel_id, fastify.db)) {
         console.log("------------------------------- PRIVATE -----------------------------------");
-        if (msg.receiver_id && not_blocked(msg.sender_id, msg.receiver_id)) {
+        if (msg.receiver_id && not_blocked(msg.sender_id, msg.receiver_id, fastify.db)) {
           console.log("not blocked user");
-          sendToReceiver(msg);
-        } else if (msg.receiver_id && !not_blocked(msg.sender_id, msg.receiver_id)) {
+          sendToReceiver(msg, fastify.db);
+        } else if (msg.receiver_id && !not_blocked(msg.sender_id, msg.receiver_id, fastify.db)) {
           console.log("* PRIVATE CHANNEL: user_id  ", msg.receiver_id, "blocked the user ", msg.sender_id);
           socket.send(JSON.stringify({ error: "You are blocked by the user." })); 
         }
@@ -178,7 +172,7 @@ fastify.get("/ws", { websocket: true }, (socket, req) => {
         console.log("------------------------------- CHANNEL -----------------------------------");
         console.log("group");
         console.log("Group message to channel:", msg.channel_id);
-        sendToChannel(msg);
+        sendToChannel(msg, fastify.db);
       }
     } catch (err) {
       console.error("Error handling message:", err);

@@ -8,27 +8,29 @@ const register = promClient.register;
 const dbQueryDuration = register.getSingleMetric('db_query_duration_seconds') || new promClient.Histogram({
     name: 'db_query_duration_seconds',
     help: 'Duration of database queries in seconds',
-    labelNames: ['method', 'op'],
+    labelNames: ['service', 'method', 'op'],
     buckets: [0.01, 0.05, 0.1, 0.5, 1, 5, 10],
 });
 const dbQueriesTotal = register.getSingleMetric('db_queries_total') || new promClient.Counter({
     name: 'db_queries_total',
     help: 'Total number of database queries',
-    labelNames: ['method', 'op'],
+    labelNames: ['service', 'method', 'op'],
 });
 const dbQueryErrors = register.getSingleMetric('db_query_errors_total') || new promClient.Counter({
     name: 'db_query_errors_total',
     help: 'Total number of database query errors',
-    labelNames: ['method', 'op'],
+    labelNames: ['service', 'method', 'op'],
 });
 const dbQueriesInFlight = register.getSingleMetric('db_queries_in_flight') || new promClient.Gauge({
     name: 'db_queries_in_flight',
     help: 'Current number of in-flight database operations',
-    labelNames: ['method', 'op'],
+    labelNames: ['service', 'method', 'op'],
 });
 
 module.exports = fp(async function (fastify) {
+    const config = require('../config');
     const dbPath = process.env.DB_FILE || path.join(__dirname, '..', 'db', 'sqlite.db');
+    const serviceName = config.SERVICE_NAME || 'auth-backend';
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
     let db;
@@ -51,7 +53,7 @@ module.exports = fp(async function (fastify) {
         db[methodName] = (...args) => {
             const sql = args[0];
             const op = String(sql || '').trim().toLowerCase().split(' ')[0] || methodName;
-            const labels = { method: methodName, op };
+            const labels = { service: serviceName, method: methodName, op };
             const start = process.hrtime.bigint();
 
             dbQueriesInFlight.inc(labels);
