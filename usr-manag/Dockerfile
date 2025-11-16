@@ -1,9 +1,15 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /usr/src/app
 
-# Install build dependencies for native modules
-RUN apk add --no-cache python3 py3-setuptools build-base libc6-compat sqlite-dev
+# Install build dependencies for native modules (Debian/apt)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    curl \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy source code (no host node_modules)
 COPY . .
@@ -20,4 +26,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 CMD node -
 
 RUN npm install --no-package-lock --legacy-peer-deps
 
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-lc", "chmod +x ./docker/run.sh && ./docker/run.sh"]

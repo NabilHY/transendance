@@ -1,7 +1,8 @@
-FROM node:20-slim AS build
+FROM node:20-slim
 
 WORKDIR /usr/src/app
 
+# Install build dependencies for native modules (needed for development rebuilds)
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
@@ -10,20 +11,10 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY package*.json ./
-
-RUN npm ci --omit=dev
-
-COPY . .
-
-FROM node:20-slim
-
-WORKDIR /usr/src/app
-
 RUN mkdir -p /usr/src/app/db
 
 COPY --from=build /usr/src/app ./
 
-EXPOSE ${CHAT_PORT:-4009}
+RUN chmod +x docker/run.sh
 
 CMD ["sh", "-lc", "chmod +x ./docker/run.sh && ./docker/run.sh"]

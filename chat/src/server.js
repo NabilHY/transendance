@@ -199,5 +199,4 @@ fastify.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
     process.exit(1);
   }
   console.log(`Server running on port ${PORT}`);
-  console.log("Zaba w chta sabba");
 });

@@ -1,8 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "🚀 Starting chat service..."
-
+echo "🚀 Starting frontend service..."
 
 # Prevent writing lockfile into bind-mounted source
 export NPM_CONFIG_PACKAGE_LOCK=false
@@ -11,8 +10,6 @@ export NPM_CONFIG_PACKAGE_LOCK=false
 rm -rf node_modules package-lock.json
 npm install --no-package-lock
 
-# Rebuild native deps if needed (better-sqlite3)
-npm rebuild better-sqlite3 --build-from-source || true
-
-# Start in dev mode for hot reload
+# Start in dev mode
 npm run dev
+
