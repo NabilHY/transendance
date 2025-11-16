@@ -24,6 +24,7 @@ const initializeDatabase = (db) => {
                         is_verified INTEGER DEFAULT 0,
                         last_password_changed_at INTEGER,
                         account_locked INTEGER DEFAULT 0,
+                        
                         failed_login_attempts INTEGER DEFAULT 0,
                         
                         -- Profile fields (from user_profiles)

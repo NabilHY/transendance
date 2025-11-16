@@ -25,7 +25,6 @@ export default function ProfilePage() {
 
     const handleStatusToggle = async () => {
         if (!profile) return;
-        
         setIsUpdatingStatus(true);
         try {
             await updateOnlineStatus(profile.is_online === 0);

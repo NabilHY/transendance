@@ -7,7 +7,16 @@ import metricsPlugin from "../plugins/metrics/index.js";
 import dbPlugin from "../plugins/db.js";
 import config from "../config.js";
 
+<<<<<<< HEAD
 const PORT = Number(config.PORT) || 8006;
+=======
+const PORT = Number(process.env.CHAT_PORT) || 4001;
+// const DATABASE = process.env.DATABASE_PATH;
+const DATABASE = "/usr/src/app/db/shared.sqlite";
+// const DATABASE = "";
+
+console.log("port: ", PORT);
+>>>>>>> 9a7ed06 (merging frontend)
 
 const fastify = Fastify();
 

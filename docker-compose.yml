@@ -169,7 +169,11 @@ services:
     build: ./chat
     command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
+<<<<<<< HEAD
       - ${CHAT_PORT:-8006}:${CHAT_PORT:-8006}
+=======
+      - ${CHAT_PORT:-4009}:${CHAT_PORT:-4009}
+>>>>>>> 9a7ed06 (merging frontend)
     networks:
       - ft_transendance
     depends_on:
@@ -177,12 +181,11 @@ services:
         condition: service_healthy
       auth-backend:
         condition: service_healthy
-      mailpit:
-        condition: service_healthy
     volumes:
       - ./chat:/usr/src/app
       - users_data:/usr/src/app/db
     env_file: .env
+<<<<<<< HEAD
     
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -218,6 +221,18 @@ services:
       - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
     env_file: .env
 
+=======
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${CHAT_PORT:-4009}/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 24
+
+      
+networks:
+  ft_transendance:
+    driver: bridge
+>>>>>>> 9a7ed06 (merging frontend)
 
 volumes:
   users_data:
@@ -225,6 +240,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
+<<<<<<< HEAD
       device: /home/${USER}/transendance_volumes/users_data
   # auth-backend-node_modules:
   #   driver: local
@@ -234,3 +250,20 @@ volumes:
   #   driver: local
   # db-init-node_modules:
   #   driver: local
+=======
+      device: /home/simo/cursus/trancendance_volumes/users_db
+  chat_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/simo/cursus/trancendance_volumes/users_db
+  auth-backend-node_modules:
+    driver: local
+  usr-manag-node_modules:
+    driver: local
+  frontend-node_modules:
+    driver: local
+  db-init-node_modules:
+    driver: local
+>>>>>>> 9a7ed06 (merging frontend)
