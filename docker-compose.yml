@@ -1,7 +1,7 @@
 services:
   db-init:
     build: ./db-init
-    command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
+    # command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
       - ${DB_INIT_PORT:-3005}:${DB_INIT_PORT:-3005}
     env_file: .env
@@ -10,6 +10,7 @@ services:
     volumes:
       - users_data:/usr/src/app/db
       - ./db-init:/usr/src/app
+      - db-init-node_modules:/usr/src/app/node_modules
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${DB_INIT_PORT:-3000}/health"]
       interval: 5s
@@ -18,7 +19,7 @@ services:
 
   auth-backend:
     build: ./auth-backend
-    command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
+    # command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
       - ${AUTH_PORT:-8005}:${AUTH_PORT:-8005}
     env_file: .env
@@ -41,7 +42,7 @@ services:
   frontend:
     container_name: frontend
     build: ./frontend
-    command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
+    # command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
       - ${FRONTEND_PORT:-3010}:${FRONTEND_PORT:-3010}
     networks:
@@ -54,7 +55,9 @@ services:
     env_file: .env
     volumes:
       - ./frontend:/app
-
+      - frontend-node_modules:/app/node_modules
+  
+  
   mailpit:
     image: axllent/mailpit
     ports:
@@ -66,7 +69,7 @@ services:
 
   usr-manag:
     build: ./usr-manag
-    command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
+    # command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
       - ${USR_MANAG_PORT:-4000}:${USR_MANAG_PORT:-4000}
     networks:
@@ -180,6 +183,7 @@ services:
     volumes:
       - ./chat:/usr/src/app
       - users_data:/usr/src/app/db
+      - usr-manag-node_modules:/usr/src/app/node_modules
     env_file: .env
     
   cadvisor:

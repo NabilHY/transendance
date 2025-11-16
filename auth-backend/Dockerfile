@@ -13,8 +13,12 @@ RUN apt-get update && apt-get install -y \
 
 COPY . .
 
-RUN chmod +x docker/run.sh
+# RUN chmod +x docker/run.sh
+
+RUN npm install --no-package-lock
 
 EXPOSE 8005
 
-CMD ["sh", "-lc", "./docker/run.sh"]
+CMD ["npm", "run", "dev"]
+
+# CMD ["sh", "-lc", "./docker/run.sh"]

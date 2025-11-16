@@ -3,8 +3,12 @@
 
 # Volumes :
 VOLUMES_DIR=/home/${USER}/transendance_volumes
+ENV_FILE=.env
 users_db_dir=${VOLUMES_DIR}/users_db
-
+auth-backend-node_modules_dir=${VOLUMES_DIR}/auth-backend-node_modules
+usr-manag-node_modules_dir=${VOLUMES_DIR}/usr-manag-node_modules
+frontend-node_modules_dir=${VOLUMES_DIR}/frontend-node_modules
+db-init-node_modules_dir=${VOLUMES_DIR}/db-init-node_modules
 
 .PHONY: help setup setup-full init build up down restart logs ps clean rebuild install-deps test smoke-test
 
