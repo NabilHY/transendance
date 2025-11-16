@@ -9,8 +9,8 @@ services:
       - ft_transendance
     volumes:
       - users_data:/usr/src/app/db
-      - ./db-init:/usr/src/app
-      - db-init-node_modules:/usr/src/app/node_modules
+      # - ./db-init:/usr/src/app
+
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${DB_INIT_PORT:-3000}/health"]
       interval: 5s
@@ -53,9 +53,9 @@ services:
       # usr-manag:
       #   condition: service_healthy
     env_file: .env
-    volumes:
-      - ./frontend:/app
-      - frontend-node_modules:/app/node_modules
+    # volumes:
+    #   - ./frontend:/app
+
   
   
   mailpit:
@@ -183,7 +183,7 @@ services:
     volumes:
       - ./chat:/usr/src/app
       - users_data:/usr/src/app/db
-      - usr-manag-node_modules:/usr/src/app/node_modules
+
     env_file: .env
     
   cadvisor:

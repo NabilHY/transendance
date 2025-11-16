@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
@@ -18,6 +18,6 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 CMD node -
 # Start the service with runtime install
 # CMD ["sh", "-lc", "./docker/run.sh"]
 
-RUN npm install --no-package-lock
+RUN npm install --no-package-lock --legacy-peer-deps
 
 CMD ["npm", "run", "dev"]

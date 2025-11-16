@@ -15,7 +15,7 @@ COPY . .
 
 # RUN chmod +x docker/run.sh
 
-RUN npm install --no-package-lock
+RUN npm install --no-package-lock --legacy-peer-deps
 
 EXPOSE 8005
 
