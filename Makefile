@@ -34,8 +34,8 @@ ${users_db_dir}:
 	mkdir -p ${users_db_dir}
 
 # Build commands
-build: ${ENV_FILE}
-	docker compose build
+build: 
+	docker compose build --no-cache
 
 # Start commands
 up: ${users_db_dir}
@@ -44,7 +44,6 @@ up: ${users_db_dir}
 # Stop commands
 down:
 	docker compose down
-	
 
 # Restart commands
 restart:

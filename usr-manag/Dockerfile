@@ -2,13 +2,8 @@ FROM node:20-slim
 
 WORKDIR /usr/src/app
 
-# Install build dependencies for native modules (Debian/apt)
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 py3-setuptools build-base libc6-compat sqlite-dev
 
 # Copy source code (no host node_modules)
 COPY . .

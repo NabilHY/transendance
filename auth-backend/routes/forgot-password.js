@@ -65,13 +65,13 @@ module.exports = async function (fastify) {
                         });
                     const token = await createToken(user);
                     const link = `${config.FRONTEND_URL}/set-password?token=${token}`;
-                    await transporter.sendMail({
+                    await fastify.trackExternal('smtp', () => transporter.sendMail({
                         from: config.SMTP_FROM,
                         to: email,
                         subject: 'Password Reset',
                         text: `Click the link to reset your password: ${link}`,
                         html: `<p>Click the link to reset your password: <a href="${link}">${link}</a></p>`
-                    });
+                    }));
                     return reply.code(200).send({ message: 'Password reset email sent' });
                 } else {
                   // token still valid → return generic 200
@@ -83,13 +83,13 @@ module.exports = async function (fastify) {
     
             const link = `${config.FRONTEND_URL}/set-password?token=${token}`;
             
-            await transporter.sendMail({
+            await fastify.trackExternal('smtp', () => transporter.sendMail({
                 from: config.SMTP_FROM,
                 to: email,
                 subject: 'Password Reset',
                 text: `Click the link to reset your password: ${link}`,
                 html: `<p>Click the link to reset your password: <a href="${link}">${link}</a></p>`
-            });
+            }));
             return reply.code(200).send({ message: 'Password reset email sent' });
         }
     );

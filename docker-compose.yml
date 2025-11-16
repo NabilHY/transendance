@@ -3,7 +3,7 @@ services:
     build: ./db-init
     # command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
-      - ${DB_INIT_PORT:-3000}:${DB_INIT_PORT:-3000}
+      - ${DB_INIT_PORT:-3005}:${DB_INIT_PORT:-3005}
     env_file: .env
     networks:
       - ft_transendance
@@ -28,28 +28,30 @@ services:
     volumes:
       - ./auth-backend:/usr/src/app
       - users_data:/usr/src/app/db
-      - auth-backend-node_modules:/usr/src/app/node_modules
-    depends_on:
-      db-init:
-        condition: service_healthy
+    # depends_on:
+    #   db-init:
+    #     condition: service_healthy
     healthcheck:
+      # test: ["CMD", "curl", "-fsS", "http://localhost:8005/health"]
       test: ["CMD", "curl", "-fsS", "http://localhost:${AUTH_PORT:-8005}/health"]
       interval: 5s
       timeout: 3s
       retries: 24
+      # disable: true
 
   frontend:
+    container_name: frontend
     build: ./frontend
     # command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
     ports:
-      - ${FRONTEND_PORT:-8080}:${FRONTEND_PORT:-8080}
+      - ${FRONTEND_PORT:-3010}:${FRONTEND_PORT:-3010}
     networks:
       - ft_transendance
     depends_on:
       auth-backend:
         condition: service_healthy
-      usr-manag:
-        condition: service_healthy
+      # usr-manag:
+      #   condition: service_healthy
     env_file: .env
     volumes:
       - ./frontend:/app
@@ -72,6 +74,105 @@ services:
       - ${USR_MANAG_PORT:-4000}:${USR_MANAG_PORT:-4000}
     networks:
       - ft_transendance
+    # depends_on:
+    #   db-init:
+    #     condition: service_healthy
+    #   auth-backend:
+    #     condition: service_healthy
+    #   mailpit:
+    #     condition: service_healthy
+    volumes:
+      - ./usr-manag:/usr/src/app
+      - users_data:/usr/src/app/db
+    env_file: .env
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${USR_MANAG_PORT:-4000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 24
+
+  prometheus:
+    build: ./monitoring/prometheus
+    ports:
+      - ${PROMETHEUS_PORT:-9090}:9090
+    networks:
+      - ft_transendance
+    depends_on:
+      # db-init:
+      #   condition: service_healthy
+      # usr-manag:
+      #   condition: service_healthy
+      auth-backend:
+        condition: service_healthy
+      # frontend:
+      #   condition: service_healthy
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    develop:
+      watch:
+        - path: ./monitoring/prometheus
+          action: restart
+    env_file: .env
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - ${GRAFANA_PORT:-4010}:${GRAFANA_PORT:-4010}
+    networks:
+      - ft_transendance
+    environment:
+      - GF_SERVER_HTTP_PORT=${GRAFANA_PORT:-4010}
+      # Security: Disable default admin/admin creation
+      - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true
+      # Security: Disable anonymous access (explicit)
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      # Security Headers: HSTS
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY_MAX_AGE_SECONDS=31536000
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY_PRELOAD=true
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY_SUBDOMAINS=true
+      # Security Headers: Content Security Policy
+      - GF_SECURITY_CONTENT_SECURITY_POLICY=true
+      # Additional security settings
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=strict
+    depends_on:
+      prometheus:
+        condition: service_started
+    env_file: .env
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    pid: host
+    networks:
+      - ft_transendance
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+    env_file: .env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:9100/metrics >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 5s
+  
+  chat:
+    build: ./chat
+    command: sh -lc "chmod +x ./docker/run.sh && ./docker/run.sh"
+    ports:
+      - ${CHAT_PORT:-8006}:${CHAT_PORT:-8006}
+    networks:
+      - ft_transendance
     depends_on:
       db-init:
         condition: service_healthy
@@ -80,15 +181,44 @@ services:
       mailpit:
         condition: service_healthy
     volumes:
-      - ./usr-manag:/usr/src/app
+      - ./chat:/usr/src/app
       - users_data:/usr/src/app/db
       - usr-manag-node_modules:/usr/src/app/node_modules
     env_file: .env
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:${USR_MANAG_PORT:-4000}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 24
+    
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    networks:
+      - ft_transendance
+
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    env_file: .env
+    depends_on:
+      node-exporter:
+        condition: service_healthy
+        
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+    depends_on:
+      mailpit:
+        condition: service_started
+    networks:
+      - ft_transendance
+    ports:
+      - ${ALERTMANAGER_PORT:-9093}:9093
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    env_file: .env
 
 networks:
   ft_transendance:
@@ -100,12 +230,10 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/${USER}/transendance_volumes/users_data
-  auth-backend-node_modules:
+      device: /home/${USER}/transendance_volumes/users_db
+
+  grafana_data:
     driver: local
-  usr-manag-node_modules:
-    driver: local
-  frontend-node_modules:
-    driver: local
-  db-init-node_modules:
+    
+  prometheus_data:
     driver: local

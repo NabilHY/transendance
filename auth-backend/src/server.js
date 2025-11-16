@@ -35,18 +35,23 @@ fastify.setErrorHandler(function (err, req, reply) {
 
 fastify.register(require('@fastify/cookie'));
 fastify.register(require('@fastify/cors'), {
-  origin: ['http://localhost:8080'],
+  origin: [config.FRONTEND_URL, config.USR_MANAG_URL],
   credentials: true
 });
 
+// Initialize metrics (registry and /metrics endpoint) before DB so labels apply
+fastify.register(require('../plugins/metrics'));
 fastify.register(require('../plugins/db'));
 fastify.register(require('../plugins/schemas'));
 fastify.register(require('../plugins/rate-limit'));
 fastify.register(require('../plugins/jwt'));
 fastify.register(require('../plugins/swagger'));
+
 fastify.register(require('../routes/auth'), { prefix: '/api/auth' });
 fastify.register(require('../plugins/csrf'));
+
 fastify.register(require('../routes/csrf-token'), { prefix: '/api' });
+
 fastify.register(require('../plugins/account-lockout'));
 fastify.register(require('../routes/forgot-password'), { prefix: '/api/auth' });
 

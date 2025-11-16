@@ -136,13 +136,13 @@ module.exports = async function (fastify) {
                 
                 const link = `${config.BACKEND_URL}/api/auth/verify-email/confirm?token=${emailVerificationToken}`;
                 try {
-                    await transporter.sendMail({
+                    await fastify.trackExternal('smtp', () => transporter.sendMail({
                         from: config.EMAIL_FROM,
                         to: email,
                         subject: 'Verify your email',
                         text: `Click the link to verify your email: ${link}`,
                         html: `<p>Click the link to verify your email: <a href="${link}">${link}</a></p>`
-                    });
+                    }));
                 } catch (_e) { /* ignore send errors to not leak info */ }
 
                 return reply.code(201).send({ message: 'Account created successfully. Please verify your email.' });
