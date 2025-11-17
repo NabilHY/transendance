@@ -116,11 +116,6 @@ export default function RegisterPage() {
 								</a>
 							</div>
 
-							<p className={styles.terms}>
-								By continuing you agree to the{' '}
-								<Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>.
-							</p>
-
 							<p className={styles.terms} style={{ marginTop: 8 }}>
 								Already have an account? <Link href="/login">Login</Link>
 							</p>

@@ -135,11 +135,6 @@ export default function LoginPage() {
 								</a>
 							</div>
 
-							<p className={styles.terms}>
-								By continuing you agree to the{' '}
-								<Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>.
-							</p>
-
 							{(error || oauthError) && (
 								<p className={styles.error}>{error || oauthError}</p>
 							)}
