@@ -8,7 +8,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en">
-			<body>
+			<body style={{margin: 0}} >
 				<Suspense fallback={null}>
 					<Providers>{children}</Providers>
 				</Suspense>
@@ -16,5 +16,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 		</html>
 	);
 }
-
-

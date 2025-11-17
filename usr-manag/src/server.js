@@ -108,7 +108,8 @@ fastify.get('/service-info', {
             'PATCH /me/profile',
             'DELETE /me',
             'POST /users/:id/friend',
-            'POST /users/:id/block'
+            'POST /users/:id/block',
+            'GET /conversations/:id'
         ],
         dependencies: ['auth-backend']
     };
@@ -116,6 +117,7 @@ fastify.get('/service-info', {
 
 // Register routes
 fastify.register(require('../routes/users'), { prefix: '' });
+fastify.register(require('../routes/chat'), { prefix: '' });
 // fastify.register(require('../routes/profile'), { prefix: '' });
 fastify.register(require('../plugins/metrics'), { prefix: '/metrics' });
 const start = async () => {

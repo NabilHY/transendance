@@ -11,5 +11,5 @@ npm install --no-package-lock --legacy-peer-deps
 # Rebuild native deps if needed (sqlite3)
 # npm rebuild sqlite3 --build-from-source || true
 
-# Start the service
-npm start
+# Start the service in dev mode
+npm run dev

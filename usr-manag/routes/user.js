@@ -1,3 +1,5 @@
+const { log } = require('console');
+
 module.exports = async function (fastify) {
     // Get all users or search users
     fastify.get('/users', { preHandler: [fastify.authenticate], schema: {
@@ -86,7 +88,7 @@ module.exports = async function (fastify) {
         
         const profile = fastify.db.prepare(`
             SELECT id, username, first_name, last_name, 
-                   profile_pic, is_online, created_at, updated_at
+            profile_pic, is_online, created_at, updated_at
             FROM users 
             WHERE id = ?
         `).get(id);
@@ -148,9 +150,9 @@ module.exports = async function (fastify) {
         `).run(uuid, userId, id);
         
         return reply.code(201).send({
-            success: true, 
-            message: 'Friend request sent', 
-            requestId: uuid 
+            success: true,
+            message: 'Friend request sent',
+            requestId: uuid
         });
     });
 
@@ -203,4 +205,5 @@ module.exports = async function (fastify) {
         
         return reply.code(201).send({ success: true, message: 'User blocked' });
     });
+
 };

@@ -13,12 +13,12 @@ RUN apt-get update && apt-get install -y \
 
 COPY . .
 
-# RUN chmod +x docker/run.sh
+RUN chmod +x docker/run.sh
 
-RUN npm install --no-package-lock
+# Install dependencies during build (will be overwritten by bind mount, but needed for initial build)
+RUN npm install --no-package-lock --legacy-peer-deps
 
 EXPOSE 8005
 
-CMD ["npm", "run", "dev"]
-
-# CMD ["sh", "-lc", "./docker/run.sh"]
+# Use run.sh to reinstall dependencies at runtime (important for bind mounts)
+CMD ["sh", "-lc", "./docker/run.sh"]
