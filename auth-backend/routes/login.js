@@ -147,12 +147,12 @@ module.exports = async function (fastify) {
 
         if (!user) {
             const lockoutResult = await fastify.accountLockout.recordFailedAttempt(email);
-            if (lockoutResult.isLocked) {
-                return reply.code(423).send({
-                    error: 'Account is temporarily locked due to too many failed attempts',
-                    lockedUntil: lockoutResult.lockedUntil,
-                });
-            }
+            // if (lockoutResult.isLocked) {
+            //     return reply.code(423).send({
+            //         error: 'Account is temporarily locked due to too many failed attempts',
+            //         lockedUntil: lockoutResult.lockedUntil,
+            //     });
+            // }
             
             return reply.code(401).send({
                 error: 'Wrong email or password',
@@ -170,12 +170,12 @@ module.exports = async function (fastify) {
         const isPasswordValid = await verifyPassword(password, user.password_hash);
         if (!isPasswordValid) {
             const lockoutResult = await fastify.accountLockout.recordFailedAttempt(email);
-            if (lockoutResult.isLocked) {
-                return reply.code(423).send({
-                    error: 'Account is temporarily locked due to too many failed attempts',
-                    lockedUntil: lockoutResult.lockedUntil
-                });
-            }
+            // if (lockoutResult.isLocked) {
+            //     return reply.code(423).send({
+            //         error: 'Account is temporarily locked due to too many failed attempts',
+            //         lockedUntil: lockoutResult.lockedUntil
+            //     });
+            // }
             
             return reply.code(401).send({
                 error: 'Wrong email or password',
