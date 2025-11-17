@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN mkdir -p /usr/src/app/db
 
-COPY --from=build /usr/src/app ./
+COPY . .
 
 RUN chmod +x docker/run.sh
 
