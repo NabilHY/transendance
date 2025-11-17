@@ -12,7 +12,7 @@ module.exports = {
 	FRONTEND_URL: process.env.FRONTEND_URL,
 	USR_MANAG_URL: process.env.USR_MANAG_SERVICE_URL || 'http://localhost:4000',
 	
-	BACKEND_URL: process.env.FRONTEND_SERVICE_URL,
+	BACKEND_URL: process.env.AUTH_BACKEND_URL,
 	SMTP_HOST: process.env.SMTP_HOST,
 	SMTP_PORT: process.env.SMTP_PORT,
 	SMTP_USER: process.env.SMTP_USER,
