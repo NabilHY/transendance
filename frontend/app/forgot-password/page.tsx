@@ -1,9 +1,9 @@
 'use client';
-// @ts-nocheck
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRequireGuest } from '@/hooks/useAuthGuard';
+import styles from '../login/LoginPage.module.css';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
 
@@ -27,7 +27,7 @@ export default function ForgotPasswordPage() {
 		return /.+@.+\..+/.test(trimmed);
 	}
 
-	async function onSubmit(e: any) {
+	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setError(null);
 		setMessage(null);
@@ -51,59 +51,61 @@ export default function ForgotPasswordPage() {
 	}
 
 	return (
-		<main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 420, margin: '0 auto' }}>
-			<h1>Forgot your password?</h1>
-			<p style={{ marginBottom: 24, color: '#666' }}>
-				Enter your email and we\'ll send you a link to reset your password.
-			</p>
+		<main className={styles.page}>
+			<div className={styles.container}>
+				<div className={styles.grid}>
+					<section className={`${styles.card} ${styles.loginCard}`}>
+						<div className={styles.cardHeader}>
+							<h1 className={styles.title}>Forgot your password?</h1>
+							<p className={styles.subtitle}>Enter your email and we'll send you a link to reset your password.</p>
+						</div>
+						<form className={styles.form} onSubmit={onSubmit}>
+							<label className={styles.field}>
+								<span>Email</span>
+								<div className={styles.inputWrapper}>
+									<input
+										className={styles.input}
+										type="email"
+										value={email}
+										onChange={(e) => setEmail(e.target.value)}
+										placeholder="you@example.com"
+										required
+									/>
+								</div>
+							</label>
 
-			<form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
-				<label>
-					<span>Email</span>
-					<input
-						type="email"
-						value={email}
-						onChange={(e) => setEmail((e as any).target.value)}
-						placeholder="you@example.com"
-						required
-						style={{ width: '100%', padding: 12, fontSize: 16 }}
-					/>
-				</label>
-				<button
-					type="submit"
-					disabled={submitting || !isValidEmail(email)}
-					style={{
-						padding: 12,
-						backgroundColor: !isValidEmail(email) ? '#ccc' : '#007bff',
-						color: 'white',
-						border: 'none',
-						borderRadius: 4,
-						cursor: submitting || !isValidEmail(email) ? 'not-allowed' : 'pointer'
-					}}
-				>
-					{submitting ? 'Sending…' : 'Send reset link'}
-				</button>
-			</form>
+							<button
+								type="submit"
+								disabled={submitting || !isValidEmail(email)}
+								className={styles.submitBtn}
+								style={{ width: '100%' }}
+							>
+								{submitting ? 'Sending…' : 'Send reset link'}
+							</button>
 
-			{message && (
-				<p style={{ color: 'green', marginTop: 12, padding: 8, backgroundColor: '#e6ffed', border: '1px solid #ccffd8', borderRadius: 4 }}>
-					{message}
-				</p>
-			)}
+							{message && (
+								<p className={styles.error} style={{ background: 'rgba(76, 175, 80, 0.1)', borderColor: 'rgba(76, 175, 80, 0.3)', color: '#81c784' }}>
+									{message}
+								</p>
+							)}
 
-			{error && (
-				<p style={{ color: 'crimson', marginTop: 12, padding: 8, backgroundColor: '#ffe6e6', border: '1px solid #ffcccc', borderRadius: 4 }}>
-					{error}
-				</p>
-			)}
+							{error && (
+								<p className={styles.error}>{error}</p>
+							)}
 
-			<div style={{ marginTop: 24, textAlign: 'center' }}>
-				<button
-					onClick={() => router.replace('/login')}
-					style={{ background: 'none', border: 'none', color: '#666', textDecoration: 'underline', cursor: 'pointer' }}
-				>
-					← Back to Login
-				</button>
+							<div style={{ marginTop: 16, textAlign: 'center' }}>
+								<button
+									type="button"
+									onClick={() => router.replace('/login')}
+									className={styles.forgotBtn}
+									style={{ textAlign: 'center', margin: '0 auto' }}
+								>
+									← Back to Login
+								</button>
+							</div>
+						</form>
+					</section>
+				</div>
 			</div>
 		</main>
 	);
