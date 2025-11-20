@@ -30,8 +30,6 @@ services:
     depends_on:
       db-init:
         condition: service_healthy
-      mailpit:
-        condition: service_started
     healthcheck:
       # test: ["CMD", "curl", "-fsS", "http://localhost:8005/health"]
       test: ["CMD", "curl", "-fsS", "http://localhost:${AUTH_PORT:-8005}/health"]
@@ -69,8 +67,6 @@ services:
         condition: service_healthy
       auth-backend:
         condition: service_healthy
-      mailpit:
-        condition: service_started
     volumes:
       - ./usr-manag:/usr/src/app
       - users_data:/usr/src/app/db
@@ -166,8 +162,6 @@ services:
         condition: service_healthy
       auth-backend:
         condition: service_healthy
-      mailpit:
-        condition: service_healthy
     volumes:
       - ./chat:/usr/src/app
       - users_data:/usr/src/app/db
@@ -196,8 +190,6 @@ services:
     container_name: alertmanager
     restart: unless-stopped
     depends_on:
-      mailpit:
-        condition: service_started
       prometheus:
         condition: service_started
     networks:
@@ -205,9 +197,13 @@ services:
     ports:
       - ${ALERTMANAGER_PORT:-9093}:9093
     volumes:
-      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml.template:ro
+      - ./monitoring/alertmanager/entrypoint.sh:/entrypoint.sh:ro
+      - alertmanager_data:/alertmanager
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
     env_file: .env
+    environment:
+      - SENDGRID_API_KEY=${SENDGRID_SMTP_PASS:-}
 
 networks:
   ft_transendance:
@@ -221,4 +217,7 @@ volumes:
     driver: local
     
   prometheus_data:
+    driver: local
+    
+  alertmanager_data:
     driver: local
