@@ -56,15 +56,6 @@ services:
     env_file: .env
     volumes:
       - ./frontend:/app  
-  
-  mailpit:
-    image: axllent/mailpit
-    ports:
-      - "1025:1025"  # SMTP server port
-      - "8025:8025"  # Web UI port
-    networks:
-      - ft_transendance
-    env_file: .env
 
   usr-manag:
     build: ./usr-manag

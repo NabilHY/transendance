@@ -1,6 +1,10 @@
 global:
   resolve_timeout: 5m
-
+  smtp_smarthost: 'smtp.sendgrid.net:587'
+  smtp_from: 'nabil.hayun@gmail.com'
+  smtp_auth_username: 'apikey'
+  smtp_auth_password: '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'
+  smtp_require_tls: true
 route:
   receiver: default-email
   group_by: ['alertname', 'service']
@@ -11,10 +15,7 @@ route:
 receivers:
   - name: default-email
     email_configs:
-      - to: 'dev-alerts@example.test'
-        from: 'alertmanager@example.test'
-        smarthost: 'mailpit:1025'
-        require_tls: false
+      - to: 'nabil.hayun@gmail.com'
         send_resolved: true
         headers:
           Subject: '{{ if .CommonLabels.service }}[{{ .CommonLabels.service }}] {{ end }}{{ .GroupLabels.alertname }}'

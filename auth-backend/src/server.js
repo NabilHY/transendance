@@ -57,6 +57,8 @@ fastify.register(require('../routes/forgot-password'), { prefix: '/api/auth' });
 
 fastify.register(require('../routes/service-auth'), { prefix: '/api/auth'});
 
+// fastify.register(require('../routes/clear'), { prefix: '/api/auth' });
+
 fastify.get('/health', async (_req, reply) => {
     return reply.send({ status: 'ok' });
 });
