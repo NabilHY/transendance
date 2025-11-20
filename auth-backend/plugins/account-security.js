@@ -56,7 +56,7 @@ async function accountSecurityPlugin(fastify) {
             const emailVerificationToken = crypto.randomBytes(32).toString('hex');
             const emailVerificationTokenExpiresAt = Math.floor(Date.now() / 1000) + 3600;
             await new Promise((resolve, reject) => {
-                fastify.db.run('INSERT INTO email_verification_tokens(token, user_id, expires_at) VALUES (?, ?, ?)', [emailVerificationToken, userId, emailVerificationTokenExpiresAt], 
+                fastify.db.run('INSERT INTO email_verification_tokens(token, user_id, expires_at, new_email) VALUES (?, ?, ?, ?)', [emailVerificationToken, userId, emailVerificationTokenExpiresAt, newEmail], 
                     (err) => {
                         if (err) reject(err);
                         else resolve();

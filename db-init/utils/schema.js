@@ -58,7 +58,8 @@ const initializeDatabase = (db) => {
                                 user_id INTEGER NOT NULL,
                                 expires_at INTEGER NOT NULL,
                                 created_at INTEGER DEFAULT (strftime('%s', 'now')),
-                                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                new_email TEXT
                             )
                         `, (err) => {
                             if (err) return reject(err);

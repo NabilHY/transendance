@@ -1,11 +1,105 @@
-const fastify = require('fastify');
-
-module.exports = function async (fastify) {
-    fastify.patch('email-reset', {
+module.exports = async function (fastify) {
+    fastify.patch('/email-reset', {
         schema: {
-            description: 'Reset email for a user',
+            description: 'Reset email for a user - sends verification email to new address',
+            tags: ['Authentication'],
+            summary: 'Reset email',
+            security: [{ Bearer: [] }],
+            body: {
+                type: 'object',
+                required: ['email'],
+                properties: {
+                    email: { type: 'string', format: 'email' }
+                }
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        error: { type: 'string' }
+                    }
+                },
+                409: {
+                    type: 'object',
+                    properties: {
+                        error: { type: 'string' }
+                    }
+                }
+            }
+        },
+        preHandler: [fastify.authenticate]
+    }, async (req, reply) => {
+        try {
+            const userId = fastify.accountSecurity.getUserId(req);
+            
+            const { email } = req.body || {};
+            if (!email) {
+                return reply.code(400).send({ error: 'Email is required' });
+            }
+            
+            await fastify.accountSecurity.resetEmailValidation(userId, email);
+            
+            return reply.code(200).send({
+                message: 'Verification email sent to new address'
+            });
+        } catch (error) {
+            if (error.message === 'Invalid email address') {
+                return reply.code(400).send({ error: error.message });
+            }
+            if (error.message === 'Email already in use') {
+                return reply.code(409).send({ error: error.message });
+            }
+            fastify.log.error('Email reset error:', error);
+            return reply.code(500).send({ error: 'Internal server error' });
         }
-    }, async (req, rep) => {
-        
     });
-};
+
+    fastify.post('/email-reset/confirm', {
+        schema: {
+            description: 'Confirm email reset via token in request body',
+            tags: ['Authentication'],
+            summary: 'Confirm email reset',
+            body: {
+                type: 'object',
+                required: ['token'],
+            }
+        },
+        preHandler: [fastify.authenticate]
+    }, async (req, rep) => {
+        const { token } = req.body || {};
+        if (!token) return rep.code(400).send({ error: 'No Token Provided' }); 
+
+        const tokenRecord = await new Promise((res, req) => {
+            fastify.db.get('SELECT user_id, expires_at, new_email FROM email_verification_tokens WHERE token = ?', [token], (err, row) => {
+                if (err) req(err);
+                else res(row);
+            });
+        });
+
+        if (!tokenRecord || tokenRecord.expires_at < Math.floor(Date.now() / 1000)) {
+            return rep.code(400).send({ error: 'Invalid or expired token' });
+        }
+
+        const user = await new Promise((res, req) => {
+            fastify.db.get('SELECT id FROM users WHERE id = ?', [tokenRecord.user_id], (err, row) => {
+                if (err) req(err);
+                else res(row);
+            });
+        });
+
+        if (!user) {
+            return rep.code(404).send({ error: 'User not found' });
+        }
+
+        await fastify.accountSecurity.resetEmail(user.id, tokenRecord.new_email);
+
+        return rep.code(200).send({ message: 'Email reset successfully' });
+    });
+
+}
