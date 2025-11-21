@@ -13,11 +13,24 @@ module.exports = {
 	USR_MANAG_URL: process.env.USR_MANAG_SERVICE_URL || 'http://localhost:4000',
 	
 	BACKEND_URL: process.env.AUTH_BACKEND_URL,
+	
+	// Email Configuration
+	EMAIL_FROM: process.env.EMAIL_FROM,
+	SMTP_FROM: process.env.SMTP_FROM,
+	
+	// SendGrid Configuration
+	USE_SENDGRID: process.env.USE_SENDGRID === 'true',
+	SENDGRID_SMTP_HOST: process.env.SENDGRID_SMTP_HOST,
+	SENDGRID_SMTP_PORT: process.env.SENDGRID_SMTP_PORT || 587,
+	SENDGRID_SMTP_USER: process.env.SENDGRID_SMTP_USER,
+	SENDGRID_SMTP_PASS: process.env.SENDGRID_SMTP_PASS,
+	
+	// Generic SMTP Configuration (for Mailpit or other SMTP servers)
 	SMTP_HOST: process.env.SMTP_HOST,
 	SMTP_PORT: process.env.SMTP_PORT,
 	SMTP_USER: process.env.SMTP_USER,
 	SMTP_PASSWORD: process.env.SMTP_PASSWORD,
-	SMTP_FROM: process.env.SMTP_FROM,
-	EMAIL_FROM: process.env.EMAIL_FROM,
+	SMTP_PASS: process.env.SMTP_PASS,
+	
 	INTERNAL_SERVICE_KEY: process.env.INTERNAL_SERVICE_KEY,
 };

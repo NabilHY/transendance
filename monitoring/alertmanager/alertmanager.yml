@@ -1,6 +1,10 @@
 global:
   resolve_timeout: 5m
-
+  smtp_smarthost: 'smtp.sendgrid.net:587'
+  smtp_from: '${SENDGRID_EMAIL_FROM}'
+  smtp_auth_username: 'apikey'
+  smtp_auth_password: '${SENDGRID_API_KEY}'
+  smtp_require_tls: true
 route:
   receiver: default-email
   group_by: ['alertname', 'service']
@@ -11,10 +15,7 @@ route:
 receivers:
   - name: default-email
     email_configs:
-      - to: 'dev-alerts@example.test'
-        from: 'alertmanager@example.test'
-        smarthost: 'mailpit:1025'
-        require_tls: false
+      - to: '${SENDGRID_EMAIL_FROM}'
         send_resolved: true
         headers:
           Subject: '{{ if .CommonLabels.service }}[{{ .CommonLabels.service }}] {{ end }}{{ .GroupLabels.alertname }}'

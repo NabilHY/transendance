@@ -28,9 +28,14 @@ module.exports = async function (fastify) {
     }, async (req, reply) => {
             const { email } = req.body || {};
             
-            console.log(email);
-            
             if (!email) return reply.code(400).send({ error: 'Email is required' });
+            
+            if (!config.EMAIL_FROM) {
+                fastify.log.error('EMAIL_FROM is not configured. Cannot send password reset email.');
+                return reply.code(200).send({ message: 'If the account exists, a password reset email was sent.' });
+            }
+            
+            fastify.log.info({ email, emailFrom: config.EMAIL_FROM }, 'Password reset request received');
             
             // const user = await fastify.db.get('SELECT * FROM users WHERE email = ?', [email]);
             
@@ -41,56 +46,42 @@ module.exports = async function (fastify) {
                 });
             });
             
-            console.log(user);
+            // console.log(user);
             
-            if (!user) return reply.code(500).send({ error: 'Internal server error' });
+            if (!user) {
+                // Return generic success to avoid account enumeration
+                return reply.code(200).send({ message: 'If the account exists, a password reset email was sent.' });
+            }
             
-            const alreadyHasToken = await new Promise((resolve, reject) => {
-                fastify.db.get(
-                    'SELECT token, expires_at FROM password_reset_tokens WHERE user_id = ?',
+            // For testing purposes: Always delete existing tokens and create a new one
+            // This allows multiple reset attempts without being blocked
+            await new Promise((resolve, reject) => {
+                fastify.db.run(
+                    'DELETE FROM password_reset_tokens WHERE user_id = ?',
                     [user.id],
-                    (err, row) => (err ? reject(err) : resolve(row))
+                    err => (err ? reject(err) : resolve())
                 );
             });
-                
-            if (alreadyHasToken) {
-                const now = Math.floor(Date.now() / 1000);
-                if (alreadyHasToken.expires_at <= now) {
-                        await new Promise((resolve, reject) => {
-                            fastify.db.run(
-                                'DELETE FROM password_reset_tokens WHERE user_id = ? AND expires_at <= ?',
-                                [user.id, now],
-                                err => (err ? reject(err) : resolve())
-                            );
-                        });
-                    const token = await createToken(user);
-                    const link = `${config.FRONTEND_URL}/set-password?token=${token}`;
-                    await fastify.trackExternal('smtp', () => transporter.sendMail({
-                        from: config.SMTP_FROM,
-                        to: email,
-                        subject: 'Password Reset',
-                        text: `Click the link to reset your password: ${link}`,
-                        html: `<p>Click the link to reset your password: <a href="${link}">${link}</a></p>`
-                    }));
-                    return reply.code(200).send({ message: 'Password reset email sent' });
-                } else {
-                  // token still valid → return generic 200
-                    return reply.code(200).send({ message: ' Token already sent' });
-                }
-            }
 
             const token = await createToken(user);
     
             const link = `${config.FRONTEND_URL}/set-password?token=${token}`;
             
-            await fastify.trackExternal('smtp', () => transporter.sendMail({
-                from: config.SMTP_FROM,
-                to: email,
-                subject: 'Password Reset',
-                text: `Click the link to reset your password: ${link}`,
-                html: `<p>Click the link to reset your password: <a href="${link}">${link}</a></p>`
-            }));
-            return reply.code(200).send({ message: 'Password reset email sent' });
+            try {
+                fastify.log.info({ email, link, emailFrom: config.EMAIL_FROM }, 'Attempting to send password reset email');
+                const result = await fastify.trackExternal('smtp', () => transporter.sendMail({
+                    from: config.EMAIL_FROM,
+                    to: email,
+                    subject: 'Password Reset',
+                    text: `Click the link to reset your password: ${link}`,
+                    html: `<p>Click the link to reset your password: <a href="${link}">${link}</a></p>`
+                }));
+                fastify.log.info({ email, messageId: result?.messageId }, 'Password reset email sent successfully');
+            } catch (e) {
+                fastify.log.error({ email, error: e.message, stack: e.stack, emailFrom: config.EMAIL_FROM }, 'Error sending password reset email');
+                // Continue to return success to avoid account enumeration
+            }
+            return reply.code(200).send({ message: 'If the account exists, a password reset email was sent.' });
         }
     );
     
