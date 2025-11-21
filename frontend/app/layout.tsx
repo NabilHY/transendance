@@ -1,6 +1,7 @@
 import Providers from './providers';
 import { Suspense } from 'react';
 import Sidebar from '@/components/NewSidebar';
+import Header from '@/components/Header';
 
 export const metadata = {
 	title: 'ft_transendance_42',
@@ -10,12 +11,17 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en">
-			<body style={{margin: 0, display: 'flex', height: '100vh', overflow: 'hidden'}} >
+			<body style={{margin: 0, overflow: 'hidden'}} >
 				<Suspense fallback={null}>
 					<Providers>
-						<Sidebar />
-						<main style={{ flex: 1, overflowY: 'auto' }}>
-							{children}
+
+						<Header />
+						<main style={{ display: 'flex', flex: 1, height: 'calc(100vh - 60px)' }}>
+							<Sidebar />
+							<div style={{width: '100%', overflowY: 'auto' }}>
+							{/* <div> */}
+								{children}
+							</div>
 						</main>
 					</Providers>
 				</Suspense>
