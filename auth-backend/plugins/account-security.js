@@ -76,7 +76,6 @@ async function accountSecurityPlugin(fastify) {
                         else resolve();
                     });
                 });    
-            console.log('config.EMAIL_FROM::::', config.EMAIL_FROM);
             if (!config.EMAIL_FROM && !config.SMTP_FROM) {
                 throw new Error('Email from address not configured');
             }
@@ -113,6 +112,7 @@ async function accountSecurityPlugin(fastify) {
             });
         },
         async resetPassword(userId, newPassword) {
+        
             const validation = validatePassword(newPassword);
             if (!validation.isValid) {
                 throw new Error(validation.errors[0]);
@@ -125,7 +125,45 @@ async function accountSecurityPlugin(fastify) {
                         else resolve();
                     });
             });
-        }
+        },
+        async deleteEmailVerificationToken(userId) {
+            await new Promise((resolve, reject) => {
+                fastify.db.run('DELETE FROM email_verification_tokens WHERE user_id = ?', [userId], (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        },
+        async deletePasswordResetToken(userId) {
+            await new Promise((resolve, reject) => {
+                fastify.db.run('DELETE FROM password_reset_tokens WHERE user_id = ?', [userId], (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        },
+        
+        async deleteRefreshToken(userId) {
+            await new Promise((resolve, reject) => {
+                fastify.db.run('DELETE FROM refresh_tokens WHERE user_id = ?', [userId], (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        },
+        async deleteAllTokens(userId) {
+            await this.deleteEmailVerificationToken(userId);
+            await this.deletePasswordResetToken(userId);
+            await this.deleteRefreshToken(userId);
+        },
+        async isLocked(userId) {
+            return new Promise((resolve, reject) => {
+                fastify.db.get('SELECT locked_until FROM account_lockouts WHERE user_id = ?', [userId], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row && row.locked_until > Math.floor(Date.now() / 1000));
+                });
+            });
+        },
     })
 }
 

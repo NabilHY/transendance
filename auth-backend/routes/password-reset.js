@@ -10,7 +10,7 @@ module.exports = async function (fastify) {
             security: [{ Bearer: [] }],
             body: {
                 type: 'object',
-                required: ['oldPassword'],
+                required: ['oldPassword', 'newPassword'],
                 properties: {
                     oldPassword: { type: 'string' },
                     newPassword: { type: 'string' }
@@ -40,37 +40,43 @@ module.exports = async function (fastify) {
     }, async (req, rep) => {
         try {
             
-            const userId = fastify.accountSecurity.getUserId(req);
-            
-            console.log("userId", userId);
-            
-            
-            const user = await fastify.accountSecurity.getUserData(userId);
-            console.log("email", user.email);
-        
             const { oldPassword, newPassword } = req.body || {};
             
-            if (!oldPassword || !userId || !newPassword) {
-                return rep.code(400).send({ error: 'Old password, user ID, and new password are required' });
+            if (!oldPassword || !newPassword) {
+                return rep.code(400).send({ error: 'Old password and new password are required' });
             }
             
-            if (!user) {
-                return rep.code(404).send({ error: 'User not found' });
+            // Check if old and new passwords are the same (plain text comparison)
+            if (req.body.oldPassword === req.body.newPassword) {
+                return rep.code(400).send({ error: 'New password cannot be the same as the old password' });
             }
             
-            const validation = validatePassword(newPassword, user.email);
+            const userId = fastify.accountSecurity.getUserId(req);
             
-            if (!validation.isValid) {
-                return rep.code(400).send({ error: validation.errors[0], details: validation.errors });
+            const user = await fastify.accountSecurity.getUserData(userId);
+            
+            const isLocked = await fastify.accountSecurity.isLocked(userId);
+            if (isLocked) {
+                return rep.code(423).send({ error: 'Account is temporarily locked due to too many failed attempts' });
             }
             
-            const isPasswordValid = await verifyPassword(oldPassword, user.password_hash);
+        
             
-            if (!isPasswordValid) {
+            const isPasswordMatched = await verifyPassword(oldPassword, user.password_hash);
+            
+            if (!isPasswordMatched) {
                 return rep.code(400).send({ error: 'Password is incorrect' });
+            }
+
+            const validation = validatePassword(newPassword, user.email);
+            if (!validation.isValid) {
+                return rep.code(400).send({ error: validation.errors[0] });
             }
             
             await fastify.accountSecurity.resetPassword(userId, newPassword);
+            
+            await fastify.accountSecurity.deleteRefreshToken(userId);
+            
             return rep.code(200).send({ message: 'Password reset successfully' });
         } catch (e) {
             fastify.log.error(e);
