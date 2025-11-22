@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Key, Mail, Lock, Shield } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useRequireAuth } from "@/hooks/useAuthGuard";
 import {
   resetPassword,
   resetEmail,
@@ -19,27 +20,20 @@ import { toast } from 'react-toastify';
 import "../styles.css";
 
 export default function PasswordSettingsPage() {
+  const { loading: authLoading, isAuthenticated } = useRequireAuth();
   const { ensureCsrf, fetchMe, isLoggedIn } = useAuth();
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
-
-  // Password Reset State
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-
-  // Email Reset State
   const [newEmail, setNewEmail] = useState("");
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailSuccess, setEmailSuccess] = useState<string | null>(null);
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [verificationToken, setVerificationToken] = useState("");
   const [showTokenInput, setShowTokenInput] = useState(false);
-
-  // Current User Email (to display)
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
-
-  // Two-Factor Authentication State
   const [qr, setQr] = useState<string | null>(null);
   const [setupToken, setSetupToken] = useState("");
   const [disablePassword, setDisablePassword] = useState("");
@@ -96,6 +90,10 @@ export default function PasswordSettingsPage() {
     })();
   }, [isLoggedIn, ensureCsrf]);
 
+  if (authLoading || !isAuthenticated) {
+    return null;
+  }
+
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
   
@@ -104,7 +102,7 @@ export default function PasswordSettingsPage() {
       toast.error("All fields are required");
       return;
     }
-  
+
     if (newPassword !== confirmPassword) {
       toast.error("New passwords do not match");
       return;
