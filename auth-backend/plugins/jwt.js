@@ -61,7 +61,7 @@ async function jwtPlugin(fastify) {
         
         // Verify user still exists
         const user = await new Promise((resolve, reject) => {
-            fastify.db.get('SELECT id FROM users WHERE id = ?', [tokenRecord.user_id], (err, row) => {
+            fastify.db.get('SELECT id, email FROM users WHERE id = ?', [tokenRecord.user_id], (err, row) => {
                 if (err) reject(err);
                 else resolve(row);
             });
@@ -72,8 +72,8 @@ async function jwtPlugin(fastify) {
         }
         
         // Generate new tokens
-        const newAccessToken = fastify.jwt.sign({ sub: user.id }, { expiresIn: config.JWT_ACCESS_EXPIRES_IN });
-        const newRefreshToken = fastify.jwt.sign({ sub: user.id }, { expiresIn: config.JWT_REFRESH_EXPIRES_IN });
+        const newAccessToken = fastify.jwt.sign({ sub: user.id, email: user.email }, { expiresIn: config.JWT_ACCESS_EXPIRES_IN });
+        const newRefreshToken = fastify.jwt.sign({ sub: user.id, email: user.email }, { expiresIn: config.JWT_REFRESH_EXPIRES_IN });
         
         // Update refresh token in database
         await new Promise((resolve, reject) => {

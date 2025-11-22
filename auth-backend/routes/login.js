@@ -212,8 +212,8 @@ module.exports = async function (fastify) {
             return reply.code(403).send({ requires2FASetup: true, error: 'Finish 2FA enrollment before logging in.' });
         }
 
-        const accessToken = fastify.jwt.sign({ sub: user.id }, { expiresIn: config.JWT_ACCESS_EXPIRES_IN });
-        const refreshToken = fastify.jwt.sign({ sub: user.id }, { expiresIn: config.JWT_REFRESH_EXPIRES_IN });
+        const accessToken = fastify.jwt.sign({ sub: user.id, email: email }, { expiresIn: config.JWT_ACCESS_EXPIRES_IN });
+        const refreshToken = fastify.jwt.sign({ sub: user.id, email: email }, { expiresIn: config.JWT_REFRESH_EXPIRES_IN });
         
         // Calculate expiration time for refresh token
         const refreshExpirySeconds = config.JWT_REFRESH_EXPIRES_IN ? 
@@ -368,8 +368,8 @@ module.exports = async function (fastify) {
             if (!ok) return reply.code(401).send({ error: 'Invalid or expired token' });
             
             const config = require('../config');
-            const accessToken = fastify.jwt.sign({ sub: userId }, { expiresIn: config.JWT_ACCESS_EXPIRES_IN });
-            const refreshToken = fastify.jwt.sign({ sub: userId }, { expiresIn: config.JWT_REFRESH_EXPIRES_IN });
+            const accessToken = fastify.jwt.sign({ sub: userId, email: row.email }, { expiresIn: config.JWT_ACCESS_EXPIRES_IN });
+            const refreshToken = fastify.jwt.sign({ sub: userId, email: row.email }, { expiresIn: config.JWT_REFRESH_EXPIRES_IN });
             
             const refreshExpirySeconds = config.JWT_REFRESH_EXPIRES_IN ?
                 (parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60) :

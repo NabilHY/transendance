@@ -257,8 +257,8 @@ module.exports = async function (fastify) {
                 return reply.redirect(`${config.FRONTEND_URL}/login?error=2fa_setup_required`);
             }
             
-            const accessToken = fastify.jwt.sign({ sub: userId }, { expiresIn: config.JWT_ACCESS_EXPIRES_IN });
-            const refreshToken = fastify.jwt.sign({ sub: userId }, { expiresIn: config.JWT_REFRESH_EXPIRES_IN });
+            const accessToken = fastify.jwt.sign({ sub: userId, email: existingUser.email }, { expiresIn: config.JWT_ACCESS_EXPIRES_IN });
+            const refreshToken = fastify.jwt.sign({ sub: userId, email: existingUser.email }, { expiresIn: config.JWT_REFRESH_EXPIRES_IN });
             
             const refreshExpirySeconds = config.JWT_REFRESH_EXPIRES_IN ? 
             (parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60) : 
