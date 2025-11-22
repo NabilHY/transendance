@@ -6,12 +6,73 @@ export type ApiResult<T = any> = {
 	data: T | { error?: string } | null;
 };
 
+/* === Email password resets === */
+
 export type UpdateProfileBody = {
 	username?: string;
 	first_name?: string;
 	last_name?: string;
 	profile_pic?: string;
-}
+};
+
+// Password Reset Types
+export type ResetPasswordBody = {
+	oldPassword: string;
+	newPassword: string;
+};
+
+export type ResetPasswordResponse = {
+	message: string;
+};
+
+// Email Reset Types
+export type ResetEmailBody = {
+	email: string;
+};
+
+export type ResetEmailResponse = {
+	message: string;
+};
+
+export type ConfirmEmailResetBody = {
+	token: string;
+};
+
+export type ConfirmEmailResetResponse = {
+	message: string;
+};
+
+export async function resetPassword(
+	body: ResetPasswordBody, 
+	csrfToken?: string | null
+  ): Promise<ApiResult<ResetPasswordResponse>> {
+	return fetchJson<ResetPasswordResponse>('/api/auth/reset-password', {
+	  method: 'PATCH',
+	  body: JSON.stringify(body),
+	}, csrfToken);
+  }
+
+  export async function resetEmail(
+	body: ResetEmailBody, 
+	csrfToken?: string | null
+  ): Promise<ApiResult<ResetEmailResponse>> {
+	return fetchJson<ResetEmailResponse>('/api/auth/email-reset', {
+	  method: 'PATCH',
+	  body: JSON.stringify(body),
+	}, csrfToken);
+  }
+  
+  export async function confirmEmailReset(
+	body: ConfirmEmailResetBody, 
+	csrfToken?: string | null
+  ): Promise<ApiResult<ConfirmEmailResetResponse>> {
+	return fetchJson<ConfirmEmailResetResponse>('/api/auth/email-reset/confirm', {
+	  method: 'POST',
+	  body: JSON.stringify(body),
+	}, csrfToken);
+  }
+
+/* ====== */
 
 function isJsonContentType(headers: HeadersInit | undefined): boolean {
 	if (!headers) return false;
