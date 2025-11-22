@@ -1,6 +1,6 @@
 "use client";
 
-import { Conversation } from "../app/chat/page";
+import { Conversation } from "../src/pages/Chat";
 import styles from "./ConversationsList.module.css";
 
 interface ConversationsListProps {

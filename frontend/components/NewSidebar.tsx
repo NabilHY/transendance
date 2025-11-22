@@ -9,6 +9,7 @@ import Link from 'next/link';
 const authenticatedItems = [
     { id: "home", label: "Dashboard", href: "/" },
     { id: "chat", label: "Chat", href: "/chat" },
+    { id: "settings", label: "Settings", href: "/settings" },
 ];
 
 

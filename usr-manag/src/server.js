@@ -109,7 +109,7 @@ fastify.get('/service-info', {
             'DELETE /me',
             'POST /users/:id/friend',
             'POST /users/:id/block',
-            'GET /conversations/:id'
+            'GET /conversations/:id',
         ],
         dependencies: ['auth-backend']
     };

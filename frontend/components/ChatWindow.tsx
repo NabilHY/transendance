@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Conversation, Message } from "../app/chat/page";
+import { Conversation, Message } from "../src/pages/Chat";
 import styles from "./ChatWindow.module.css";
 
 interface ChatWindowProps {

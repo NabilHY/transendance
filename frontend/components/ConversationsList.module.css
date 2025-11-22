@@ -1,7 +1,7 @@
 .container {
   width: 350px;
-  background: #0f0f0f;
-  border-right: 1px solid #2a2a2a;
+  /* background: #0f0f0f; */
+  border-right: 1px solid #1765b35d;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -9,7 +9,7 @@
 
 .header {
   padding: 1.5rem;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid #1765b35d;
 }
 
 .title {
@@ -20,9 +20,9 @@
 }
 
 .searchInput {
-  width: 100%;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  all: unset;
+  width: 80%;
+  background: #2a2a2a;
   border-radius: 8px;
   padding: 0.75rem;
   color: #ffffff;
@@ -55,7 +55,8 @@
   cursor: pointer;
   transition: background-color 0.2s ease;
   width: 100%;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid #1e90ff;
+  
 }
 
 .conversationItem:hover {

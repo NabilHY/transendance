@@ -1,13 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from "react";
-import Sidebar from "../../components/Sidebar";
 import ConversationsList from "../../components/ConversationList";
 import ChatWindow from "../../components/ChatWindow";
-import QuickActions from "../../components/QuickActions";
-import Header from "../../components/Header";
 import styles from "./styles.module.css";
-import { login } from "@/lib/api";
+import { fetchCurrentUser } from "@/lib/fetcher";
 
 export interface Message {
   uuid: string;
@@ -34,21 +31,19 @@ export interface Conversation {
   last_message_time: string;
 }
 
-const chatPort = process.env.NEXT_PUBLIC_CHAT_PORT || "4009";
-const userMgntPort = process.env.NEXT_PUBLIC_USR_MANAG_PORT || "4000";
+const chatPort = process.env.NEXT_PUBLIC_CHAT_URL || "ws://localhost:8006";
+const userMgntURL = process.env.NEXT_PUBLIC_USR_MANAG_URL || "http://localhost:4000";
 
 const getConversations = async (id: string) => {
   try {
-    const res = await fetch(`http://localhost:${userMgntPort}/conversations/${id}`, {
+    const res = await fetch(`${userMgntURL}/conversations/${id}`, {
       method: "GET",
       credentials: "include",
     });
     if (!res.ok)
       throw new Error(`Server error: ${res.status}`);
     const data = await res.json();
-
     // console.log("* Conversation: ", data);
-
     return data;
   } catch (err) {
     console.error("Failed to fetch conversations:", err);
@@ -58,7 +53,7 @@ const getConversations = async (id: string) => {
 
 const getReceivers = async (channelId: string, userId: number) => {
   try {    
-    const res = await fetch(`http://localhost:${userMgntPort}/channel/${channelId}/members`, {
+    const res = await fetch(`${userMgntURL}/channel/${channelId}/members`, {
       method: "GET",
       credentials: "include",
     });
@@ -76,39 +71,13 @@ const getReceivers = async (channelId: string, userId: number) => {
   }
 }
 
-async function fetchCurrentUser() {
-  try {
-    const res = await fetch(`http://localhost:${userMgntPort}/me`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    if (!res.ok) {
-      if (res.status === 401) {
-        console.warn("User not authenticated");
-        return null;
-      }
-      throw new Error(`Server error: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return data;
-  } catch (err) {
-    console.error("Failed to fetch current user:", err);
-    return null;
-  }
-}
-
-const Chat = () => {
-  // return <div>Chat Page</div>;
+export const Chat = () => {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar?: string } | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-
   const [activeConversation, setActiveConversation] = useState<string>("");
-
   const [searchQuery, setSearchQuery] = useState("");
 
 useEffect(() => {
@@ -121,7 +90,7 @@ useEffect(() => {
   const run = async () => {
 
     // ! * WARNING: this test just for testing, I must removed it later
-    const res = await fetch(`http://localhost:${userMgntPort}/users`, {
+    const res = await fetch(`${userMgntURL}/users`, {
       method: "GET",
       credentials: "include"
     });
@@ -149,10 +118,10 @@ useEffect(() => {
 
       // ! WARNING: this works twice, need to fix it later
 
-      websocket = new WebSocket(`ws://localhost:${chatPort}/ws?userId=${currentUser.id}`);
+      websocket = new WebSocket(`${chatPort}/ws?userId=${currentUser.id}`);
 
       websocket.onopen = () => {
-        // console.log("✅ Connected to WebSocket server");
+        console.log("✅ Connected to WebSocket server");
         setWs(websocket);
       };
 
@@ -259,9 +228,9 @@ useEffect(() => {
       {isSuccess === true && (
         <>
         <div className={styles.container}>
-          <Header />
+          {/* <Header /> */}
           <div className={styles.mainContent}>
-            <Sidebar activeItem="chat" />
+            {/* <Sidebar activeItem="chat" /> */}
             <div className={styles.chatSection}>
               <ConversationsList
                 conversations={filteredConversations}
@@ -280,7 +249,7 @@ useEffect(() => {
                     onSendMessage={sendMessage}
                   />
                 )}
-                <QuickActions />
+                {/* <QuickActions /> */}
               </div>
             </div>
           </div>

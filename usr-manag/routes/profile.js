@@ -66,9 +66,10 @@ module.exports = async function (fastify) {
         
         return { complete: isComplete };
     });
-    
+
     // Get current user profile
-    fastify.get('/me', { preHandler: [fastify.authenticate], schema: {
+    fastify.get('/me', { preHandler: [fastify.authenticate], 
+        schema: {
         tags: ['Profile'],
         summary: 'Get current user profile',
         security: [{ bearerAuth: [] }],
@@ -80,6 +81,7 @@ module.exports = async function (fastify) {
                     username: { type: 'string', nullable: true },
                     first_name: { type: 'string', nullable: true },
                     last_name: { type: 'string', nullable: true },
+                    email: { type: 'string', nullable: true },
                     profile_pic: { type: 'string', nullable: true },
                     is_online: { type: 'integer', enum: [0,1] },
                     created_at: { type: 'string' },
@@ -91,14 +93,14 @@ module.exports = async function (fastify) {
     } }, async (request, reply) => {
         const userId = request.user.id;
         console.log("* USR user: ", request.user);
-        
+
         const profile = fastify.db.prepare(`
-            SELECT id, username, first_name, last_name, 
+            SELECT id, username, first_name, last_name, email,
                 profile_pic, is_online, created_at, updated_at
             FROM users 
             WHERE id = ?
         `).get(userId);
-        
+
         if (!profile) {
             // Create default profile if doesn't exist
             const now = new Date().toISOString();
@@ -118,7 +120,7 @@ module.exports = async function (fastify) {
                 updated_at: now
             };
         }
-        
+
         return profile;
     });
 
@@ -147,33 +149,38 @@ module.exports = async function (fastify) {
     });
 
     // Delete user profile (not the auth account)
-    fastify.delete('/me', { preHandler: [fastify.authenticate], schema: {
+    fastify.delete('/me', {
+    preHandler: [fastify.authenticate],
+    schema: {
         tags: ['Profile'],
-        summary: 'Delete current user profile data',
+        summary: 'Delete current user',
         security: [{ bearerAuth: [] }],
         response: {
-            200: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' } }, required: ['success','message'] },
-            401: { type: 'object', properties: { error: { type: 'string' } } },
-            404: { type: 'object', properties: { error: { type: 'string' } } }
+        200: {
+            type: 'object',
+            properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' }
+            }
+        },
+        404: {
+            type: 'object',
+            properties: { error: { type: 'string' } }
         }
-    } }, async (request, reply) => {
-        const userId = request.user.id;
-        
-        const changes = fastify.db.prepare(`
-            UPDATE users SET 
-                username = NULL,
-                first_name = NULL,
-                last_name = NULL,
-                profile_pic = NULL,
-                is_online = 0,
-                updated_at = datetime('now')
-            WHERE id = ?
-        `).run(userId).changes;
-        
-        if (changes === 0) {
-            return reply.code(404).send({ error: 'Profile not found' });
         }
-        
-        return { success: true, message: 'Profile deleted' };
+    }
+    }, async (request, reply) => {
+    
+    const userId = request.user.id;
+    
+    const changes = fastify.db
+        .prepare(`DELETE FROM users WHERE id = ?`)
+        .run(userId).changes;
+
+    if (changes === 0) {
+        return reply.code(404).send({ error: 'User not found' });
+    }
+
+    return { success: true, message: 'User deleted successfully' };
     });
 };
