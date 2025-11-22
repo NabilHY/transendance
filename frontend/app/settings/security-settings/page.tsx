@@ -7,13 +7,12 @@ import { useRequireAuth } from "@/hooks/useAuthGuard";
 import {
   resetPassword,
   resetEmail,
-  confirmEmailReset,
   getCsrfToken,
   twofaDisable,
   twofaSetupStart,
   twofaSetupVerify,
   twofaStatus,
-  me, // Add me, remove getEmailFromToken
+  me,
 } from "@/lib/api";
 import { toast } from 'react-toastify';
 
@@ -28,11 +27,7 @@ export default function PasswordSettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [newEmail, setNewEmail] = useState("");
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [emailSuccess, setEmailSuccess] = useState<string | null>(null);
   const [isChangingEmail, setIsChangingEmail] = useState(false);
-  const [verificationToken, setVerificationToken] = useState("");
-  const [showTokenInput, setShowTokenInput] = useState(false);
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const [setupToken, setSetupToken] = useState("");
@@ -143,11 +138,9 @@ export default function PasswordSettingsPage() {
 
   const handleEmailReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEmailError(null);
-    setEmailSuccess(null);
 
     if (!newEmail) {
-      setEmailError("Email is required");
+      toast.error("Email is required");
       return;
     }
 
@@ -157,74 +150,24 @@ export default function PasswordSettingsPage() {
       const csrf = await ensureCsrf();
       const result = await resetEmail({ email: newEmail }, csrf);
 
-      if (result.ok) {
-        setEmailSuccess("Verification email sent. Please check your inbox.");
-        setShowTokenInput(true);
+      if (result.ok && result.data) {
+        const responseData = result.data as { message?: string };
+        const message = responseData?.message || "Verification email sent to new address";
+        toast.success(message);
+        setNewEmail("");
       } else {
-        setEmailError(
-          (result.data as any)?.error || "Failed to send verification email"
-        );
+        const responseData = result.data as { error?: string };
+        const errorMessage = responseData?.error || "Failed to send verification email";
+        toast.error(errorMessage);
       }
     } catch (error) {
-      setEmailError("An error occurred. Please try again.");
+      toast.error("An error occurred. Please try again.");
       console.error("Email reset error:", error);
     } finally {
       setIsChangingEmail(false);
     }
   };
 
-  const handleEmailConfirm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setEmailError(null);
-    setEmailSuccess(null);
-
-    if (!verificationToken) {
-      setEmailError("Verification token is required");
-      return;
-    }
-
-    try {
-      const csrf = await ensureCsrf();
-      const result = await confirmEmailReset(
-        { token: verificationToken },
-        csrf
-      );
-
-      if (result.ok) {
-        setEmailSuccess("Email changed successfully");
-        setNewEmail("");
-        setVerificationToken("");
-        setShowTokenInput(false);
-        // Fetch updated email from /me endpoint
-        try {
-          const csrf = await ensureCsrf();
-          const meResult = await me(csrf);
-          console.log("Security Settings - /me response after email change:", meResult);
-          if (meResult.ok && meResult.data) {
-            const responseData = meResult.data as { userId?: number; email?: string };
-            const email = responseData?.email;
-            console.log("Security Settings - Extracted updated email:", email);
-            if (email) {
-              setCurrentEmail(email);
-            } else {
-              console.warn("Security Settings - Email not found in updated response data:", responseData);
-            }
-          } else {
-            console.error("Security Settings - /me request failed after email change:", meResult.status, meResult.data);
-          }
-        } catch (error) {
-          console.error("Failed to fetch updated email:", error);
-        }
-      } else {
-        setEmailError(
-          (result.data as any)?.error || "Invalid or expired token"
-        );
-      }
-    } catch (error) {
-      setEmailError("An error occurred. Please try again.");
-      console.error("Email confirmation error:", error);
-    }
-  };
 
   return (
     <div className="container">
@@ -292,7 +235,6 @@ export default function PasswordSettingsPage() {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   required
-                  disabled={showTokenInput}
                  />
               </div>
                 {currentEmail && (
@@ -300,58 +242,13 @@ export default function PasswordSettingsPage() {
                     Current email: <span>{currentEmail}</span>
                   </div>
                 )}
-              {emailError && (
-                <div className="message-error">
-                  {emailError}
-                </div>
-              )}
-              {emailSuccess && (
-                <div className="message-success">
-                  {emailSuccess}
-                </div>
-              )}
-              {!showTokenInput ? (
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={isChangingEmail}
-                >
-                  {isChangingEmail ? "Sending..." : "Send Verification Email"}
-                </button>
-              ) : (
-                <form
-                  onSubmit={handleEmailConfirm}
-                  className="verification-form"
-                >
-                  <div className="input-group">
-                    <Shield size={16} />
-                    <input
-                      type="text"
-                      placeholder="Enter verification token"
-                      value={verificationToken}
-                      onChange={(e) => setVerificationToken(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="button-group">
-                    <button type="submit" className="btn btn-primary">
-                      Confirm Email Change
-                    </button>
-                    <button
-                      type="button"
-                      className="btn"
-                      onClick={() => {
-                        setShowTokenInput(false);
-                        setVerificationToken("");
-                        setEmailSuccess(null);
-                        setEmailError(null);
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              )}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isChangingEmail}
+              >
+                {isChangingEmail ? "Sending..." : "Send Verification Email"}
+              </button>
             </form>
           </div>
 
