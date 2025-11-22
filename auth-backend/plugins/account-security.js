@@ -157,8 +157,18 @@ async function accountSecurityPlugin(fastify) {
             await this.deleteRefreshToken(userId);
         },
         async isLocked(userId) {
+            const user = await new Promise((resolve, reject) => {
+                fastify.db.get('SELECT email FROM users WHERE id = ?', [userId], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+            
+            if (!user || !user.email) {
+                return false;
+            }
             return new Promise((resolve, reject) => {
-                fastify.db.get('SELECT locked_until FROM account_lockouts WHERE user_id = ?', [userId], (err, row) => {
+                fastify.db.get('SELECT locked_until FROM account_lockouts WHERE identifier = ?', [user.email], (err, row) => {
                     if (err) reject(err);
                     else resolve(row && row.locked_until > Math.floor(Date.now() / 1000));
                 });

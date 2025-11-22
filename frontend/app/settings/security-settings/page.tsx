@@ -26,8 +26,6 @@ export default function PasswordSettingsPage() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Email Reset State
@@ -100,43 +98,45 @@ export default function PasswordSettingsPage() {
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPasswordError(null);
-    setPasswordSuccess(null);
-
+  
     // Validation
     if (!oldPassword || !newPassword || !confirmPassword) {
-      setPasswordError("All fields are required");
+      toast.error("All fields are required");
       return;
     }
-
+  
     if (newPassword !== confirmPassword) {
-      setPasswordError("New passwords do not match");
+      toast.error("New passwords do not match");
       return;
     }
-
+  
     if (oldPassword === newPassword) {
-      setPasswordError("New password must be different from old password");
+      toast.error("New password must be different from old password");
       return;
     }
-
+  
     setIsChangingPassword(true);
-
+  
     try {
       const csrf = await ensureCsrf();
       const result = await resetPassword({ oldPassword, newPassword }, csrf);
-
-      if (result.ok) {
-        setPasswordSuccess("Password changed successfully");
+  
+      if (result.ok && result.data) {
+        // Display the message from the API response
+        const message = (result.data as { message?: string })?.message || "Password changed successfully";
+        toast.success(message);
+        
+        // Clear form fields
         setOldPassword("");
         setNewPassword("");
         setConfirmPassword("");
       } else {
-        setPasswordError(
-          (result.data as any)?.error || "Failed to change password"
-        );
+        // Display error from API response
+        const errorMessage = (result.data as { error?: string })?.error || "Failed to change password";
+        toast.error(errorMessage);
       }
     } catch (error) {
-      setPasswordError("An error occurred. Please try again.");
+      toast.error("An error occurred. Please try again.");
       console.error("Password reset error:", error);
     } finally {
       setIsChangingPassword(false);
@@ -269,16 +269,6 @@ export default function PasswordSettingsPage() {
                   required
                 />
               </div>
-              {passwordError && (
-                <div className="message-error">
-                  {passwordError}
-                </div>
-              )}
-              {passwordSuccess && (
-                <div className="message-success">
-                  {passwordSuccess}
-                </div>
-              )}
               <button
                 type="submit"
                 className="btn btn-primary"
