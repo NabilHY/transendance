@@ -187,17 +187,14 @@ export default function PasswordSettingsPage() {
   return (
     <div className="container">
       <div className="main-content">
-        <div className="account-grid">
+        <div className="security-settings-grid">
           {/* Change Password Section */}
-          <div className="setting-card">
-            <h3>
-              <Lock
-                size={18}
-                style={{ display: "inline", marginRight: "8px" }}
-              />
-              Change Password
-            </h3>
-            <form onSubmit={handlePasswordReset}>
+          <div className="setting-card security-card">
+            <div className="card-header">
+              <Lock size={20} />
+              <h3>Change Password</h3>
+            </div>
+            <form onSubmit={handlePasswordReset} className="security-form">
               <div className="input-group">
                 <Key size={16} />
                 <input
@@ -229,32 +226,19 @@ export default function PasswordSettingsPage() {
                 />
               </div>
               {passwordError && (
-                <p
-                  style={{
-                    color: "#ef4444",
-                    marginTop: "8px",
-                    fontSize: "14px",
-                  }}
-                >
+                <div className="message-error">
                   {passwordError}
-                </p>
+                </div>
               )}
               {passwordSuccess && (
-                <p
-                  style={{
-                    color: "#10b981",
-                    marginTop: "8px",
-                    fontSize: "14px",
-                  }}
-                >
+                <div className="message-success">
                   {passwordSuccess}
-                </p>
+                </div>
               )}
               <button
                 type="submit"
                 className="btn btn-primary"
                 disabled={isChangingPassword}
-                style={{ marginTop: "12px", width: "100%" }}
               >
                 {isChangingPassword ? "Changing..." : "Change Password"}
               </button>
@@ -262,26 +246,17 @@ export default function PasswordSettingsPage() {
           </div>
 
           {/* Change Email Section */}
-          <div className="setting-card">
-            <h3>
-              <Mail
-                size={18}
-                style={{ display: "inline", marginRight: "8px" }}
-              />
-              Change Email
-            </h3>
+          <div className="setting-card security-card">
+            <div className="card-header">
+              <Mail size={20} />
+              <h3>Change Email</h3>
+            </div>
             {currentEmail && (
-              <p
-                style={{
-                  fontSize: "14px",
-                  color: "#9ca8c7",
-                  marginBottom: "16px",
-                }}
-              >
-                Current email: {currentEmail}
-              </p>
+              <div className="current-email-display">
+                Current email: <span>{currentEmail}</span>
+              </div>
             )}
-            <form onSubmit={handleEmailReset}>
+            <form onSubmit={handleEmailReset} className="security-form">
               <div className="input-group">
                 <Mail size={16} />
                 <input
@@ -294,40 +269,27 @@ export default function PasswordSettingsPage() {
                 />
               </div>
               {emailError && (
-                <p
-                  style={{
-                    color: "#ef4444",
-                    marginTop: "8px",
-                    fontSize: "14px",
-                  }}
-                >
+                <div className="message-error">
                   {emailError}
-                </p>
+                </div>
               )}
               {emailSuccess && (
-                <p
-                  style={{
-                    color: "#10b981",
-                    marginTop: "8px",
-                    fontSize: "14px",
-                  }}
-                >
+                <div className="message-success">
                   {emailSuccess}
-                </p>
+                </div>
               )}
               {!showTokenInput ? (
                 <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={isChangingEmail}
-                  style={{ marginTop: "12px", width: "100%" }}
                 >
                   {isChangingEmail ? "Sending..." : "Send Verification Email"}
                 </button>
               ) : (
                 <form
                   onSubmit={handleEmailConfirm}
-                  style={{ marginTop: "12px" }}
+                  className="verification-form"
                 >
                   <div className="input-group">
                     <Shield size={16} />
@@ -339,7 +301,7 @@ export default function PasswordSettingsPage() {
                       required
                     />
                   </div>
-                  <div className="button-group" style={{ marginTop: "8px" }}>
+                  <div className="button-group">
                     <button type="submit" className="btn btn-primary">
                       Confirm Email Change
                     </button>
@@ -362,16 +324,13 @@ export default function PasswordSettingsPage() {
           </div>
 
           {/* Two-Factor Authentication Section */}
-          <div className="setting-card">
-            <h3>
-              <Shield
-                size={18}
-                style={{ display: "inline", marginRight: "8px" }}
-              />
-              Two-Factor Authentication
-            </h3>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {twofaEnabled === false && (
+          <div className="setting-card security-card">
+            <div className="card-header">
+              <Shield size={20} />
+              <h3>Two-Factor Authentication</h3>
+            </div>
+            <div className="twofa-content">
+              {twofaEnabled === false && !qr && (
                 <button
                   className="btn btn-primary"
                   onClick={async () => {
@@ -387,8 +346,8 @@ export default function PasswordSettingsPage() {
               )}
 
               {qr && twofaEnabled === false && (
-                <div style={{ display: "grid", gap: 8, width: "100%" }}>
-                  <img src={qr} alt="2FA QR" style={{ width: 220, height: 220, margin: "0 auto" }} />
+                <div className="twofa-setup">
+                  <img src={qr} alt="2FA QR" className="qr-code" />
                   <div className="input-group">
                     <Key size={16} />
                     <input
@@ -417,7 +376,7 @@ export default function PasswordSettingsPage() {
               )}
 
               {twofaEnabled === true && (
-                <div style={{ display: "grid", gap: 8, width: "100%" }}>
+                <div className="twofa-disable">
                   <div className="input-group">
                     <Lock size={16} />
                     <input
@@ -445,27 +404,47 @@ export default function PasswordSettingsPage() {
               )}
             </div>
             {twofaMsg && (
-              <p
-                style={{
-                  color: "#10b981",
-                  marginTop: "12px",
-                  fontSize: "14px",
-                }}
-              >
+              <div className="message-success">
                 {twofaMsg}
-              </p>
+              </div>
             )}
             {twofaErr && (
-              <p
-                style={{
-                  color: "#ef4444",
-                  marginTop: "12px",
-                  fontSize: "14px",
-                }}
-              >
+              <div className="message-error">
                 {twofaErr}
-              </p>
+              </div>
             )}
+          </div>
+
+          {/* Delete Account Placeholder */}
+          <div className="setting-card security-card placeholder-card">
+            <div className="card-header">
+              <div style={{ width: '20px', height: '20px' }}></div>
+              <h3>Delete Account</h3>
+            </div>
+            <div className="placeholder-content">
+              <p className="placeholder-description">
+                Permanently delete your account and all associated data.
+              </p>
+              <div className="placeholder-notice">
+                This feature will be available soon.
+              </div>
+            </div>
+          </div>
+
+          {/* Connected Accounts Placeholder */}
+          <div className="setting-card security-card placeholder-card">
+            <div className="card-header">
+              <div style={{ width: '20px', height: '20px' }}></div>
+              <h3>Connected Accounts</h3>
+            </div>
+            <div className="placeholder-content">
+              <p className="placeholder-description">
+                Manage your connected third-party accounts.
+              </p>
+              <div className="placeholder-notice">
+                This feature will be available soon.
+              </div>
+            </div>
           </div>
         </div>
       </div>

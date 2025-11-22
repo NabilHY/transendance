@@ -133,6 +133,30 @@ const SettingsPage = () => {
             <button className="btn" onClick={() => {setConfirmDeletion(false); setShowDeleteConfirm(false);}}>No</button>
           </div>
         </div>
+
+        <div className="setting-card">
+          <h3>Delete Account</h3>
+          <div style={{ padding: '16px 0' }}>
+            <p style={{ color: '#9ca8c7', fontSize: '14px', marginBottom: '12px' }}>
+              Permanently delete your account and all associated data.
+            </p>
+            <div style={{ color: '#666', fontSize: '13px' }}>
+              This feature will be available soon.
+            </div>
+          </div>
+        </div>
+
+        <div className="setting-card">
+          <h3>Connected Accounts</h3>
+          <div style={{ padding: '16px 0' }}>
+            <p style={{ color: '#9ca8c7', fontSize: '14px', marginBottom: '12px' }}>
+              Manage your connected third-party accounts.
+            </p>
+            <div style={{ color: '#666', fontSize: '13px' }}>
+              This feature will be available soon.
+            </div>
+          </div>
+        </div>
         </div>
       </div>
 

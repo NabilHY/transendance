@@ -95,12 +95,208 @@
   padding: 1.5rem;
 }
 
+.security-settings-grid {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  padding: 2rem;
+  align-items: stretch;
+}
+
+@media (max-width: 1200px) {
+  .security-settings-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .security-settings-grid {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+}
+
 .setting-card {
   background: #040911;
   border: 1px solid #2a2a2a;
-  border: 1px solid #2a2a2a;
   border-radius: 12px;
   padding: 24px;
+  box-sizing: border-box;
+}
+
+.security-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.security-card:hover {
+  border-color: #3a3a3a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.placeholder-card {
+  opacity: 0.85;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #1a1a1a;
+  min-height: 44px;
+}
+
+.card-header svg {
+  color: #0ea5e9;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e4ecff;
+  line-height: 1.2;
+}
+
+.security-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.security-form .btn {
+  width: 100%;
+  margin-top: auto;
+  padding: 10px 16px;
+  font-weight: 500;
+}
+
+.verification-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.verification-form .button-group {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.verification-form .button-group .btn {
+  flex: 1;
+}
+
+.current-email-display {
+  font-size: 14px;
+  color: #9ca8c7;
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+}
+
+.current-email-display span {
+  color: #0ea5e9;
+  font-weight: 500;
+}
+
+.message-error,
+.message-success {
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-top: 4px;
+  margin-bottom: 0;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.message-error {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.message-success {
+  color: #10b981;
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.twofa-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  flex: 1;
+}
+
+.twofa-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  align-items: center;
+}
+
+.qr-code {
+  width: 220px;
+  height: 220px;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+  background: #fff;
+  padding: 8px;
+}
+
+.twofa-disable {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.twofa-disable .btn {
+  width: 100%;
+}
+
+.placeholder-content {
+  padding: 8px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.placeholder-description {
+  color: #9ca8c7;
+  font-size: 14px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.placeholder-notice {
+  color: #666;
+  font-size: 13px;
+  font-style: italic;
+  padding: 8px 12px;
+  background-color: rgba(102, 102, 102, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid #666;
+  margin-top: auto;
 }
 
 .setting-card.confirm-deletion {
