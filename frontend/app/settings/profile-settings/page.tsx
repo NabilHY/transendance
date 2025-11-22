@@ -5,6 +5,8 @@ import { Search, User, Mail, Key, Github, Twitter, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import '../styles.css';
 import { fetchCurrentUser } from '@/lib/fetcher';
+import { useAuth } from '@/context/AuthContext';
+import { useRequireAuth } from '@/hooks/useAuthGuard';
 
 interface PasswordInputProps {
   currentPassword: string;
@@ -26,7 +28,8 @@ interface User {
 
 const SettingsPage = () => {
   const router = useRouter();
-
+  const { loading: authLoading, isAuthenticated } = useRequireAuth();
+  const { ensureCsrf, fetchMe, isLoggedIn } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -86,6 +89,10 @@ const SettingsPage = () => {
   useEffect(() => {
     loadCurrentUser();
   }, []);
+
+  if (authLoading || !isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className={`container`}>
