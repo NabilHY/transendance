@@ -8,11 +8,15 @@ import {
   resetEmail,
   confirmEmailReset,
   getCsrfToken,
+  twofaDisable,
+  twofaSetupStart,
+  twofaSetupVerify,
+  twofaStatus,
 } from "@/lib/api";
 import "../styles.css";
 
 export default function PasswordSettingsPage() {
-  const { ensureCsrf } = useAuth();
+  const { ensureCsrf, fetchMe, isLoggedIn } = useAuth();
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
 
   // Password Reset State
@@ -34,6 +38,14 @@ export default function PasswordSettingsPage() {
   // Current User Email (to display)
   const [currentEmail, setCurrentEmail] = useState<string>("");
 
+  // Two-Factor Authentication State
+  const [qr, setQr] = useState<string | null>(null);
+  const [setupToken, setSetupToken] = useState("");
+  const [disablePassword, setDisablePassword] = useState("");
+  const [twofaMsg, setTwofaMsg] = useState<string | null>(null);
+  const [twofaErr, setTwofaErr] = useState<string | null>(null);
+  const [twofaEnabled, setTwofaEnabled] = useState<boolean | null>(null);
+
   useEffect(() => {
     // Get CSRF token on mount
     const loadCsrf = async () => {
@@ -45,6 +57,20 @@ export default function PasswordSettingsPage() {
     // Fetch current user email (you might want to get this from context or API)
     // For now, placeholder
   }, []);
+
+  // Fetch 2FA status whenever login state changes
+  useEffect(() => {
+    (async () => {
+      if (!isLoggedIn) { setTwofaEnabled(null); return; }
+      try {
+        const csrf = await ensureCsrf();
+        const res = await twofaStatus(csrf);
+        if (res.ok) {
+          setTwofaEnabled((res.data as any)?.enabled ?? false);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [isLoggedIn, ensureCsrf]);
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -333,6 +359,113 @@ export default function PasswordSettingsPage() {
                 </form>
               )}
             </form>
+          </div>
+
+          {/* Two-Factor Authentication Section */}
+          <div className="setting-card">
+            <h3>
+              <Shield
+                size={18}
+                style={{ display: "inline", marginRight: "8px" }}
+              />
+              Two-Factor Authentication
+            </h3>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {twofaEnabled === false && (
+                <button
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    setTwofaErr(null); setTwofaMsg(null); setQr(null);
+                    const csrf = await ensureCsrf();
+                    const res = await twofaSetupStart(csrf);
+                    if (!res.ok) { setTwofaErr((res.data as any)?.error || 'Failed to start 2FA setup'); return; }
+                    setQr((res.data as any)?.qrCode || null);
+                  }}
+                >
+                  Start 2FA Setup
+                </button>
+              )}
+
+              {qr && twofaEnabled === false && (
+                <div style={{ display: "grid", gap: 8, width: "100%" }}>
+                  <img src={qr} alt="2FA QR" style={{ width: 220, height: 220, margin: "0 auto" }} />
+                  <div className="input-group">
+                    <Key size={16} />
+                    <input
+                      value={setupToken}
+                      onChange={(e) => setSetupToken(e.target.value)}
+                      maxLength={6}
+                      inputMode="numeric"
+                      placeholder="Enter 6-digit code"
+                    />
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    onClick={async () => {
+                      setTwofaErr(null); setTwofaMsg(null);
+                      const csrf = await ensureCsrf();
+                      const res = await twofaSetupVerify({ token: setupToken.trim() }, csrf);
+                      if (!res.ok) { setTwofaErr((res.data as any)?.error || 'Failed to verify 2FA'); return; }
+                      setTwofaMsg('2FA enabled'); setQr(null); setSetupToken('');
+                      await fetchMe();
+                      setTwofaEnabled(true);
+                    }}
+                  >
+                    Verify & Enable
+                  </button>
+                </div>
+              )}
+
+              {twofaEnabled === true && (
+                <div style={{ display: "grid", gap: 8, width: "100%" }}>
+                  <div className="input-group">
+                    <Lock size={16} />
+                    <input
+                      type="password"
+                      value={disablePassword}
+                      onChange={(e) => setDisablePassword(e.target.value)}
+                      placeholder="Enter password to disable 2FA"
+                    />
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    onClick={async () => {
+                      setTwofaErr(null); setTwofaMsg(null);
+                      const csrf = await ensureCsrf();
+                      const res = await twofaDisable({ password: disablePassword }, csrf);
+                      if (!res.ok) { setTwofaErr((res.data as any)?.error || 'Failed to disable 2FA'); return; }
+                      setTwofaMsg('2FA disabled'); setDisablePassword(''); setQr(null);
+                      await fetchMe();
+                      setTwofaEnabled(false);
+                    }}
+                  >
+                    Disable 2FA
+                  </button>
+                </div>
+              )}
+            </div>
+            {twofaMsg && (
+              <p
+                style={{
+                  color: "#10b981",
+                  marginTop: "12px",
+                  fontSize: "14px",
+                }}
+              >
+                {twofaMsg}
+              </p>
+            )}
+            {twofaErr && (
+              <p
+                style={{
+                  color: "#ef4444",
+                  marginTop: "12px",
+                  fontSize: "14px",
+                }}
+              >
+                {twofaErr}
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useUser } from '@/context/UserContext';
-import { twofaDisable, twofaSetupStart, twofaSetupVerify, twofaStatus } from '@/lib/api';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
 
 export default function HomePage() {
@@ -14,12 +13,6 @@ export default function HomePage() {
 	const { profile, loading: profileLoading } = useUser();
 	const { loading: authLoading } = useRequireAuth();
 	const router = useRouter();
-	const [qr, setQr] = useState<string | null>(null);
-	const [setupToken, setSetupToken] = useState('');
-	const [disablePassword, setDisablePassword] = useState('');
-	const [msg, setMsg] = useState<string | null>(null);
-	const [err, setErr] = useState<string | null>(null);
-	const [twofaEnabled, setTwofaEnabled] = useState<boolean | null>(null);
 
 	useEffect(() => {
 		console.log('🔄 [OAuth Debug] Main page useEffect triggered');
@@ -42,19 +35,6 @@ export default function HomePage() {
 		}
 	}, [requires2FA, router]);
 
-	// Fetch 2FA status whenever login state changes
-	useEffect(() => {
-		(async () => {
-			if (!isLoggedIn) { setTwofaEnabled(null); return; }
-			try {
-				const csrf = await ensureCsrf();
-				const res = await twofaStatus(csrf);
-				if (res.ok) {
-					setTwofaEnabled((res.data as any)?.enabled ?? false);
-				}
-			} catch { /* ignore */ }
-		})();
-	}, [isLoggedIn, ensureCsrf]);
 
 	if (authLoading) {
 	
@@ -129,64 +109,7 @@ export default function HomePage() {
 							{JSON.stringify({ user }, null, 2)}
 						</pre>
 
-						<div style={{ marginTop: 24, padding: 12, border: '1px solid #ddd' }}>
-							<h3>Two-Factor Authentication</h3>
-							<div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-								{twofaEnabled === false && (
-									<button
-										onClick={async () => {
-											setErr(null); setMsg(null); setQr(null);
-											const csrf = await ensureCsrf();
-											const res = await twofaSetupStart(csrf);
-											if (!res.ok) { setErr((res.data as any)?.error || 'Failed to start 2FA setup'); return; }
-											setQr((res.data as any)?.qrCode || null);
-										}}
-									>
-										Start 2FA Setup
-									</button>
-								)}
-
-								{qr && twofaEnabled === false && (
-									<div style={{ display: 'grid', gap: 8 }}>
-										<img src={qr} alt="2FA QR" style={{ width: 220, height: 220 }} />
-										<label>
-											Enter 6-digit code
-											<input value={setupToken} onChange={(e) => setSetupToken((e as any).target.value)} maxLength={6} inputMode="numeric" style={{ padding: 8 }} />
-										</label>
-										<button onClick={async () => {
-											setErr(null); setMsg(null);
-											const csrf = await ensureCsrf();
-											const res = await twofaSetupVerify({ token: setupToken.trim() }, csrf);
-											if (!res.ok) { setErr((res.data as any)?.error || 'Failed to verify 2FA'); return; }
-											setMsg('2FA enabled'); setQr(null); setSetupToken('');
-											await fetchMe();
-											setTwofaEnabled(true);
-										}}>Verify & Enable</button>
-									</div>
-								)}
-
-								{twofaEnabled === true && (
-									<div style={{ display: 'grid', gap: 8 }}>
-										<label>
-											Enter password to disable 2FA
-											<input type="password" value={disablePassword} onChange={(e) => setDisablePassword((e as any).target.value)} style={{ padding: 8 }} />
-										</label>
-										<button onClick={async () => {
-											setErr(null); setMsg(null);
-											const csrf = await ensureCsrf();
-											const res = await twofaDisable({ password: disablePassword }, csrf);
-											if (!res.ok) { setErr((res.data as any)?.error || 'Failed to disable 2FA'); return; }
-											setMsg('2FA disabled'); setDisablePassword(''); setQr(null);
-											await fetchMe();
-											setTwofaEnabled(false);
-										}}>Disable 2FA</button>
-									</div>
-								)}
-							</div>
-						</div>
-
-						{msg && <p style={{ color: 'seagreen', marginTop: 12 }}>{msg}</p>}
-						{(error || err) && <p style={{ color: 'crimson', marginTop: 12 }}>{error || err}</p>}
+						{error && <p style={{ color: 'crimson', marginTop: 12 }}>{error}</p>}
 					</div>
 				) : (
 					<p>You are not logged in.</p>
