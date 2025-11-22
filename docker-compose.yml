@@ -99,6 +99,16 @@ services:
         - path: ./monitoring/prometheus
           action: restart
     env_file: .env
+    
+  mailpit:
+    image: axllent/mailpit
+    container_name: mailpit
+    ports:
+      - ${MAILPIT_PORT:-1025}:1025
+      - ${MAILPIT_UI_PORT:-8025}:8025
+    networks:
+      - ft_transendance
+    env_file: .env
 
   grafana:
     image: grafana/grafana:latest
@@ -185,25 +195,25 @@ services:
       node-exporter:
         condition: service_healthy
         
-  alertmanager:
-    image: prom/alertmanager:latest
-    container_name: alertmanager
-    restart: unless-stopped
-    depends_on:
-      prometheus:
-        condition: service_started
-    networks:
-      - ft_transendance
-    ports:
-      - ${ALERTMANAGER_PORT:-9093}:9093
-    volumes:
-      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml.template:ro
-      - ./monitoring/alertmanager/entrypoint.sh:/entrypoint.sh:ro
-      - alertmanager_data:/alertmanager
-    entrypoint: ["/bin/sh", "/entrypoint.sh"]
-    env_file: .env
-    environment:
-      - SENDGRID_API_KEY=${SENDGRID_SMTP_PASS:-}
+  # alertmanager:
+  #   image: prom/alertmanager:latest
+  #   container_name: alertmanager
+  #   restart: unless-stopped
+  #   depends_on:
+  #     prometheus:
+  #       condition: service_started
+  #   networks:
+  #     - ft_transendance
+  #   ports:
+  #     - ${ALERTMANAGER_PORT:-9093}:9093
+  #   volumes:
+  #     - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml.template:ro
+  #     - ./monitoring/alertmanager/entrypoint.sh:/entrypoint.sh:ro
+  #     - alertmanager_data:/alertmanager
+  #   entrypoint: ["/bin/sh", "/entrypoint.sh"]
+  #   env_file: .env
+  #   environment:
+  #     - SENDGRID_API_KEY=${SENDGRID_SMTP_PASS:-}
 
 networks:
   ft_transendance:

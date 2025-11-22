@@ -30,7 +30,7 @@ const initializeDatabase = (db) => {
                         profile_completed INTEGER DEFAULT 0,
                         username TEXT UNIQUE,
                         first_name TEXT,
-                        last_name TEXT,
+                        last_name TEXT,Db rah lbare7 wana kandebugi fwa7d l9alwa
                         profile_pic TEXT,
                         is_online INTEGER DEFAULT 0,
                         updated_at TEXT DEFAULT (datetime('now'))
@@ -58,12 +58,20 @@ const initializeDatabase = (db) => {
                                 user_id INTEGER NOT NULL,
                                 expires_at INTEGER NOT NULL,
                                 created_at INTEGER DEFAULT (strftime('%s', 'now')),
-                                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                                new_email TEXT
+                                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                             )
                         `, (err) => {
                             if (err) return reject(err);
                             
+                            db.run(`
+                                ALTER TABLE email_verification_tokens
+                                ADD COLUMN new_email TEXT
+                            `, (err) => {
+                                if (err && !err.message.includes('duplicate column name') && !err.message.includes('no such column')) {
+                                    console.warn('Could not add new_email column (may already exist):', err.message);
+                                }
+                            });
+
                             db.run(`
                                 CREATE TABLE IF NOT EXISTS password_reset_tokens (
                                     id INTEGER PRIMARY KEY AUTOINCREMENT,

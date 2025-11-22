@@ -1,5 +1,23 @@
 const config = require('../config');
-const fastify = require('fastify')( { logger: true } );
+const fastify = require('fastify')({ 
+    logger: {
+      level: 'info',
+      serializers: {
+        req: (req) => {
+          // Skip logging for health and metrics endpoints
+          if (req.url === '/health' || req.url === '/metrics') {
+            return undefined; // Prevents logging
+          }
+          return {
+            method: req.method,
+            url: req.url,
+            hostname: req.hostname,
+            remoteAddress: req.ip
+          };
+        }
+      }
+    }
+  });
 
 fastify.setErrorHandler(function (err, req, reply) {
     // Handle validation errors with custom messages
@@ -46,18 +64,24 @@ fastify.register(require('../plugins/schemas'));
 fastify.register(require('../plugins/rate-limit'));
 fastify.register(require('../plugins/jwt'));
 fastify.register(require('../plugins/swagger'));
+fastify.register(require('../plugins/csrf'));
+fastify.register(require('../plugins/account-lockout'));
+fastify.register(require('../plugins/account-security'));
+
 
 fastify.register(require('../routes/auth'), { prefix: '/api/auth' });
-fastify.register(require('../plugins/csrf'));
 
 fastify.register(require('../routes/csrf-token'), { prefix: '/api' });
 
-fastify.register(require('../plugins/account-lockout'));
 fastify.register(require('../routes/forgot-password'), { prefix: '/api/auth' });
 
 fastify.register(require('../routes/service-auth'), { prefix: '/api/auth'});
 
-// fastify.register(require('../routes/clear'), { prefix: '/api/auth' });
+fastify.register(require('../routes/password-reset'), { prefix: '/api/auth' });
+
+fastify.register(require('../routes/email-reset'), { prefix: '/api/auth' });
+
+fastify.register(require('../routes/clear'), { prefix: '/api/auth' });
 
 fastify.get('/health', async (_req, reply) => {
     return reply.send({ status: 'ok' });

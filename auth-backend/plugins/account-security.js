@@ -39,20 +39,34 @@ async function accountSecurityPlugin(fastify) {
             });
         },
         async resetEmailValidation(userId, newEmail) {
+        try {
             if (!newEmail || !newEmail.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) {
                 throw new Error('Invalid email address');
             }
-            const existing = await new Promise ((res, rej) => {
+            
+            const existing = await new Promise((resolve, reject) => {
+                if (!fastify.db) {
+                    return reject(new Error('Database not initialized'));
+                }
                 fastify.db.get('SELECT id FROM users WHERE email = ?', [newEmail], (err, row) => {
-                    if (err) rej(err);
-                    else res(row ? true : false);
+                    if (err) {
+                        fastify.log.error({ 
+                            err, 
+                            email: newEmail, 
+                            errCode: err.code,
+                            errMessage: err.message,
+                            errStack: err.stack
+                        }, 'Database error checking email');
+                        return reject(err);
+                    }
+                    resolve(row ? true : false);
                 });
             });
 
             if (existing) {
                 throw new Error('Email already in use');
             }
-
+            
             const emailVerificationToken = crypto.randomBytes(32).toString('hex');
             const emailVerificationTokenExpiresAt = Math.floor(Date.now() / 1000) + 3600;
             await new Promise((resolve, reject) => {
@@ -61,11 +75,17 @@ async function accountSecurityPlugin(fastify) {
                         if (err) reject(err);
                         else resolve();
                     });
-                });
+                });    
+            console.log('config.EMAIL_FROM::::', config.EMAIL_FROM);
+            if (!config.EMAIL_FROM && !config.SMTP_FROM) {
+                throw new Error('Email from address not configured');
+            }
+            
+
 
             const link = `${config.FRONTEND_URL}/verify-email?token=${emailVerificationToken}`;
             await fastify.trackExternal('smtp', () => transporter.sendMail({
-                from: config.SMTP_FROM,
+                from: config.EMAIL_FROM || config.SMTP_FROM,
                 to: newEmail,
                 subject: 'Email Verification',
                 text: `Click the link to verify your email: ${link}`,
@@ -73,10 +93,19 @@ async function accountSecurityPlugin(fastify) {
             }));
 
             return emailVerificationToken;
+        } catch (err) {
+            fastify.log.error({ 
+                err, 
+                email: newEmail, 
+                errCode: err.code,
+                errMessage: err.message,
+                errStack: err.stack
+            }, 'Database error checking email');
+        }
         },
         resetEmail(userId, newEmail) {
             return new Promise((resolve, reject) => {
-                fastify.db.run('UPDATE users SET email = ? WHERE id = ?', [newEmail, userId], 
+                fastify.db.run('UPDATE users SET email = ?, google_id = NULL WHERE id = ?', [newEmail, userId], 
                     (err) => {
                         if (err) reject(err);
                         else resolve();
@@ -101,6 +130,5 @@ async function accountSecurityPlugin(fastify) {
 }
 
 module.exports = fp(accountSecurityPlugin, {
-    name: 'accountSecurityPlugin',
-    dependencies: ['db', 'trackExternal']
+    name: 'accountSecurityPlugin'
 });

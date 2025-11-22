@@ -36,8 +36,9 @@ module.exports = async function (fastify) {
         preHandler: [fastify.authenticate]
     }, async (req, reply) => {
         try {
-            const userId = fastify.accountSecurity.getUserId(req);
-            
+
+            const userId = fastify.accountSecurity.getUserId(req);            
+
             const { email } = req.body || {};
             if (!email) {
                 return reply.code(400).send({ error: 'Email is required' });
@@ -55,7 +56,15 @@ module.exports = async function (fastify) {
             if (error.message === 'Email already in use') {
                 return reply.code(409).send({ error: error.message });
             }
-            fastify.log.error('Email reset error:', error);
+            fastify.log.error({ 
+                err: error, 
+                message: error.message, 
+                stack: error.stack,
+                name: error.name,
+                code: error.code,
+                userId: userId,
+                email: email
+            }, 'Email reset error');
             return reply.code(500).send({ error: 'Internal server error' });
         }
     });

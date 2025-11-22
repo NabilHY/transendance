@@ -1,13 +1,13 @@
 const nodemailer = require('nodemailer');
 
 // Check which email service to use
-const useSendGrid = process.env.USE_SENDGRID === 'true';
+// const useSendGrid = process.env.USE_SENDGRID === 'true';
+const useSendGrid = false;
 
 let transporter;
 
 if (useSendGrid) {
     // SendGrid SMTP configuration
-    
     transporter = nodemailer.createTransport({
         host: process.env.SENDGRID_SMTP_HOST,
         port: Number(process.env.SENDGRID_SMTP_PORT || 587),

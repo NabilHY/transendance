@@ -34,7 +34,7 @@ module.exports = async function (fastify) {
                 fastify.log.error('EMAIL_FROM is not configured. Cannot send password reset email.');
                 return reply.code(200).send({ message: 'If the account exists, a password reset email was sent.' });
             }
-            
+
             fastify.log.info({ email, emailFrom: config.EMAIL_FROM }, 'Password reset request received');
             
             // const user = await fastify.db.get('SELECT * FROM users WHERE email = ?', [email]);
@@ -45,7 +45,7 @@ module.exports = async function (fastify) {
                     else resolve(row);
                 });
             });
-            
+
             // console.log(user);
             
             if (!user) {
