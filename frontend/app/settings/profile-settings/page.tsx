@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Search, User, Mail, Key, Github, Twitter, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import './styles.css';
+import '../styles.css';
 import { fetchCurrentUser } from '@/lib/fetcher';
 
 interface PasswordInputProps {
@@ -141,3 +141,4 @@ const SettingsPage = () => {
 }
 
 export default SettingsPage;
+
