@@ -12,7 +12,10 @@ import {
   twofaSetupStart,
   twofaSetupVerify,
   twofaStatus,
+  me, // Add me, remove getEmailFromToken
 } from "@/lib/api";
+import { toast } from 'react-toastify';
+
 import "../styles.css";
 
 export default function PasswordSettingsPage() {
@@ -36,7 +39,7 @@ export default function PasswordSettingsPage() {
   const [showTokenInput, setShowTokenInput] = useState(false);
 
   // Current User Email (to display)
-  const [currentEmail, setCurrentEmail] = useState<string>("");
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
 
   // Two-Factor Authentication State
   const [qr, setQr] = useState<string | null>(null);
@@ -54,9 +57,32 @@ export default function PasswordSettingsPage() {
     };
     loadCsrf();
 
-    // Fetch current user email (you might want to get this from context or API)
-    // For now, placeholder
-  }, []);
+    // Fetch email from /me endpoint
+    const fetchEmail = async () => {
+      try {
+        const csrf = await ensureCsrf();
+        if (!csrf) {
+          return;
+        }
+        const meResult = await me(csrf);
+        if (meResult.ok && meResult.data) {
+          const responseData = meResult.data as { userId?: number; email?: string };
+          const email = responseData?.email;
+          if (email && typeof email === 'string') {
+            setCurrentEmail(email);
+          } else {
+            const directEmail = (meResult.data as any)?.email;
+            if (directEmail) {
+              setCurrentEmail(directEmail);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch email:", error);
+      }
+    };
+    fetchEmail();
+  }, [ensureCsrf]);
 
   // Fetch 2FA status whenever login state changes
   useEffect(() => {
@@ -171,8 +197,26 @@ export default function PasswordSettingsPage() {
         setNewEmail("");
         setVerificationToken("");
         setShowTokenInput(false);
-        // Update current email display
-        setCurrentEmail(newEmail);
+        // Fetch updated email from /me endpoint
+        try {
+          const csrf = await ensureCsrf();
+          const meResult = await me(csrf);
+          console.log("Security Settings - /me response after email change:", meResult);
+          if (meResult.ok && meResult.data) {
+            const responseData = meResult.data as { userId?: number; email?: string };
+            const email = responseData?.email;
+            console.log("Security Settings - Extracted updated email:", email);
+            if (email) {
+              setCurrentEmail(email);
+            } else {
+              console.warn("Security Settings - Email not found in updated response data:", responseData);
+            }
+          } else {
+            console.error("Security Settings - /me request failed after email change:", meResult.status, meResult.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch updated email:", error);
+        }
       } else {
         setEmailError(
           (result.data as any)?.error || "Invalid or expired token"
@@ -251,11 +295,6 @@ export default function PasswordSettingsPage() {
               <Mail size={20} />
               <h3>Change Email</h3>
             </div>
-            {currentEmail && (
-              <div className="current-email-display">
-                Current email: <span>{currentEmail}</span>
-              </div>
-            )}
             <form onSubmit={handleEmailReset} className="security-form">
               <div className="input-group">
                 <Mail size={16} />
@@ -266,8 +305,13 @@ export default function PasswordSettingsPage() {
                   onChange={(e) => setNewEmail(e.target.value)}
                   required
                   disabled={showTokenInput}
-                />
+                 />
               </div>
+                {currentEmail && (
+                  <div className="current-email-display">
+                    Current email: <span>{currentEmail}</span>
+                  </div>
+                )}
               {emailError && (
                 <div className="message-error">
                   {emailError}
