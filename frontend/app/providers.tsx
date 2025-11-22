@@ -5,6 +5,8 @@ import { UserProvider } from '../context/UserContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Dynamic API base URL - uses current hostname for flexibility
 const getApiBase = () => {
@@ -118,6 +120,18 @@ export default function Providers({ children }: { children?: React.ReactNode }) 
 			<UserProvider>
 				<FetchInterceptor>
 					<OAuthCallbackHandler children={children ?? null} />
+					<ToastContainer
+						position="top-right"
+						autoClose={5000}
+						hideProgressBar={false}
+						newestOnTop={false}
+						closeOnClick
+						rtl={false}
+						pauseOnFocusLoss
+						draggable
+						pauseOnHover
+						theme="light"
+					/>
 				</FetchInterceptor>
 			</UserProvider>
 		</AuthProvider>

@@ -20,9 +20,15 @@ module.exports = async function (fastify) {
                             type: 'integer',
                             description: 'User ID from JWT token',
                             example: 27
+                        },
+                        email: {
+                            type: 'string',
+                            format: 'email',
+                            description: 'User email from JWT token',
+                            example: 'user@example.com'
                         }
                     },
-                    required: ['userId']
+                    required: ['userId', 'email']
                 },
                 401: {
                     description: 'Unauthorized - Invalid or missing JWT token',
@@ -51,6 +57,6 @@ module.exports = async function (fastify) {
             }
         }, preHandler: [fastify.authenticate] 
     }, async (req) => {
-        return { userId: req.user.sub };
+        return { userId: req.user.sub, email: req.user.email };
     });
 };

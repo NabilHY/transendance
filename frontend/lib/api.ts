@@ -208,7 +208,7 @@ export async function refresh(csrfToken?: string | null) {
 	return fetchJson('/api/auth/refresh', { method: 'POST' }, csrfToken);
 }
 
-export type MeResponse = { userId: number };
+export type MeResponse = { userId: number; email: string };
 export async function me(csrfToken?: string | null) {
 	return fetchJson<MeResponse>('/api/auth/me', {}, csrfToken);
 }
@@ -227,7 +227,7 @@ export async function twofaSetupVerify(body: TwoFASetupVerifyBody, csrfToken?: s
 export type TwoFADisableBody = { password: string };
 export type TwoFADisableResponse = { message: string };
 export async function twofaDisable(body: TwoFADisableBody, csrfToken?: string | null) {
-	return fetchJson<TwoFADisableResponse>('/api/auth/2fa/disable', { method: 'POST', body: JSON.stringify(body) }, csrfToken);
+	return fetchJson<TwoFADisableResponse>('/api/auth/2fa/disable', { method: 'rIdPOST', body: JSON.stringify(body) }, csrfToken);
 }
 
 export type TwoFAStatusResponse = { enabled: boolean };
@@ -369,7 +369,65 @@ export async function umAddFriend(targetId: string | number, csrfToken?: string 
 }
 
 export async function umBlockUser(targetId: string | number, csrfToken?: string | null) {
-    return fetchUserMgmtJson<{ success: boolean; message: string }>(`/users/${targetId}/block`, {
-        method: 'POST'
-    }, csrfToken);
+	return fetchUserMgmtJson<{ success: boolean; message: string }>(`/users/${targetId}/block`, {
+		method: 'POST'
+	}, csrfToken);
+}
+
+/**
+ * Decode JWT token and extract payload (without verification)
+ * Note: This only decodes the token, it doesn't verify the signature
+ */
+export function decodeJWT(token: string): { sub?: number; email?: string; [key: string]: any } | null {
+	try {
+		// JWT format: header.payload.signature
+		
+		console.log('Decoding JWT:', token); // Debug
+		
+		const parts = token.split('.');
+		if (parts.length !== 3) {
+			return null;
+		}
+		
+		// Decode the payload (second part)
+		// Replace URL-safe base64 characters and add padding if needed
+		const payload = parts[1];
+		const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+		const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+		
+		const decoded = JSON.parse(atob(padded));
+		return decoded;
+	} catch (error) {
+		console.error('Failed to decode JWT:', error);
+		return null;
+	}
+}
+
+/**
+ * Get email from JWT access token stored in cookies
+ */
+export function getEmailFromToken(): string | null {
+	if (typeof document === 'undefined') {
+		return null;
+	}
+	
+	// Get accessToken from cookies
+	const cookies = document.cookie.split(';');
+	
+	console.log('Cookies:', cookies); // Debug
+	const accessTokenCookie = cookies.find(cookie => 
+		cookie.trim().startsWith('accessToken=')
+	);
+	
+	if (!accessTokenCookie) {
+		return null;
+	}
+	
+	const token = accessTokenCookie.split('=')[1]?.trim();
+	if (!token) {
+		return null;
+	}
+	
+	const decoded = decodeJWT(token);
+	return decoded?.email || null;
 }
