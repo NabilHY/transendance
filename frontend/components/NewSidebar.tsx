@@ -42,7 +42,7 @@ export default function NewSidebar() {
     };
 
     const handlePasswordSecurityClick = () => {
-        router.push('/settings/password-security');
+        router.push('/settings/security-settings');
         setSettingsDropdownOpen(false);
     };
 
@@ -143,11 +143,11 @@ export default function NewSidebar() {
                                     <button
                                         type="button"
                                         onClick={handlePasswordSecurityClick}
-                                        className={`${styles.dropdownItem} ${pathname === '/settings/password-security' ? styles.dropdownItemActive : ''}`}
+                                        className={`${styles.dropdownItem} ${pathname === '/settings/security-settings' ? styles.dropdownItemActive : ''}`}
                                     >
                                         <span className={styles.dropdownItemContent}>
                                             <span className={styles.dropdownRadioIcon}>
-                                                {pathname === '/settings/password-security' && '•'}
+                                                {pathname === '/settings/security-settings' && '•'}
                                             </span>
                                             <span>Password and Security</span>
                                         </span>
