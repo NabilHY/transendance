@@ -415,22 +415,6 @@ export default function PasswordSettingsPage() {
             )}
           </div>
 
-          {/* Delete Account Placeholder */}
-          <div className="setting-card security-card placeholder-card">
-            <div className="card-header">
-              <div style={{ width: '20px', height: '20px' }}></div>
-              <h3>Delete Account</h3>
-            </div>
-            <div className="placeholder-content">
-              <p className="placeholder-description">
-                Permanently delete your account and all associated data.
-              </p>
-              <div className="placeholder-notice">
-                This feature will be available soon.
-              </div>
-            </div>
-          </div>
-
           {/* Connected Accounts Placeholder */}
           <div className="setting-card security-card placeholder-card">
             <div className="card-header">
@@ -440,6 +424,22 @@ export default function PasswordSettingsPage() {
             <div className="placeholder-content">
               <p className="placeholder-description">
                 Manage your connected third-party accounts.
+              </p>
+              <div className="placeholder-notice">
+                This feature will be available soon.
+              </div>
+            </div>
+          </div>
+
+          {/* Delete Account Placeholder */}
+          <div className="setting-card security-card placeholder-card full-width-card">
+            <div className="card-header">
+              <div style={{ width: '20px', height: '20px' }}></div>
+              <h3>Delete Account</h3>
+            </div>
+            <div className="placeholder-content">
+              <p className="placeholder-description">
+                Permanently delete your account and all associated data.
               </p>
               <div className="placeholder-notice">
                 This feature will be available soon.
