@@ -1,7 +1,7 @@
 const runMigrations = async (db) => {
     console.log('🔄 Running simple migrations...');
     
-    // Add gaming stats columns to users table if they don't exist
+    // Add gaming stats/profile columns to users table if they don't exist
     const gamingColumns = [
         { name: 'player_level', type: 'INTEGER DEFAULT 1' },
         { name: 'experience_points', type: 'INTEGER DEFAULT 0' },
@@ -11,7 +11,8 @@ const runMigrations = async (db) => {
         { name: 'games_won', type: 'INTEGER DEFAULT 0' },
         { name: 'games_lost', type: 'INTEGER DEFAULT 0' },
         { name: 'win_rate', type: 'REAL DEFAULT 0.0' },
-        { name: 'current_streak', type: 'INTEGER DEFAULT 0' }
+        { name: 'current_streak', type: 'INTEGER DEFAULT 0' },
+        { name: 'profile_pic', type: 'TEXT' }
     ];
 
     for (const column of gamingColumns) {
