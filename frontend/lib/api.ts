@@ -91,7 +91,7 @@ export async function resetPassword(
 	}, csrfToken);
   }
   
-  export async function VerifyEmail(
+  export async function verifyEmail(
     body: VerifyEmailBody,
     csrfToken?: string | null
   ): Promise<ApiResult<VerifyEmailResponse>> {

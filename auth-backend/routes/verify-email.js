@@ -67,7 +67,7 @@ module.exports = async function (fastify) {
 		const { token } = req.body || {};
 		
 		const tokenRecord = await new Promise((resolve, reject) => {
-			fastify.db.get('SELECT user_id, expires_at FROM email_verification_tokens WHERE token = ?', [token], (err, row) => {
+			fastify.db.get('SELECT user_id, expires_at, new_email FROM email_verification_tokens WHERE token = ?', [token], (err, row) => {
 				if (err) reject(err);
 				else resolve(row);
 			});
@@ -83,13 +83,43 @@ module.exports = async function (fastify) {
 				else resolve(row);
 			});
 		});
+
+		if (!user) {
+			return reply.code(200).send({ error: 'User not found' });
+		}
+
+		// Check if this is an email reset token (has new_email field)
+		if (tokenRecord.new_email) {
+			// This is an email reset - reset email, delete all tokens, and clear cookies
+			if (fastify.accountSecurity) {
+				await fastify.accountSecurity.deleteAllTokens(user.id);
+				await fastify.accountSecurity.resetEmail(user.id, tokenRecord.new_email);
+			}
+			
+			// Clear the cookies with the same options they were set with
+			reply.clearCookie('accessToken', { 
+				path: '/',
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: 'strict'
+			});
+			
+			reply.clearCookie('refreshToken', { 
+				path: '/',
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: 'strict'
+			});
+			
+			return reply.code(200).send({ message: 'Email reset successfully. Please log in again.' });
+		}
 		
-        if (user && user.is_verified) {
+		// Regular email verification flow
+        if (user.is_verified) {
 			return reply.code(200).send({ error: 'User already verified' });
 		}
 		
-		// find token, check expiry/unused → set users.is_verified = 1, mark used_at
-        await new Promise((resolve, reject) => {
+		await new Promise((resolve, reject) => {
             fastify.db.run('UPDATE users SET is_verified = 1 WHERE id = ?', [tokenRecord.user_id], (err) => {
 				if (err) reject(err);
 				else resolve();
