@@ -159,17 +159,43 @@ module.exports = async function (fastify) {
                 email: payload.email,
             };
             
-            // Check if user exists by email (primary identifier)
-            const existingUser = await new Promise((resolve, reject) => {
+            const existingUserByGoogleId = await new Promise((res, rej) => {
                 fastify.db.get(
-                    'SELECT id, email, google_id, password_hash, twofa_enabled, twofa_confirmed, is_verified FROM users WHERE email = ?',
-                    [googleUser.email],
+                    'SELECT id, email, google_id, password_hash, twofa_enabled, twofa_confirmed, is_verified FROM users WHERE google_id = ?',
+                    [googleUser.googleId],
                     (err, row) => {
-                        if (err) reject(err);
-                        else resolve(row);
+                        if (err) rej(err);
+                        else res(row);
                     }
                 )
-            })
+            });
+            
+            let existingUser = existingUserByGoogleId;
+            
+            if (!existingUser) {
+                existingUser = await new Promise((res, rej) => {
+                    fastify.db.get(
+                        'SELECT id, email, google_id, password_hash, twofa_enabled, twofa_confirmed, is_verified FROM users WHERE email = ?',
+                        [googleUser.email],
+                        (err, row) => {
+                            if (err) rej(err);
+                            else res(row);
+                        }
+                    )
+                });
+            }
+            
+            // // Check if user exists by email (primary identifier)
+            // const existingUser = await new Promise((resolve, reject) => {
+            //     fastify.db.get(
+            //         'SELECT id, email, google_id, password_hash, twofa_enabled, twofa_confirmed, is_verified FROM users WHERE email = ?',
+            //         [googleUser.email],
+            //         (err, row) => {
+            //             if (err) reject(err);
+            //             else resolve(row);
+            //         }
+            //     )
+            // })
             
             
             let userId;
@@ -183,8 +209,17 @@ module.exports = async function (fastify) {
                             'UPDATE users SET google_id = ? WHERE id = ?',
                             [googleUser.googleId, userId],
                             (err) => {
-                                if (err) reject(err);
-                                else resolve();
+                                if (err) {
+                                        if (err.code === 'SQLITE_CONSTRAINT') {
+                                            // Another user already has this google_id - just continue with existing user
+                                            fastify.log.warn({ googleId: googleUser.googleId, userId }, 'Google ID already linked to another user');
+                                        } else {
+                                            reject(err);
+                                            return;
+                                        }
+                                } else {
+                                    resolve();
+                                }
                             }
                         );
                     })
@@ -249,8 +284,6 @@ module.exports = async function (fastify) {
             if (!existingUser?.is_verified) {
                 return reply.redirect(`${config.FRONTEND_URL}/login?error=email_not_verified`);
             }
-
-            console.log(' XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  ');
 
             // Check if user has 2FA enabled but not confirmed (incomplete setup)
             if (existingUser && existingUser.twofa_enabled && !existingUser.twofa_confirmed) {
