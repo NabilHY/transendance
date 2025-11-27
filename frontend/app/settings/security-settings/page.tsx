@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Key, Mail, Lock, Shield } from "lucide-react";
+import { Key, Mail, Lock, Shield, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRequireAuth } from "@/hooks/useAuthGuard";
 import {
@@ -26,12 +26,16 @@ export default function PasswordSettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const [setupToken, setSetupToken] = useState("");
   const [disablePassword, setDisablePassword] = useState("");
+  const [showDisablePassword, setShowDisablePassword] = useState(false);
   const [twofaMsg, setTwofaMsg] = useState<string | null>(null);
   const [twofaErr, setTwofaErr] = useState<string | null>(null);
   const [twofaEnabled, setTwofaEnabled] = useState<boolean | null>(null);
@@ -183,32 +187,56 @@ export default function PasswordSettingsPage() {
               <div className="input-group">
                 <Key size={16} />
                 <input
-                  type="password"
+                  type={showOldPassword ? "text" : "password"}
                   placeholder="Current password"
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowOldPassword(!showOldPassword)}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                  aria-label={showOldPassword ? "Hide password" : "Show password"}
+                >
+                  {showOldPassword ? <EyeOff size={16} color="#666" /> : <Eye size={16} color="#666" />}
+                </button>
               </div>
               <div className="input-group">
                 <Key size={16} />
                 <input
-                  type="password"
+                  type={showNewPassword ? "text" : "password"}
                   placeholder="New password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                  aria-label={showNewPassword ? "Hide password" : "Show password"}
+                >
+                  {showNewPassword ? <EyeOff size={16} color="#666" /> : <Eye size={16} color="#666" />}
+                </button>
               </div>
               <div className="input-group">
                 <Key size={16} />
                 <input
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  {showConfirmPassword ? <EyeOff size={16} color="#666" /> : <Eye size={16} color="#666" />}
+                </button>
               </div>
               <button
                 type="submit"
@@ -309,11 +337,19 @@ export default function PasswordSettingsPage() {
                   <div className="input-group">
                     <Lock size={16} />
                     <input
-                      type="password"
+                      type={showDisablePassword ? "text" : "password"}
                       value={disablePassword}
                       onChange={(e) => setDisablePassword(e.target.value)}
                       placeholder="Enter password to disable 2FA"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowDisablePassword(!showDisablePassword)}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                      aria-label={showDisablePassword ? "Hide password" : "Show password"}
+                    >
+                      {showDisablePassword ? <EyeOff size={16} color="#666" /> : <Eye size={16} color="#666" />}
+                    </button>
                   </div>
                   <button
                     className="btn btn-primary"
