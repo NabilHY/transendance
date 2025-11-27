@@ -1,26 +1,19 @@
 const runMigrations = async (db) => {
     console.log('🔄 Running simple migrations...');
     
-    // Just add any extra tables here if needed
-    // Most tables are already in schema.js
-    
-    // Example: Add a simple table if you need it later
-    // await new Promise((resolve, reject) => {
-    //     db.run(`
-    //         CREATE TABLE IF NOT EXISTS user_preferences (
-    //             user_id INTEGER PRIMARY KEY,
-    //             theme TEXT DEFAULT 'light',
-    //             notifications_enabled INTEGER DEFAULT 1,
-    //             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    //         )
-    //     `, (err) => {
-    //         if (err) reject(err);
-    //         else {
-    //             console.log('✅ Added user_preferences table');
-    //             resolve();
-    //         }
-    //     });
-    // });
+    await new Promise((resolve, reject) => {
+        db.run(`
+            ALTER TABLE users 
+            ADD COLUMN profile_pic TEXT
+        `, (err) => {
+            if (err && !err.message.includes('duplicate column name') && !err.message.includes('no such column')) {
+                console.warn('Could not add profile_pic column (may already exist):', err.message);
+            } else if (!err) {
+                console.log('✅ Added profile_pic column to users table');
+            }
+            resolve();
+        });
+    });
     
     console.log('✅ Migrations complete');
 };
