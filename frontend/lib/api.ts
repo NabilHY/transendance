@@ -42,6 +42,15 @@ export type ConfirmEmailResetResponse = {
 	message: string;
 };
 
+export type VerifyEmailBody = {
+	token: string;
+}
+
+export type VerifyEmailResponse = {
+	message?: string;
+	error?: string;
+}
+
 export async function resetPassword(
 	body: ResetPasswordBody, 
 	csrfToken?: string | null
@@ -70,6 +79,16 @@ export async function resetPassword(
 	  method: 'POST',
 	  body: JSON.stringify(body),
 	}, csrfToken);
+  }
+  
+  export async function VerifyEmail(
+    body: VerifyEmailBody,
+    csrfToken?: string | null
+  ): Promise<ApiResult<VerifyEmailResponse>> {
+    return fetchJson<VerifyEmailResponse>('/api/auth/verify-email/confirm', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }, csrfToken);
   }
 
 /* ====== */
