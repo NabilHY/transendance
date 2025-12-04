@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Key, Mail, Lock, Shield, Eye, EyeOff } from "lucide-react";
+import { Key, Mail, Lock, Shield, Eye, EyeOff, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useRequireAuth } from "@/hooks/useAuthGuard";
 import {
@@ -13,14 +14,16 @@ import {
   twofaSetupVerify,
   twofaStatus,
   me,
+  deleteAccount,
 } from "@/lib/api";
 import { toast } from 'react-toastify';
 
 import "../styles.css";
 
 export default function PasswordSettingsPage() {
+  const router = useRouter();
   const { loading: authLoading, isAuthenticated } = useRequireAuth();
-  const { ensureCsrf, fetchMe, isLoggedIn } = useAuth();
+  const { ensureCsrf, fetchMe, isLoggedIn, logout } = useAuth();
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -39,6 +42,50 @@ export default function PasswordSettingsPage() {
   const [twofaMsg, setTwofaMsg] = useState<string | null>(null);
   const [twofaErr, setTwofaErr] = useState<string | null>(null);
   const [twofaEnabled, setTwofaEnabled] = useState<boolean | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!deletePassword) {
+      toast.error("Password is required to delete your account");
+      return;
+    }
+    
+    setIsDeleting(true);
+    
+    try {
+      const csrf = await ensureCsrf();
+      const result = await deleteAccount({ password: deletePassword }, csrf);
+
+      if (result.ok && result.data) {
+        const message = (result.data as { message?: string })?.message || "Account deleted successfully";
+        toast.success(message);
+        
+        // Logout and redirect to login page
+        await logout();
+        router.push('/login');
+      } else {
+        const errorMessage = (result.data as { error?: string })?.error || "Failed to delete account";
+        toast.error(errorMessage);
+        setDeletePassword("");
+      }
+    } catch (error) {
+      toast.error("An error occurred. Please try again.");
+      console.error("Delete account error:", error);
+      setDeletePassword("");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeletePassword("");
+  };
 
   useEffect(() => {
     // Get CSRF token on mount
@@ -396,23 +443,119 @@ export default function PasswordSettingsPage() {
             </div>
           </div>
 
-          {/* Delete Account Placeholder */}
-          <div className="setting-card security-card placeholder-card full-width-card">
+          {/* Delete Account Section */}
+          <div className="setting-card security-card full-width-card">
             <div className="card-header">
-              <div style={{ width: '20px', height: '20px' }}></div>
+              <Trash2 size={20} style={{ color: '#ff4444' }} />
               <h3>Delete Account</h3>
             </div>
             <div className="placeholder-content">
               <p className="placeholder-description">
-                Permanently delete your account and all associated data.
+                Permanently delete your account and all associated data. This action cannot be undone.
               </p>
-              <div className="placeholder-notice">
-                This feature will be available soon.
-              </div>
+              <button
+                className="btn"
+                onClick={() => setShowDeleteModal(true)}
+                style={{
+                  backgroundColor: '#ff4444',
+                  color: 'white',
+                  border: 'none',
+                  marginTop: '12px'
+                }}
+              >
+                <Trash2 size={16} style={{ marginRight: '8px' }} />
+                Delete My Account
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="modal-overlay" onClick={closeDeleteModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-icon-wrapper">
+                <Trash2 size={24} />
+              </div>
+              <h2 className="modal-title">Delete Account</h2>
+              <button
+                className="modal-close"
+                onClick={closeDeleteModal}
+                disabled={isDeleting}
+                aria-label="Close modal"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="warning-box">
+                <div className="warning-icon">⚠️</div>
+                <div className="warning-content">
+                  <h3 className="warning-title">Warning: This action is irreversible</h3>
+                  <p className="warning-text">
+                    Deleting your account will permanently remove:
+                  </p>
+                  <ul className="warning-list">
+                    <li>All your personal information and profile data</li>
+                    <li>All your messages and conversations</li>
+                    <li>All your friends and connections</li>
+                    <li>All your settings and preferences</li>
+                    <li>Access to all your account features</li>
+                  </ul>
+                  <p className="warning-text-bold">
+                    This action cannot be undone. Are you absolutely sure you want to proceed?
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleDeleteAccount} className="modal-form">
+                <div className="input-group">
+                  <Lock size={16} />
+                  <input
+                    type={showDeletePassword ? "text" : "password"}
+                    placeholder="Enter your password to confirm"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    required
+                    autoFocus
+                    disabled={isDeleting}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowDeletePassword(!showDeletePassword)}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                    aria-label={showDeletePassword ? "Hide password" : "Show password"}
+                    disabled={isDeleting}
+                  >
+                    {showDeletePassword ? <EyeOff size={16} color="#666" /> : <Eye size={16} color="#666" />}
+                  </button>
+                </div>
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={closeDeleteModal}
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-danger"
+                    disabled={isDeleting || !deletePassword}
+                  >
+                    {isDeleting ? "Deleting..." : "Delete My Account"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
