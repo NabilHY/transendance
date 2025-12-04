@@ -52,6 +52,7 @@ fastify.setErrorHandler(function (err, req, reply) {
 });
 
 fastify.register(require('@fastify/cookie'));
+
 fastify.register(require('@fastify/cors'), {
   origin: (origin, cb) => {
     // Allow requests with no origin (like mobile apps or curl requests)

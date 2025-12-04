@@ -136,6 +136,21 @@ async function jwtPlugin(fastify) {
                 if (refreshed) {
                     // Token was refreshed, verify the new token
                     await req.jwtVerify();
+                    
+                    const userId = req.user.sub;
+                    const user = await new Promise((res, rej) => {
+                        fastify.db.get('SELECT id, email FROM users WHERE id = ?', [userId], (err, row) => {
+                            if (err) rej(err);
+                            else res(row);
+                        });
+                    });
+
+                    if (!user) {
+                        return rep.code(401).send({
+                            error: 'Authentication failed',
+                            message: 'Unable to authenticate your request.'
+                        });
+                    }
                     return; // Continue to next handler
                 } else {
                     return rep.code(401).send({
@@ -151,6 +166,32 @@ async function jwtPlugin(fastify) {
             // Try to verify the access token
             await req.jwtVerify();
             
+            const userId = req.user.sub;
+            const user = await new Promise((res, rej) => {
+                fastify.db.get('SELECT id, email FROM users WHERE id = ?', [userId], (err, row) => {
+                    if (err) rej(err);
+                    else res(row);
+                });
+            });
+            
+            if (!user) {
+                rep.clearCookie('accessToken', {
+                    path: '/',
+                    httpOnly: true,
+                    secure: config.NODE_ENV === 'production',
+                    sameSite: 'strict',
+                });
+                rep.clearCookie('refreshToken', {
+                    path: '/',
+                    httpOnly: true,
+                    secure: config.NODE_ENV === 'production',
+                    sameSite: 'strict',
+                });
+                return rep.code(401).send({
+                    error: 'Authentication failed',
+                    message: 'Unable to authenticate your request.'
+                });
+            }            
             // Continue to the next handler
             return;
             
@@ -161,6 +202,20 @@ async function jwtPlugin(fastify) {
                 if (refreshed) {
                     // Token was refreshed, verify the new token
                     await req.jwtVerify();
+                    
+                    const userId = req.user.sub;
+                    const user = await new Promise((res, rej) => {
+                        fastify.db.get('SELECT id, email FROM users WHERE id = ?', [userId], (err, row) => {
+                            if (err) rej(err);
+                            else res(row);
+                        });
+                    });
+                    if (!user) {
+                        return rep.code(401).send({
+                            error: 'Authentication failed',
+                            message: 'Unable to authenticate your request.'
+                        });
+                    }
                     return; // Continue to next handler
                 } else {
                     return rep.code(401).send({
