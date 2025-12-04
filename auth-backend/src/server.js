@@ -100,7 +100,7 @@ fastify.register(require('../plugins/swagger'));
 fastify.register(require('../plugins/csrf'));
 fastify.register(require('../plugins/account-lockout'));
 fastify.register(require('../plugins/account-security'));
-fastidy.register(require('../plugins/delete'))
+fastify.register(require('../plugins/delete'))
 
 fastify.register(require('../routes/auth'), { prefix: '/api/auth' });
 fastify.register(require('../routes/game-token'), { prefix: '/api' });
