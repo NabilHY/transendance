@@ -61,6 +61,27 @@ export type VerifyEmailResponse = {
 	error?: string;
 }
 
+export type DeleteAccountBody = {
+	password: string;
+}
+
+
+export type DeleteAccountResponse = {
+	message: string;
+}
+
+/* === Delete Account === */
+
+export async function deleteAccount(
+	body: DeleteAccountBody,
+	csrfToken?: string | null
+) : Promise<ApiResult<DeleteAccountResponse>> {
+	return fetchJson<DeleteAccountResponse>('/api/auth/delete-user', {
+		method: 'DELETE',
+		body: JSON.stringify(body),
+	}, csrfToken);
+}
+
 export async function resetPassword(
 	body: ResetPasswordBody, 
 	csrfToken?: string | null
