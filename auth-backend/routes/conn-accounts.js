@@ -13,25 +13,34 @@ async function connAccountsRoutes(fastify) {
             ]
         }
     }, async (req, reply) => {
-        const userId = req.user.sub;
-        
-        if (!userId) {
-            return reply.code(401).send({
-                error: 'Unauthorized'
+        try {
+            const userId = req.user.sub;
+            
+            if (!userId) {
+                return reply.code(401).send({
+                    error: 'Unauthorized'
+                });
+            }
+            
+            const accounts = await fastify.connectedAccounts.getConnectedAccounts(userId);  // ← Added await here
+            
+            if (!accounts) {
+                return reply.code(404).send({
+                    error: 'User not found'
+                });
+            }
+            
+            // Return empty array if no accounts, not null
+            return reply.code(200).send({
+                accounts: accounts || []
+            });
+        } catch (error) {
+            fastify.log.error('Error fetching connected accounts:', error);
+            return reply.code(500).send({
+                error: 'Internal server error',
+                message: 'Failed to fetch connected accounts'
             });
         }
-        
-        const accounts = fastify.connectedAccounts.getConnectedAccounts(userId);
-        
-        if (!accounts) {
-            return reply.code(404).send({
-                error: 'No connected accounts found'
-            });
-        }
-        
-        return reply.code(200).send({
-            accounts: accounts
-        });
     }
 )};
 
