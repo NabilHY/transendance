@@ -102,6 +102,7 @@ fastify.register(require('../plugins/csrf'));
 fastify.register(require('../plugins/account-lockout'));
 fastify.register(require('../plugins/account-security'));
 fastify.register(require('../plugins/delete'))
+fastify.register(require('../plugins/oauth'));
 
 fastify.register(require('../routes/auth'), { prefix: '/api/auth' });
 fastify.register(require('../routes/game-token'), { prefix: '/api' });
@@ -119,6 +120,8 @@ fastify.register(require('../routes/email-reset'), { prefix: '/api/auth' });
 fastify.register(require('../routes/clear'), { prefix: '/api/auth' });
 
 fastify.register(require('../routes/delete' ), { prefix: '/api/auth' })
+
+fastify.register(require('../routes/conn-accounts'), { prefix: '/api/auth' });
 
 fastify.get('/health', async (_req, reply) => {
     return reply.send({ status: 'ok' });
