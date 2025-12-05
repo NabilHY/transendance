@@ -3,12 +3,17 @@ const fp = require('fastify-plugin');
 async function oauthPlugin(fastify) {
     fastify.decorate('connectedAccounts', {
         async getConnectedAccounts(userId) {
-            const user = await fastify.db.get('SELECT * FROM users WHERE id = ?', 
-                [userId], 
-                (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                });
+            const user = await new Promise((resolve, reject) => {
+                fastify.db.get(
+                    'SELECT google_id, email FROM users WHERE id = ?',
+                    [userId],
+                    (err, row) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    }
+                );
+            });
+
             if (!user) {
                 return null;
             }
@@ -26,16 +31,20 @@ async function oauthPlugin(fastify) {
         },
 
         async disconnectedAccount(userId, provider) {
-            if (provider == 'google') {
-                await new Promise((res, rej) => {
-                    fastify.db.run('UPDATE users SET google_id = NULL WHERE id = ?', [userId], (err) => {
-                        if (err) rej(err);
-                        else res();
-                    });
+            if (provider === 'google') {
+                await new Promise((resolve, reject) => {
+                    fastify.db.run(
+                        'UPDATE users SET google_id = NULL WHERE id = ?',
+                        [userId],
+                        (err) => {
+                            if (err) reject(err);
+                            else resolve();
+                        }
+                    );
                 });
             }
         }
     });
-};
+}
 
 module.exports = fp(oauthPlugin);
