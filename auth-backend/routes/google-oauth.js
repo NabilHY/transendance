@@ -1,6 +1,7 @@
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const config = require('../config');
+const { default: fastifyRateLimit } = require('@fastify/rate-limit');
 
 /**
     Route starts the google oauth2.0 login flow
@@ -54,7 +55,8 @@ module.exports = async function (fastify) {
     }, async (req, rep) => {
     
         const state = crypto.randomBytes(16).toString('hex');
-
+        const connectMode = req.query.connect === 'true';
+        
         // rep.setCookie('oauth_state', state, {
         //     httpOnly: true,
         //     secure: config.NODE_ENV === 'production',
@@ -67,6 +69,12 @@ module.exports = async function (fastify) {
             httpOnly: true,
             secure: false,         // only use true in production with https
             sameSite: 'lax',       // strict may break OAuth redirects
+            maxAge: 600,
+            path: '/'
+        });
+        
+        rep.setCookie('oauth_mode', connectMode ? 'connect' : 'login', {
+            httpOnly: true,
             maxAge: 600,
             path: '/'
         });
@@ -130,6 +138,119 @@ module.exports = async function (fastify) {
         },
     }, async (req, reply) => {
         const { code, state, error } = req.query;
+        const mode = req.cookies.oauth_mode;
+        
+        if (mode === 'connect') {
+            const accessToken = req.cookies.accessToken;
+            
+            if (!accessToken) {
+                reply.clearCookie('oauth_mode', {path: '/'});
+                return reply.redirect(`${config.FRONTEND_URL}/login?error=access_token_required`);
+            }
+            
+            try {
+                req.headers.authorization = `Bearer ${accessToken}`;
+                await req.jwtVerify();
+                
+                const currentUserId = req.user.sub;
+
+                reply.clearCookie('oauth_state', {path: '/'});
+                reply.clearCookie('oauth_mode', {path: '/'});
+                
+                const { tokens } = await fastify.trackExternal('google-oauth', () => client.getToken(code));
+                client.setCredentials(tokens);
+                
+                const ticket = await fastify.trackExternal('google-oauth', () => client.verifyIdToken({
+                    idToken: tokens.id_token,
+                    audience: config.GOOGLE_CLIENT_ID
+                }));
+                
+                const payload = ticket.getPayload();
+                const googleUser = {
+                    googleId: payload.sub,
+                    email: payload.email,
+                }
+                
+                const googleIdTaken = await new Promise((res, rej) => {
+                    fastify.db.get(
+                        'SELECT id FROM users WHERE google_id = ? AND id != ?',
+                        [googleUser.googleId, currentUserId],
+                        (err, row) => {
+                            if (err) rej(err);
+                            else res(!!row);
+                        }
+                    );                
+                })
+                
+                if (googleIdTaken) {
+                    fastify.log.error({
+                        googleId: googleUser.googleId,
+                        userId: currentUserId,
+                        attemptedEmail: googleUser.email
+                    }, 'Attempted to link Google account already linked to another user');
+                    return reply.redirect(`${config.FRONTEND_URL}/settings?error=google_account_already_linked`);
+                }
+                
+                const currentUser = await new Promise((res, rej) => {
+                    fastify.db.get(
+                        'SELECT google_id FROM users WHERE id = ?',
+                        [currentUserId],
+                        (err, row) => {
+                            if (err) rej(err);
+                            else res(row);
+                        }
+                    );
+                });
+                
+                if (!currentUser) {
+                    return reply.redirect(`${config.FRONTEND_URL}/login?error=user_not_found`);
+                }
+                
+                if (currentUser.google_id) {
+                    return reply.redirect(`${config.FRONTEND_URL}/settings?error=google_already_linked`);
+                }
+        
+                const result = await new Promise((resolve, reject) => {
+                    fastify.db.run(
+                        'UPDATE users SET google_id = ? WHERE id = ?',
+                        [googleUser.googleId, currentUserId],
+                        function(err) {
+                            if (err) {
+                                if (err.code === 'SQLITE_CONSTRAINT') {
+                                    reject(new Error('Google account already linked to another user'));
+                                } else {
+                                    reject(err);
+                                }
+                            } else {
+                                resolve({ changes: this.changes });
+                            }
+                        }
+                    );
+                });
+        
+                if (result.changes === 0) {
+                    return reply.redirect(`${config.FRONTEND_URL}/settings?error=link_failed`);
+                }
+        
+                fastify.log.info({
+                    userId: currentUserId,
+                    googleId: googleUser.googleId,
+                    googleEmail: googleUser.email
+                }, 'Google account linked successfully');
+        
+                return reply.redirect(`${config.FRONTEND_URL}/settings?connected=google_success`);
+                
+            } catch (err) {
+                reply.clearCookie('oauth_mode', { path: '/' });
+                fastify.log.error({ error: err.message }, 'Error in OAuth connect flow');
+                
+                if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+                    return reply.redirect(`${config.FRONTEND_URL}/settings?error=session_expired`);
+                }
+                
+                return reply.redirect(`${config.FRONTEND_URL}/settings?error=connect_failed`);
+            }
+        }
         
         if (error) {
             console.log('🔐 +++++++++++++++++++ [OAuth Debug] Error:', error);
@@ -185,47 +306,54 @@ module.exports = async function (fastify) {
                 });
             }
             
-            // // Check if user exists by email (primary identifier)
-            // const existingUser = await new Promise((resolve, reject) => {
-            //     fastify.db.get(
-            //         'SELECT id, email, google_id, password_hash, twofa_enabled, twofa_confirmed, is_verified FROM users WHERE email = ?',
-            //         [googleUser.email],
-            //         (err, row) => {
-            //             if (err) reject(err);
-            //             else resolve(row);
-            //         }
-            //     )
-            // })
-            
-            
             let userId;
 
             if (existingUser) {
                 // User exists - link Google ID if not already linked
                 userId = existingUser.id;
-                if (!existingUser.google_id) {
-                    await new Promise((resolve, reject) => {
-                        fastify.db.run(
-                            'UPDATE users SET google_id = ? WHERE id = ?',
-                            [googleUser.googleId, userId],
-                            (err) => {
-                                if (err) {
-                                        if (err.code === 'SQLITE_CONSTRAINT') {
-                                            // Another user already has this google_id - just continue with existing user
-                                            fastify.log.warn({ googleId: googleUser.googleId, userId }, 'Google ID already linked to another user');
-                                        } else {
-                                            reject(err);
-                                            return;
-                                        }
+                const googleIdTaken = await new Promise((resolve, reject) => {
+                    fastify.db.get(
+                        'SELECT id FROM users WHERE google_id = ? AND id != ?',
+                        [googleUser.googleId, userId],
+                        (err, row) => {
+                            if (err) reject(err);
+                            else resolve(!!row);
+                        }
+                    );
+                });
+            
+                if (googleIdTaken) {
+                    fastify.log.error({
+                        googleId: googleUser.googleId,
+                        userId,
+                        attemptedEmail: existingUser.email
+                    }, 'Attempted to link Google account already linked to another user');
+                    return reply.redirect(`${config.FRONTEND_URL}/login?error=google_account_already_linked`);
+                }
+            
+                // Now safely link
+                const result = await new Promise((resolve, reject) => {
+                    fastify.db.run(
+                        'UPDATE users SET google_id = ? WHERE id = ?',
+                        [googleUser.googleId, userId],
+                        function(err) {
+                            if (err) {
+                                if (err.code === 'SQLITE_CONSTRAINT') {
+                                    reject(new Error('Google account already linked to another user'));
                                 } else {
-                                    resolve();
+                                    reject(err);
                                 }
+                            } else {
+                                resolve({ changes: this.changes });
                             }
-                        );
-                    })
+                        }
+                    );
+                });
+            
+                if (result.changes === 0) {
+                    return reply.redirect(`${config.FRONTEND_URL}/login?error=link_failed`);
                 }
 
-                // If user has no password, redirect to set-password
                 if (!existingUser.password_hash) {
                     const token = fastify.jwt.sign({ 
                         sub: existingUser.id, 
