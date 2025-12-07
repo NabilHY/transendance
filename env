@@ -1,0 +1,105 @@
+# ============================================
+# ft_transcendence Development Environment
+# Generated on: Sun Oct  5 04:55:11 PM +01 2025
+# ============================================
+
+# Environment
+NODE_ENV=development
+
+# ============================================
+# Service Ports
+# ============================================
+AUTH_PORT=8005
+USR_MANAG_PORT=4000
+FRONTEND_PORT=3010
+DB_INIT_PORT=3005
+CHAT_PORT=8006
+
+# ============================================
+# Service URLs (External Access)
+# ============================================
+FRONTEND_URL=http://localhost:3010
+AUTH_BACKEND_URL=http://localhost:8005
+USR_MANAG_URL=http://localhost:4000
+
+# ============================================
+# Inter-Service Communication URLs
+# ============================================
+AUTH_SERVICE_URL=http://auth-backend:8005
+USR_MANAG_SERVICE_URL=http://usr-manag:4000
+FRONTEND_SERVICE_URL=http://frontend:3010
+
+
+# ============================================
+# Database Configuration
+# ============================================
+DB_FILE=/usr/src/app/db/shared.sqlite
+DATABASE_PATH=/usr/src/app/db/shared.sqlite
+
+# ============================================
+# JWT Configuration
+# ============================================
+JWT_SECRET=UJq44uXahz4yd8v9UpLz+rH0EA3ZJ8dhRi/0isY1qhc=
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+# ============================================
+# Google OAuth Configuration (Development)
+# ============================================
+GOOGLE_CLIENT_ID=582937290758-rj5nlshaobflq1q05cfvrc6dnvu26su2.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+GOOGLE_REDIRECT_URI=http://localhost:8005/api/auth/google/callback
+
+# ============================================
+# Email Configuraion (Mailpit)
+# ============================================
+SMTP_HOST=mailpit
+SMTP_PORT=1025
+SMTP_USER=user
+SMTP_PASSWORD=password
+SMTP_FROM=No-Reply <noreply@example.com>
+EMAIL_FROM=nabil.hayun@gmail.com
+MP_SMTP_AUTH_ACCEPT_ANY=1
+MP_SMTP_AUTH_ALLOW_INSECURE=1
+
+# ============================================
+# Legacy Variables (for backward compatibility)
+# ============================================
+PORT=8005
+AUTH_BACKEND_URL=http://localhost:8005
+
+# ============================================
+# Session Configuration
+# ============================================
+SESSION_SECRET=raXAclryzy30bdQZLZ748OHpksgpbHDufauRtOOWt2g=
+INTERNAL_SERVICE_KEY=Kj8pL3mN9qR5tV2wX7yZ4aB6cD1eF0gH
+
+# ===========================================
+# DevOps 
+# ===========================================
+PROMETHEUS_PORT=9090
+# GRAFANA
+GF_SECURITY_ADMIN_USER=admin
+GF_SECURITY_ADMIN_PASSWORD=admin123
+GRAFANA_PORT=4010
+TARGET_1=auth-backend
+TARGET_2=usr-manag
+CADVISOR_PORT=8080
+ALERTMANAGER_PORT=9093
+
+# AlertManager
+ALERTMANAGER_TO=dev-alerts@monitoring.com
+ALERTMANAGER_FROM=adev-alerts@monitoring.com
+ALERTMANAGER_SMARTHOST=sendgrid:587
+
+# Leave these blank for Mailpit; fill in later for real SMTP
+ALERTMANAGER_SMTP_USER="apikey"
+ALERTMANAGER_SMTP_PASS="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"
+
+# AWS SES Configuration
+USE_SENDGRID=false
+SENDGRID_SMTP_HOST=smtp.sendgrid.net
+SENDGRID_SMTP_PORT=587
+SENDGRID_SMTP_USER=apikey
+SENDGRID_SMTP_PASS=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
+SENDGRID_EMAIL_FROM=nabil.hayun@gmail.com

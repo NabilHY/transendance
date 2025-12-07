@@ -123,6 +123,7 @@ fastify.register(require('../routes/delete' ), { prefix: '/api/auth' })
 
 fastify.register(require('../routes/conn-accounts'), { prefix: '/api/auth' });
 
+
 fastify.get('/health', async (_req, reply) => {
     return reply.send({ status: 'ok' });
 });

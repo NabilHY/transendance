@@ -29,20 +29,29 @@ async function oauthPlugin(fastify) {
             }
             return accounts;
         },
-
-        async disconnectedAccount(userId, provider) {
+        
+        async disconnectAccount(userId, provider) {
             if (provider === 'google') {
                 await new Promise((resolve, reject) => {
                     fastify.db.run(
                         'UPDATE users SET google_id = NULL WHERE id = ?',
                         [userId],
-                        (err) => {
+                        function(err) { 
                             if (err) reject(err);
-                            else resolve();
+                            else {
+                                const changes = this.changes;
+                                if (changes === 0) {
+                                    reject(new Error('Account was not connected or already disconnected'));
+                                } else {
+                                    resolve({ changes });
+                                }
+                            }
                         }
                     );
                 });
+                return { success: true, message: 'Account disconnected successfully' };
             }
+            throw new Error(`Unsupported provider: ${provider}`);
         }
     });
 }
