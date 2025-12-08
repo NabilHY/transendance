@@ -70,6 +70,22 @@ export type DeleteAccountResponse = {
 	message: string;
 }
 
+/* === Connected Accounts Types === */
+
+export type ConnectedAccount = {
+	provider: string;
+	id: string;
+	email: string;
+}
+
+export type ConnectedAccountsResponse = {
+	accounts: ConnectedAccount[];
+}
+
+export type DisconnectAccountResponse = {
+	message: string;
+}
+
 /* === Delete Account === */
 
 export async function deleteAccount(
@@ -122,6 +138,24 @@ export async function resetPassword(
     }, csrfToken);
   }
 
+  
+  //*  === Connected Accounts ===  *//
+  export async function getConnectedAccounts(csrfToken?: string | null): Promise<ApiResult<ConnectedAccountsResponse>> {
+	return fetchJson<ConnectedAccountsResponse>('/api/auth/connected-accounts', {}, csrfToken);
+  }
+
+  export async function disconnectAccount(provider: string, csrfToken?: string | null): Promise<ApiResult<DisconnectAccountResponse>> {
+	return fetchJson<DisconnectAccountResponse>(`/api/auth/connected-accounts/${provider}`, {
+		method: 'DELETE',
+	}, csrfToken);
+  }
+
+  export function connectGoogleAccount(): void {
+	const apiBase = API_BASE;
+	window.location.href = `${apiBase}/api/auth/google?connect=true`;
+  }
+  
+  
 /* ====== */
 
 function isJsonContentType(headers: HeadersInit | undefined): boolean {
