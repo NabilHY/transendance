@@ -38,6 +38,18 @@ export default function LoginPage() {
 				case 'oauth_failed':
 					errorMessage = 'OAuth login failed. Please try again.';
 					break;
+				case 'email_already_registered':
+					errorMessage = 'An account with this email already exists. Please log in with your email and password, or use the Connect option from Settings.';
+					break;
+				case 'oauth_requires_connect':
+					errorMessage = 'This email is already registered. Log in first, then connect your Google account from Settings → Security → Connected Accounts.';
+					break;
+				case 'google_account_mismatch':
+					errorMessage = 'This Google account is linked to a different user. Try a different Google account or log in with your email/password.';
+					break;
+				case 'invalid_state':
+					errorMessage = 'Security verification failed. Please try logging in again.';
+					break;
 				case '2fa_setup_required':
 					errorMessage = 'Please complete 2FA setup before logging in.';
 					break;

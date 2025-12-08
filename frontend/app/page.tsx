@@ -1,5 +1,4 @@
 "use client";
-// @ts-nocheck
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -7,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useUser } from '@/context/UserContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import { User, Users, Settings, Circle, ArrowRight } from 'lucide-react';
+import styles from './login/LoginPage.module.css';
 
 export default function HomePage() {
 	const { isLoggedIn, user, fetchMe, logout, error, clearError, ensureCsrf, requires2FA, checkOAuth2FA } = useAuth();
@@ -35,88 +36,404 @@ export default function HomePage() {
 		}
 	}, [requires2FA, router]);
 
-
-	if (authLoading) {
-	
-		return <div>Loading...</div>;
+	if (authLoading || profileLoading) {
+		return (
+			<main className={styles.page}>
+				<div className={styles.container}>
+					<div style={{ color: '#8c96b6', fontSize: '15px' }}>Loading...</div>
+				</div>
+			</main>
+		);
 	}
 
 	return (
-		<main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
-			<header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-				<h1>Dashboard</h1>
-				<nav style={{ display: 'flex', gap: 12 }}>
-					{!isLoggedIn && <Link href="/login">Login</Link>}
-					{isLoggedIn && (
-						<>
-							<Link href="/profile">Profile</Link>
-							<Link href="/users">Users</Link>
-							<button onClick={() => { clearError(); logout(); }} style={{ padding: 8 }}>
-								Logout
-							</button>
-						</>
-					)}
-				</nav>
-			</header>
+		<main className={styles.page} style={{ alignItems: 'flex-start', paddingTop: '40px' }}>
+			<div className={styles.container} style={{ maxWidth: '1000px', alignItems: 'stretch' }}>
+				{/* Header Section */}
+				<div style={{ width: '100%', marginBottom: '32px' }}>
+					<h1 style={{ fontSize: '32px', fontWeight: 700, color: '#e4ecff', marginBottom: '8px' }}>
+						Welcome back{profile?.first_name ? `, ${profile.first_name}` : ''}!
+					</h1>
+					<p style={{ fontSize: '15px', color: '#8c96b6' }}>
+						Here's your dashboard overview
+					</p>
+				</div>
 
-			<section style={{ marginTop: 24 }}>
+				{error && (
+					<div style={{
+						width: '100%',
+						padding: '16px',
+						marginBottom: '24px',
+						background: 'rgba(255, 77, 77, 0.1)',
+						border: '1px solid rgba(255, 77, 77, 0.3)',
+						borderRadius: '12px',
+						color: '#ff9595',
+						fontSize: '14px',
+						display: 'flex',
+						justifyContent: 'space-between',
+						alignItems: 'center'
+					}}>
+						<span>{error}</span>
+						<button 
+							onClick={clearError}
+							style={{
+								background: 'rgba(255, 77, 77, 0.2)',
+								border: '1px solid rgba(255, 77, 77, 0.3)',
+								borderRadius: '6px',
+								padding: '4px 8px',
+								color: '#ff9595',
+								fontSize: '12px',
+								cursor: 'pointer'
+							}}
+						>
+							Dismiss
+						</button>
+					</div>
+				)}
+
 				{isLoggedIn ? (
-					<div>
-						<p>Welcome!</p>
-						
-						{/* User Profile Section */}
+					<div style={{ width: '100%', display: 'grid', gap: '24px' }}>
+						{/* Profile Card */}
 						{profile && (
-							<div style={{ marginBottom: 24, padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>
-								<h3>Your Profile</h3>
-								<div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8, alignItems: 'center' }}>
-									<span style={{ fontWeight: 'bold' }}>Username:</span>
-									<span>@{profile.username}</span>
-									<span style={{ fontWeight: 'bold' }}>Status:</span>
-									<span style={{ color: profile.is_online ? 'green' : 'gray' }}>
-										{profile.is_online ? 'Online' : 'Offline'}
-									</span>
-									{profile.first_name && (
-										<>
-											<span style={{ fontWeight: 'bold' }}>Name:</span>
-											<span>{profile.first_name} {profile.last_name || ''}</span>
-										</>
+							<section className={styles.card} style={{ width: '100%' }}>
+								<div className={styles.cardHeader} style={{ textAlign: 'left', marginBottom: '24px' }}>
+									<h2 className={styles.title} style={{ fontSize: '24px', marginBottom: '8px' }}>
+										Your Profile
+									</h2>
+									<p className={styles.subtitle} style={{ textAlign: 'left' }}>
+										View and manage your account information
+									</p>
+								</div>
+
+								<div style={{ display: 'grid', gap: '20px' }}>
+									{profile.profile_pic && (
+										<div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+											<img 
+												src={profile.profile_pic} 
+												alt="Profile"
+												style={{
+													width: '100px',
+													height: '100px',
+													borderRadius: '16px',
+													border: '2px solid #1b253f',
+													objectFit: 'cover'
+												}}
+											/>
+										</div>
 									)}
+
+									<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+										<div className={styles.field}>
+											<span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+												Username
+											</span>
+											<div style={{
+												padding: '12px 16px',
+												background: '#050b16',
+												border: '1px solid #1e2b45',
+												borderRadius: '12px',
+												color: '#e4ecff',
+												fontSize: '15px',
+												fontWeight: 600
+											}}>
+												@{profile.username}
+											</div>
+										</div>
+
+										<div className={styles.field}>
+											<span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+												Status
+											</span>
+											<div style={{
+												padding: '12px 16px',
+												background: '#050b16',
+												border: '1px solid #1e2b45',
+												borderRadius: '12px',
+												display: 'flex',
+												alignItems: 'center',
+												gap: '8px'
+											}}>
+												<Circle 
+													size={12} 
+													fill={profile.is_online ? '#51cf66' : '#6b7593'}
+													color={profile.is_online ? '#51cf66' : '#6b7593'}
+												/>
+												<span style={{
+													color: profile.is_online ? '#51cf66' : '#6b7593',
+													fontWeight: 600,
+													fontSize: '15px'
+												}}>
+													{profile.is_online ? 'Online' : 'Offline'}
+												</span>
+											</div>
+										</div>
+
+										{profile.first_name && (
+											<div className={styles.field}>
+												<span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+													Full Name
+												</span>
+												<div style={{
+													padding: '12px 16px',
+													background: '#050b16',
+													border: '1px solid #1e2b45',
+													borderRadius: '12px',
+													color: '#e4ecff',
+													fontSize: '15px'
+												}}>
+													{profile.first_name} {profile.last_name || ''}
+												</div>
+											</div>
+										)}
+									</div>
+
+									<div style={{
+										marginTop: '8px',
+										paddingTop: '24px',
+										borderTop: '1px solid #1b253f',
+										display: 'flex',
+										gap: '12px',
+										flexWrap: 'wrap'
+									}}>
+										<Link 
+											href="/profile"
+											className={styles.submitBtn}
+											style={{
+												textDecoration: 'none',
+												display: 'inline-flex',
+												alignItems: 'center',
+												gap: '8px',
+												padding: '12px 20px',
+												fontSize: '14px'
+											}}
+										>
+											<User size={16} />
+											View Full Profile
+											<ArrowRight size={14} />
+										</Link>
+										<Link 
+											href="/users"
+											className={styles.submitBtn}
+											style={{
+												textDecoration: 'none',
+												display: 'inline-flex',
+												alignItems: 'center',
+												gap: '8px',
+												padding: '12px 20px',
+												fontSize: '14px',
+												background: 'rgba(255, 255, 255, 0.04)',
+												border: '1px solid rgba(255, 255, 255, 0.08)',
+												color: '#93a0c5'
+											}}
+											onMouseEnter={(e) => {
+												e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+												e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+											}}
+											onMouseLeave={(e) => {
+												e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+												e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+											}}
+										>
+											<Users size={16} />
+											Browse Users
+										</Link>
+									</div>
 								</div>
-								<div style={{ marginTop: 12, display: 'flex', gap: 12 }}>
-									<Link 
-										href="/profile" 
-										style={{ padding: '8px 16px', background: '#007bff', color: 'white', textDecoration: 'none', borderRadius: 4 }}
-									>
-										View Full Profile
-									</Link>
-									<Link 
-										href="/users" 
-										style={{ padding: '8px 16px', background: '#28a745', color: 'white', textDecoration: 'none', borderRadius: 4 }}
-									>
+							</section>
+						)}
+
+						{/* Quick Actions Grid */}
+						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+							<Link 
+								href="/profile"
+								style={{
+									background: '#0b111f',
+									border: '1px solid #1b253f',
+									borderRadius: '16px',
+									padding: '24px',
+									textDecoration: 'none',
+									transition: 'all 0.2s ease',
+									display: 'flex',
+									flexDirection: 'column',
+									gap: '12px'
+								}}
+								onMouseEnter={(e) => {
+									e.currentTarget.style.borderColor = '#1790ff';
+									e.currentTarget.style.transform = 'translateY(-2px)';
+									e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3)';
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.borderColor = '#1b253f';
+									e.currentTarget.style.transform = 'translateY(0)';
+									e.currentTarget.style.boxShadow = 'none';
+								}}
+							>
+								<div style={{
+									width: '48px',
+									height: '48px',
+									borderRadius: '12px',
+									background: '#1790ff20',
+									display: 'flex',
+									alignItems: 'center',
+									justifyContent: 'center',
+									color: '#1790ff'
+								}}>
+									<User size={24} />
+								</div>
+								<div>
+									<h3 style={{
+										margin: 0,
+										fontSize: '18px',
+										fontWeight: 600,
+										color: '#e4ecff',
+										marginBottom: '4px'
+									}}>
+										My Profile
+									</h3>
+									<p style={{
+										margin: 0,
+										fontSize: '13px',
+										color: '#8c96b6'
+									}}>
+										View and edit your profile information
+									</p>
+								</div>
+							</Link>
+
+							<Link 
+								href="/users"
+								style={{
+									background: '#0b111f',
+									border: '1px solid #1b253f',
+									borderRadius: '16px',
+									padding: '24px',
+									textDecoration: 'none',
+									transition: 'all 0.2s ease',
+									display: 'flex',
+									flexDirection: 'column',
+									gap: '12px'
+								}}
+								onMouseEnter={(e) => {
+									e.currentTarget.style.borderColor = '#10b981';
+									e.currentTarget.style.transform = 'translateY(-2px)';
+									e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3)';
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.borderColor = '#1b253f';
+									e.currentTarget.style.transform = 'translateY(0)';
+									e.currentTarget.style.boxShadow = 'none';
+								}}
+							>
+								<div style={{
+									width: '48px',
+									height: '48px',
+									borderRadius: '12px',
+									background: '#10b98120',
+									display: 'flex',
+									alignItems: 'center',
+									justifyContent: 'center',
+									color: '#10b981'
+								}}>
+									<Users size={24} />
+								</div>
+								<div>
+									<h3 style={{
+										margin: 0,
+										fontSize: '18px',
+										fontWeight: 600,
+										color: '#e4ecff',
+										marginBottom: '4px'
+									}}>
 										Browse Users
-									</Link>
+									</h3>
+									<p style={{
+										margin: 0,
+										fontSize: '13px',
+										color: '#8c96b6'
+									}}>
+										Discover and connect with other users
+									</p>
 								</div>
-							</div>
-						)}
+							</Link>
 
-						{profileLoading && (
-							<div style={{ marginBottom: 24, padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>
-								<p>Loading your profile...</p>
-							</div>
-						)}
-
-						<pre style={{ background: '#f6f6f6', padding: 12 }}>
-							{JSON.stringify({ user }, null, 2)}
-						</pre>
-
-						{error && <p style={{ color: 'crimson', marginTop: 12 }}>{error}</p>}
+							<Link 
+								href="/settings"
+								style={{
+									background: '#0b111f',
+									border: '1px solid #1b253f',
+									borderRadius: '16px',
+									padding: '24px',
+									textDecoration: 'none',
+									transition: 'all 0.2s ease',
+									display: 'flex',
+									flexDirection: 'column',
+									gap: '12px'
+								}}
+								onMouseEnter={(e) => {
+									e.currentTarget.style.borderColor = '#f59e0b';
+									e.currentTarget.style.transform = 'translateY(-2px)';
+									e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3)';
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.borderColor = '#1b253f';
+									e.currentTarget.style.transform = 'translateY(0)';
+									e.currentTarget.style.boxShadow = 'none';
+								}}
+							>
+								<div style={{
+									width: '48px',
+									height: '48px',
+									borderRadius: '12px',
+									background: '#f59e0b20',
+									display: 'flex',
+									alignItems: 'center',
+									justifyContent: 'center',
+									color: '#f59e0b'
+								}}>
+									<Settings size={24} />
+								</div>
+								<div>
+									<h3 style={{
+										margin: 0,
+										fontSize: '18px',
+										fontWeight: 600,
+										color: '#e4ecff',
+										marginBottom: '4px'
+									}}>
+										Settings
+									</h3>
+									<p style={{
+										margin: 0,
+										fontSize: '13px',
+										color: '#8c96b6'
+									}}>
+										Manage your account settings and preferences
+									</p>
+								</div>
+							</Link>
+						</div>
 					</div>
 				) : (
-					<p>You are not logged in.</p>
+					<section className={styles.card} style={{ width: '100%', textAlign: 'center', padding: '48px 24px' }}>
+						<h2 className={styles.title} style={{ fontSize: '24px', marginBottom: '12px' }}>
+							Welcome to Dashboard
+						</h2>
+						<p className={styles.subtitle} style={{ marginBottom: '24px' }}>
+							Please log in to access your dashboard
+						</p>
+						<Link 
+							href="/login"
+							className={styles.submitBtn}
+							style={{
+								textDecoration: 'none',
+								display: 'inline-block'
+							}}
+						>
+							Go to Login
+						</Link>
+					</section>
 				)}
-			</section>
+			</div>
 		</main>
 	);
 }
-
-

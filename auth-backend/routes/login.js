@@ -213,7 +213,10 @@ module.exports = async function (fastify) {
         }
 
         const accessToken = fastify.jwt.sign({ sub: user.id, email: email }, { expiresIn: config.JWT_ACCESS_EXPIRES_IN });
-        const refreshToken = fastify.jwt.sign({ sub: user.id, email: email }, { expiresIn: config.JWT_REFRESH_EXPIRES_IN });
+        const refreshToken = fastify.jwt.sign(
+            { sub: user.id, email: email },
+            { expiresIn: config.JWT_REFRESH_EXPIRES_IN }
+        );
         
         // Calculate expiration time for refresh token
         const refreshExpirySeconds = config.JWT_REFRESH_EXPIRES_IN ? 
@@ -229,26 +232,27 @@ module.exports = async function (fastify) {
         });
         
         // Set cookies with secure options
-        const accessTokenExpiry = config.JWT_ACCESS_EXPIRES_IN ? 
-            (parseInt(config.JWT_ACCESS_EXPIRES_IN) * 60) : 
-            (15 * 60); // Default to 15 minutes in seconds
-        
+        const accessTokenExpiry = config.JWT_ACCESS_EXPIRES_IN
+            ? parseInt(config.JWT_ACCESS_EXPIRES_IN) * 60
+            : 15 * 60; // Default to 15 minutes in seconds
+
+        // Use SameSite=lax so the cookie is sent on OAuth redirects (Google → backend) for connect mode
         reply.setCookie('accessToken', accessToken, {
             httpOnly: true,
             secure: config.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: accessTokenExpiry,
             path: '/'
         });
-        
-        const refreshTokenExpiry = config.JWT_REFRESH_EXPIRES_IN ? 
-            (parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60) : 
-            (7 * 24 * 60 * 60); // Default to 7 days in seconds
-        
+
+        const refreshTokenExpiry = config.JWT_REFRESH_EXPIRES_IN
+            ? parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60
+            : 7 * 24 * 60 * 60; // Default to 7 days in seconds
+
         reply.setCookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: config.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: refreshTokenExpiry,
             path: '/'
         });
@@ -368,12 +372,18 @@ module.exports = async function (fastify) {
             if (!ok) return reply.code(401).send({ error: 'Invalid or expired token' });
             
             const config = require('../config');
-            const accessToken = fastify.jwt.sign({ sub: userId, email: row.email }, { expiresIn: config.JWT_ACCESS_EXPIRES_IN });
-            const refreshToken = fastify.jwt.sign({ sub: userId, email: row.email }, { expiresIn: config.JWT_REFRESH_EXPIRES_IN });
+            const accessToken = fastify.jwt.sign(
+                { sub: userId, email: row.email },
+                { expiresIn: config.JWT_ACCESS_EXPIRES_IN }
+            );
+            const refreshToken = fastify.jwt.sign(
+                { sub: userId, email: row.email },
+                { expiresIn: config.JWT_REFRESH_EXPIRES_IN }
+            );
             
-            const refreshExpirySeconds = config.JWT_REFRESH_EXPIRES_IN ?
-                (parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60) :
-                (7 * 24 * 60 * 60); // Default to 7 days in seconds
+            const refreshExpirySeconds = config.JWT_REFRESH_EXPIRES_IN
+                ? parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60
+                : 7 * 24 * 60 * 60; // Default to 7 days in seconds
             const expiresAt = Math.floor(Date.now() / 1000) + refreshExpirySeconds;
             
             await new Promise((res, rej) => {
@@ -382,22 +392,36 @@ module.exports = async function (fastify) {
                 (err) => err ? rej(err) : res());
             });
             
-            const accessTokenExpiry = config.JWT_ACCESS_EXPIRES_IN ? 
-                (parseInt(config.JWT_ACCESS_EXPIRES_IN) * 60) : 
-                (15 * 60); // Default to 15 minutes in seconds
+            const accessTokenExpiry = config.JWT_ACCESS_EXPIRES_IN
+                ? parseInt(config.JWT_ACCESS_EXPIRES_IN) * 60
+                : 15 * 60; // Default to 15 minutes in seconds
+
+            // SameSite=lax here as well so 2FA-completed sessions can use OAuth connect
             return reply
-            .clearCookie('pre2faToken', { path: '/' })
-            .setCookie('accessToken', accessToken, { httpOnly: true, secure: config.NODE_ENV === 'production', sameSite: 'strict', maxAge: accessTokenExpiry, path: '/' })
-            .setCookie('refreshToken', refreshToken, { httpOnly: true, secure: config.NODE_ENV === 'production', sameSite: 'strict', maxAge: refreshExpirySeconds, path: '/' })
-            .code(200)
-            .send({
-                user: {
-                    id: userId,
-                    email: row.email
-                },
-                expiresIn: accessTokenExpiry,
-                tokenType: "Bearer"
-            });
+                .clearCookie('pre2faToken', { path: '/' })
+                .setCookie('accessToken', accessToken, {
+                    httpOnly: true,
+                    secure: config.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    maxAge: accessTokenExpiry,
+                    path: '/'
+                })
+                .setCookie('refreshToken', refreshToken, {
+                    httpOnly: true,
+                    secure: config.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    maxAge: refreshExpirySeconds,
+                    path: '/'
+                })
+                .code(200)
+                .send({
+                    user: {
+                        id: userId,
+                        email: row.email
+                    },
+                    expiresIn: accessTokenExpiry,
+                    tokenType: 'Bearer'
+                });
         } catch (e) {
             return reply.code(401).send({ error: 'Invalid token' });
         }

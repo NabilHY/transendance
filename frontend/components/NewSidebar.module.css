@@ -2,13 +2,15 @@
   width: 260px;
   background: #050b16;
   border-right: 1px solid #111726;
-  height: 98vh;
+  height: 100%;
   padding: 20px 16px;
   display: flex;
   flex-direction: column;
   gap: 20px;
   color: #f4f6fb;
   font-family: Inter, system-ui, sans-serif;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .header {
@@ -142,6 +144,9 @@
   font-size: 15px;
   cursor: pointer;
   transition: background 0.2s ease;
+  margin-top: auto;
+  margin-bottom: 20px;
+  width: 100%;
 }
 
 .loginBtn:hover {
@@ -158,6 +163,13 @@
   font-size: 15px;
   cursor: pointer;
   transition: background 0.2s ease;
+  margin-top: auto;
+  margin-bottom: 20px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .logoutBtn:hover {

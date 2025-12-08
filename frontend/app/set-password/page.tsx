@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import styles from '../login/LoginPage.module.css';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
 
 export default function SetPasswordPage() {
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -26,6 +27,19 @@ export default function SetPasswordPage() {
         e.preventDefault();
         setError(null);
         setMessage(null);
+        
+        // Validate passwords match
+        if (password !== confirmPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+        
+        // Validate minimum length
+        if (password.length < 12) {
+            setError('Password must be at least 12 characters long');
+            return;
+        }
+        
         setSubmitting(true);
         try {
             const res = await fetch(`${API_BASE}/api/auth/set-password`, {
@@ -42,7 +56,7 @@ export default function SetPasswordPage() {
                 return;
             }
             
-            setMessage(data?.message || 'Password updated successfully');
+            setMessage(data?.message || 'Password set successfully');
             
             // Handle redirect for OAuth users
             if (data?.redirect) {
@@ -62,63 +76,102 @@ export default function SetPasswordPage() {
         }
     };
     
+    if (!token) {
+        return null; // Will redirect in useEffect
+    }
+    
     return (
-        <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 420, margin: '0 auto' }}>
-            <h1>Set Password</h1>
-            <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
-                <label>
-                    <span>New Password</span>
-                    <input 
-                        type="password" 
-                        value={password} 
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} 
-                        required 
-                        style={{ width: '100%', padding: 8 }} 
-                    />
-                </label>
-                <button type="submit" disabled={submitting || !password} style={{ padding: 10 }}>
-                    {submitting ? 'Setting Password…' : 'Set Password'}
-                </button>
-            </form>
-            {message && (
-                <p style={{ 
-                    color: 'green', 
-                    marginTop: 12,
-                    padding: 8,
-                    backgroundColor: '#e6ffe6',
-                    border: '1px solid #ccffcc',
-                    borderRadius: 4
-                }}>
-                    {message}
-                </p>
-            )}
-            {error && (
-                <p style={{ 
-                    color: 'crimson', 
-                    marginTop: 12,
-                    padding: 8,
-                    backgroundColor: '#ffe6e6',
-                    border: '1px solid #ffcccc',
-                    borderRadius: 4
-                }}>
-                    {error}
-                </p>
-            )}
-            <div style={{ marginTop: 16, textAlign: 'center' }}>
-                <button 
-                    type="button"
-                    onClick={() => router.push('/login')}
-                    style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        color: '#666', 
-                        textDecoration: 'underline', 
-                        cursor: 'pointer', 
-                        padding: 0 
-                    }}
-                >
-                    ← Back to Login
-                </button>
+        <main className={styles.page}>
+            <div className={styles.container}>
+                <div className={styles.grid}>
+                    <section className={`${styles.card} ${styles.loginCard}`}>
+                        <div className={styles.cardHeader}>
+                            <h1 className={styles.title}>Set your password</h1>
+                            <p className={styles.subtitle}>
+                                You logged in with Google OAuth. Please set a password to secure your account.
+                            </p>
+                        </div>
+                        
+                        <div style={{
+                            padding: '16px',
+                            borderRadius: '12px',
+                            background: 'rgba(23, 144, 255, 0.1)',
+                            border: '1px solid rgba(23, 144, 255, 0.2)',
+                            marginBottom: '8px'
+                        }}>
+                            <p style={{
+                                margin: 0,
+                                fontSize: '13px',
+                                color: '#93a0c5',
+                                lineHeight: '1.6'
+                            }}>
+                                <strong style={{ color: '#c6d4ff' }}>Why set a password?</strong><br />
+                                Setting a password allows you to log in with your email and password, 
+                                giving you more control over your account security. You can still use 
+                                Google OAuth to sign in after setting a password.
+                            </p>
+                        </div>
+                        
+                        <form className={styles.form} onSubmit={onSubmit}>
+                            <label className={styles.field}>
+                                <span>Password</span>
+                                <div className={styles.inputWrapper}>
+                                    <input
+                                        className={styles.input}
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        minLength={12}
+                                        placeholder="Enter a secure password"
+                                        autoComplete="new-password"
+                                    />
+                                </div>
+                                <span className={styles.fieldHint}>Use at least 12 characters.</span>
+                            </label>
+
+                            <label className={styles.field}>
+                                <span>Confirm Password</span>
+                                <div className={styles.inputWrapper}>
+                                    <input
+                                        className={styles.input}
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                        minLength={12}
+                                        placeholder="Confirm your password"
+                                        autoComplete="new-password"
+                                    />
+                                </div>
+                            </label>
+
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
+                                <button 
+                                    type="submit" 
+                                    disabled={submitting || !password || !confirmPassword} 
+                                    className={styles.submitBtn}
+                                >
+                                    {submitting ? 'Setting password…' : 'Set password'}
+                                </button>
+                            </div>
+
+                            {message && (
+                                <p className={styles.error} style={{ 
+                                    background: 'rgba(76, 175, 80, 0.1)', 
+                                    borderColor: 'rgba(76, 175, 80, 0.3)', 
+                                    color: '#81c784' 
+                                }}>
+                                    {message}
+                                </p>
+                            )}
+
+                            {error && (
+                                <p className={styles.error}>{error}</p>
+                            )}
+                        </form>
+                    </section>
+                </div>
             </div>
         </main>
     );

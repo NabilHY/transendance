@@ -3,6 +3,8 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Shield, ArrowLeft } from 'lucide-react';
+import styles from '../login/LoginPage.module.css';
 
 export default function TwoFAPage() {
 	const { login2fa, isLoggedIn, requires2FA, error, clearError, checkOAuth2FA, cancelTwoFA } = useAuth();
@@ -43,7 +45,7 @@ export default function TwoFAPage() {
 		return () => clearTimeout(timer);
 	}, [requires2FA, isOAuth, router]);
 
-	async function onSubmit(e: any) {
+	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!token.trim()) return;
 		
@@ -68,80 +70,107 @@ export default function TwoFAPage() {
 	}
 
 	return (
-		<main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 420, margin: '0 auto' }}>
-			<h1>Two-Factor Authentication</h1>
-			<p style={{ marginBottom: 24, color: '#666' }}>
-				{isOAuth 
-					? 'Complete your OAuth login by entering your 6-digit authenticator code.'
-					: 'Enter your 6-digit authenticator code to complete login.'
-				}
-			</p>
-			
-			<form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
-				<label>
-					<span>Authentication Code</span>
-					<input 
-						type="text"
-						value={token}
-						onChange={(e) => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))} 
-						placeholder="123456"
-						maxLength={6}
-						inputMode="numeric"
-						required 
-						style={{
-							width: '100%', 
-							padding: 12, 
-							fontSize: 18,
-							textAlign: 'center',
-							letterSpacing: '0.2em'
-						}}
-					/>
-				</label>
-				<button 
-					type="submit" 
-					disabled={submitting || token.length !== 6} 
-					style={{ 
-						padding: 12,
-						backgroundColor: token.length === 6 ? '#007bff' : '#ccc',
-						color: 'white',
-						border: 'none',
-						borderRadius: 4
-					}}
-				>
-					{submitting ? 'Verifying...' : 'Verify & Continue'}
-				</button>
-			</form>
+		<main className={styles.page}>
+			<div className={styles.container}>
+				<div className={styles.grid}>
+					<section className={`${styles.card} ${styles.loginCard}`}>
+						<div className={styles.cardHeader}>
+							<div style={{
+								width: '64px',
+								height: '64px',
+								margin: '0 auto 16px',
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1))',
+								border: '1px solid rgba(245, 158, 11, 0.3)',
+								borderRadius: '16px'
+							}}>
+								<Shield size={32} color="#f59e0b" />
+							</div>
+							<h1 className={styles.title}>Two-Factor Authentication</h1>
+							<p className={styles.subtitle}>
+								{isOAuth 
+									? 'Complete your OAuth login by entering your 6-digit authenticator code.'
+									: 'Enter your 6-digit authenticator code to complete login.'
+								}
+							</p>
+						</div>
 
-			{error && (
-				<p style={{ 
-					color: 'crimson', 
-					marginTop: 12, 
-					padding: 8,
-					backgroundColor: '#ffe6e6',
-					border: '1px solid #ffcccc',
-					borderRadius: 4
-				}}>
-					{error}
-				</p>
-			)}
+						<form className={styles.form} onSubmit={onSubmit}>
+							<label className={styles.field}>
+								<span>Authentication Code</span>
+								<div className={styles.inputWrapper}>
+									<input
+										className={styles.input}
+										type="text"
+										value={token}
+										onChange={(e) => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+										placeholder="000000"
+										maxLength={6}
+										inputMode="numeric"
+										required
+										style={{
+											textAlign: 'center',
+											fontSize: '24px',
+											letterSpacing: '0.3em',
+											fontWeight: '600',
+											fontFamily: 'monospace'
+										}}
+									/>
+								</div>
+								<span className={styles.fieldHint}>
+									Enter the 6-digit code from your authenticator app
+								</span>
+							</label>
 
-			<div style={{ marginTop: 24, textAlign: 'center' }}>
-				<button 
-					onClick={() => { try {
-						cancelTwoFA(); 
-					} catch (_e) {
-					
-					} router.replace('/login'); }}
-					style={{
-						background: 'none',
-						border: 'none',
-						color: '#666',
-						textDecoration: 'underline',
-						cursor: 'pointer'
-					}}
-				>
-					← Back to Login
-				</button>
+							<div className={styles.formActions} style={{ justifyContent: 'flex-end' }}>
+								<button
+									type="submit"
+									disabled={submitting || token.length !== 6}
+									className={styles.submitBtn}
+								>
+									{submitting ? 'Verifying...' : 'Verify & Continue'}
+								</button>
+							</div>
+
+							{error && (
+								<div className={styles.error}>
+									{error}
+								</div>
+							)}
+
+							<div style={{
+								marginTop: '16px',
+								paddingTop: '20px',
+								borderTop: '1px solid #1b253f',
+								textAlign: 'center'
+							}}>
+								<button
+									type="button"
+									onClick={() => {
+										try {
+											cancelTwoFA();
+										} catch (_e) {
+											// Ignore errors
+										}
+										router.replace('/login');
+									}}
+									className={styles.forgotBtn}
+									style={{
+										display: 'inline-flex',
+										alignItems: 'center',
+										gap: '6px',
+										textDecoration: 'none'
+									}}
+								>
+									<ArrowLeft size={14} />
+									Back to Login
+								</button>
+							</div>
+						</form>
+					</section>
+				</div>
 			</div>
 		</main>
 	);
