@@ -96,13 +96,13 @@ async function deletePlugin(fastify) {
                         else resolve();
                     });
                 });
-
-                resolve({ success: true });
+                
+                res({ success: true });
                 
             } catch (e) {
                 rej(e);
             }
-        })
+        });
     });
 }
 

@@ -6,10 +6,11 @@ import logo from '@/public/racket.png';
 import { useAuth } from '@/context/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, LogOut } from 'lucide-react';
 
 const authenticatedItems = [
     { id: "home", label: "Dashboard", href: "/" },
+    { id: "profile", label: "Profile", href: "/profile" },
     { id: "chat", label: "Chat", href: "/chat" },
     { id: "settings", label: "Settings", href: "/settings", hasDropdown: true },
 ];
@@ -175,7 +176,8 @@ export default function NewSidebar() {
                     onClick={() => { clearError(); logout(); }}
                     className={styles.logoutBtn}
                 >
-                    Logout
+                    <LogOut size={18} />
+                    <span>Logout</span>
                 </button>
             )}
         </aside>
