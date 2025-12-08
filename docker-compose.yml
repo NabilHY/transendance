@@ -12,9 +12,9 @@ services:
       - ./db-init:/usr/src/app
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${DB_INIT_PORT:-3000}/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 24
+      interval: 10s
+      timeout: 10s
+      retries: 30
 
   auth-backend:
     build: ./auth-backend
@@ -214,6 +214,44 @@ services:
   #   env_file: .env
   #   environment:
   #     - SENDGRID_API_KEY=${SENDGRID_SMTP_PASS:-}
+  game_frontend:
+    build:
+      context: ./game/frontend
+      dockerfile: Dockerfile
+    ports:
+      - ${GAME_FRONTEND_PORT:-4321}:${GAME_FRONTEND_PORT:-4321}
+    networks:
+      - ft_transendance
+    env_file: .env
+    volumes:
+      - ./game/frontend:/app  # Development volume for hot reload
+      - /app/node_modules     # Anonymous volume to preserve node_modules
+    # command: /bin/bash
+
+  game_backend:
+    build:
+      context: ./game/backend
+      dockerfile: Dockerfile
+    ports:
+      - ${GAME_BACKEND_PORT:-4322}:${GAME_BACKEND_PORT:-4322}
+    networks:
+      - ft_transendance
+    env_file: .env
+    working_dir: /usr/src/app
+    command: ["node", "server.js"]
+    volumes:
+      - ./game/backend:/usr/src/app  # Development volume for hot reload
+      - /usr/src/app/node_modules    # Prevent node_modules from being overwritten
+      - users_data:/usr/src/app/db   # Shared database volume
+    depends_on:
+      db-init:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${GAME_BACKEND_PORT:-4322}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 networks:
   ft_transendance:

@@ -288,14 +288,14 @@ module.exports = async function (fastify) {
             .setCookie('accessToken', accessToken, {
                 httpOnly: true,
                 secure: config.NODE_ENV === 'production',
-                sameSite: 'strict',
+                sameSite: 'lax', // Changed from 'strict' to allow cross-port requests
                 maxAge: accessTokenExpiry,
                 path: '/'
             })
             .setCookie('refreshToken', refreshToken, {
                 httpOnly: true,
                 secure: config.NODE_ENV === 'production',
-                sameSite: 'strict',
+                sameSite: 'lax', // Changed from 'strict' to allow cross-port requests
                 maxAge: refreshTokenExpiry,
                 path: '/'
             });

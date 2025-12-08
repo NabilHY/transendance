@@ -53,7 +53,40 @@ fastify.setErrorHandler(function (err, req, reply) {
 
 fastify.register(require('@fastify/cookie'));
 fastify.register(require('@fastify/cors'), {
-  origin: [config.FRONTEND_URL, config.USR_MANAG_URL],
+  origin: (origin, cb) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      return cb(null, true);
+    }
+    
+    // Parse the origin to check if it's from localhost or 127.0.0.1
+    const allowedPatterns = [
+      /^http:\/\/localhost(:\d+)?$/,
+      /^https?:\/\/localhost(:\d+)?$/,
+      /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+      /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+      /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,  // Local network IPs
+      /^https?:\/\/192\.168\.\d+\.\d+(:\d+)?$/,  // Local network IPs (HTTPS)
+      /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs
+      /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs (HTTPS)
+      /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs
+      /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/  // Private network IPs (HTTPS)
+    ];
+    
+    // Also allow specific configured URLs
+    const configuredOrigins = [config.FRONTEND_URL, config.USR_MANAG_URL, 'http://localhost:4321'].filter(Boolean);
+    
+    // Check if origin matches configured URLs or allowed patterns
+    const isAllowed = configuredOrigins.includes(origin) || 
+                      allowedPatterns.some(pattern => pattern.test(origin));
+    
+    if (isAllowed) {
+      cb(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      cb(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 });
 
@@ -70,6 +103,7 @@ fastify.register(require('../plugins/account-security'));
 
 
 fastify.register(require('../routes/auth'), { prefix: '/api/auth' });
+fastify.register(require('../routes/game-token'), { prefix: '/api' });
 
 fastify.register(require('../routes/csrf-token'), { prefix: '/api' });
 

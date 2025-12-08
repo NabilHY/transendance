@@ -1,8 +1,32 @@
 const fastify = require('fastify')({ logger: true });
 const config = require('../config');
-// Define allowed origins (single FRONTEND_URL or comma-separated FRONTEND_URLS)
+// Define allowed origins - support localhost, 127.0.0.1, and local network IPs
 
 const allowedOrigins = config.FRONTEND_URL;
+
+// Helper function to check if origin is allowed
+const isOriginAllowed = (origin) => {
+    if (!origin) return true; // Allow requests with no origin
+    
+    // Check if it matches configured origin
+    if (allowedOrigins && allowedOrigins.includes(origin)) return true;
+    
+    // Allow localhost and 127.0.0.1 with any port
+    const allowedPatterns = [
+        /^http:\/\/localhost(:\d+)?$/,
+        /^https?:\/\/localhost(:\d+)?$/,
+        /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+        /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+        /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,  // Local network IPs
+        /^https?:\/\/192\.168\.\d+\.\d+(:\d+)?$/,  // Local network IPs (HTTPS)
+        /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs
+        /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs (HTTPS)
+        /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs
+        /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/  // Private network IPs (HTTPS)
+    ];
+    
+    return allowedPatterns.some(pattern => pattern.test(origin));
+};
 
 console.log('allowedOrigins ::::::', allowedOrigins);
 
@@ -34,8 +58,7 @@ fastify.register(require('@fastify/cookie'));
 // Register plugins
 fastify.register(require('@fastify/cors'), {
     origin: (origin, cb) => {
-        if (!origin) return cb(null, true);
-        const allowed = allowedOrigins.includes(origin);
+        const allowed = isOriginAllowed(origin);
         cb(null, allowed);
     },
     credentials: true,

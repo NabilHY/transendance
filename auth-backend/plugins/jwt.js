@@ -106,7 +106,7 @@ async function jwtPlugin(fastify) {
         rep.setCookie('accessToken', newAccessToken, {
             httpOnly: true,
             secure: config.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: accessTokenExpiry,
             path: '/'
         });
@@ -114,7 +114,7 @@ async function jwtPlugin(fastify) {
         rep.setCookie('refreshToken', newRefreshToken, {
             httpOnly: true,
             secure: config.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: refreshTokenExpiry,
             path: '/'
         });

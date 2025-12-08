@@ -229,26 +229,38 @@ module.exports = async function (fastify) {
         });
         
         // Set cookies with secure options
-        const accessTokenExpiry = config.JWT_ACCESS_EXPIRES_IN ? 
-            (parseInt(config.JWT_ACCESS_EXPIRES_IN) * 60) : 
-            (15 * 60); // Default to 15 minutes in seconds
+        // Parse JWT_ACCESS_EXPIRES_IN which can be "2h", "15m", "7d", etc.
+        const parseExpiry = (timeStr) => {
+            if (!timeStr) return null;
+            const match = timeStr.match(/^(\d+)([smhd])$/);
+            if (!match) return null;
+            const value = parseInt(match[1]);
+            const unit = match[2];
+            switch(unit) {
+                case 's': return value;
+                case 'm': return value * 60;
+                case 'h': return value * 60 * 60;
+                case 'd': return value * 24 * 60 * 60;
+                default: return null;
+            }
+        };
+        
+        const accessTokenExpiry = parseExpiry(config.JWT_ACCESS_EXPIRES_IN) || (15 * 60); // Default to 15 minutes
         
         reply.setCookie('accessToken', accessToken, {
             httpOnly: true,
             secure: config.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: accessTokenExpiry,
             path: '/'
         });
         
-        const refreshTokenExpiry = config.JWT_REFRESH_EXPIRES_IN ? 
-            (parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60) : 
-            (7 * 24 * 60 * 60); // Default to 7 days in seconds
+        const refreshTokenExpiry = parseExpiry(config.JWT_REFRESH_EXPIRES_IN) || (7 * 24 * 60 * 60); // Default to 7 days
         
         reply.setCookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: config.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: refreshTokenExpiry,
             path: '/'
         });
@@ -371,9 +383,23 @@ module.exports = async function (fastify) {
             const accessToken = fastify.jwt.sign({ sub: userId }, { expiresIn: config.JWT_ACCESS_EXPIRES_IN });
             const refreshToken = fastify.jwt.sign({ sub: userId }, { expiresIn: config.JWT_REFRESH_EXPIRES_IN });
             
-            const refreshExpirySeconds = config.JWT_REFRESH_EXPIRES_IN ?
-                (parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60) :
-                (7 * 24 * 60 * 60); // Default to 7 days in seconds
+            // Parse JWT_REFRESH_EXPIRES_IN which can be "7d", "30d", etc.
+            const parseExpiry = (timeStr) => {
+                if (!timeStr) return null;
+                const match = timeStr.match(/^(\d+)([smhd])$/);
+                if (!match) return null;
+                const value = parseInt(match[1]);
+                const unit = match[2];
+                switch(unit) {
+                    case 's': return value;
+                    case 'm': return value * 60;
+                    case 'h': return value * 60 * 60;
+                    case 'd': return value * 24 * 60 * 60;
+                    default: return null;
+                }
+            };
+            
+            const refreshExpirySeconds = parseExpiry(config.JWT_REFRESH_EXPIRES_IN) || (7 * 24 * 60 * 60); // Default to 7 days
             const expiresAt = Math.floor(Date.now() / 1000) + refreshExpirySeconds;
             
             await new Promise((res, rej) => {
@@ -382,13 +408,11 @@ module.exports = async function (fastify) {
                 (err) => err ? rej(err) : res());
             });
             
-            const accessTokenExpiry = config.JWT_ACCESS_EXPIRES_IN ? 
-                (parseInt(config.JWT_ACCESS_EXPIRES_IN) * 60) : 
-                (15 * 60); // Default to 15 minutes in seconds
+            const accessTokenExpiry = parseExpiry(config.JWT_ACCESS_EXPIRES_IN) || (15 * 60); // Default to 15 minutes
             return reply
             .clearCookie('pre2faToken', { path: '/' })
-            .setCookie('accessToken', accessToken, { httpOnly: true, secure: config.NODE_ENV === 'production', sameSite: 'strict', maxAge: accessTokenExpiry, path: '/' })
-            .setCookie('refreshToken', refreshToken, { httpOnly: true, secure: config.NODE_ENV === 'production', sameSite: 'strict', maxAge: refreshExpirySeconds, path: '/' })
+            .setCookie('accessToken', accessToken, { httpOnly: true, secure: config.NODE_ENV === 'production', sameSite: 'lax', maxAge: accessTokenExpiry, path: '/' })
+            .setCookie('refreshToken', refreshToken, { httpOnly: true, secure: config.NODE_ENV === 'production', sameSite: 'lax', maxAge: refreshExpirySeconds, path: '/' })
             .code(200)
             .send({
                 user: {

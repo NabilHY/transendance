@@ -1,4 +1,14 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
+// Dynamic API base URL - uses current hostname for flexibility
+const getApiBase = () => {
+	// In browser, use current hostname
+	if (typeof window !== 'undefined') {
+		return `http://${window.location.hostname}:8005`;
+	}
+	// Server-side: use env variable or localhost
+	return process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
+};
+
+const API_BASE = getApiBase();
 
 export type ApiResult<T = any> = {
 	ok: boolean;
@@ -21,7 +31,7 @@ function isJsonContentType(headers: HeadersInit | undefined): boolean {
 }
 
 async function fetchJson<T = any>(path: string, options: RequestInit = {}, csrfToken?: string | null): Promise<ApiResult<T>> {
-	const url = `${API_BASE}${path}`;
+	const url = `${getApiBase()}${path}`;
 	const headers: HeadersInit = new Headers(options.headers);
 	if (csrfToken) {
 		(headers as Headers).set('X-CSRF-Token', csrfToken);
@@ -35,6 +45,41 @@ async function fetchJson<T = any>(path: string, options: RequestInit = {}, csrfT
 		...options,
 		headers,
 	});
+
+	// If we get a 401 and this isn't already a refresh request, try to refresh token
+	if (res.status === 401 && !path.includes('/auth/refresh') && !path.includes('/auth/login')) {
+		console.log('🔄 Token expired, attempting automatic refresh...');
+		try {
+			const refreshRes = await fetch(`${getApiBase()}/api/auth/refresh`, {
+				method: 'POST',
+				credentials: 'include',
+				headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
+			});
+			
+			if (refreshRes.ok) {
+				console.log('✅ Token refreshed successfully, retrying original request...');
+				// Retry the original request with fresh token
+				const retryRes = await fetch(url, {
+					credentials: 'include',
+					...options,
+					headers,
+				});
+				
+				let retryData: any = null;
+				try {
+					retryData = await retryRes.json();
+				} catch (_e) {
+					retryData = null;
+				}
+				
+				return { ok: retryRes.ok, status: retryRes.status, data: retryData };
+			} else {
+				console.log('❌ Token refresh failed, user needs to login again');
+			}
+		} catch (e) {
+			console.log('💥 Error during token refresh:', e);
+		}
+	}
 
 	let data: any = null;
 	try {
@@ -141,10 +186,18 @@ export function isProfileComplete(profile: UMUser): boolean {
 }
 
 // User-management endpoints (usr-manag microservice)
-const USER_MGMT_API_BASE = process.env.NEXT_PUBLIC_USER_MGMT_API_BASE ?? 'http://localhost:4000';
+// Dynamic URL - uses current hostname for flexibility
+const getUserMgmtBase = () => {
+	// In browser, use current hostname
+	if (typeof window !== 'undefined') {
+		return `http://${window.location.hostname}:4000`;
+	}
+	// Server-side: use env variable or localhost
+	return process.env.NEXT_PUBLIC_USER_MGMT_API_BASE ?? 'http://localhost:4000';
+};
 
 async function fetchUserMgmtJson<T = any>(path: string, options: RequestInit = {}, csrfToken?: string | null): Promise<ApiResult<T>> {
-    const url = `${USER_MGMT_API_BASE}${path}`;
+    const url = `${getUserMgmtBase()}${path}`;
     const headers: HeadersInit = new Headers(options.headers);
     
     // Add CSRF token if available
@@ -162,6 +215,41 @@ async function fetchUserMgmtJson<T = any>(path: string, options: RequestInit = {
         ...options,
         headers,
     });
+
+    // If we get a 401, try to refresh token
+    if (res.status === 401) {
+        console.log('🔄 User mgmt token expired, attempting automatic refresh...');
+        try {
+            const refreshRes = await fetch(`${getApiBase()}/api/auth/refresh`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
+            });
+            
+            if (refreshRes.ok) {
+                console.log('✅ Token refreshed successfully, retrying user mgmt request...');
+                // Retry the original request with fresh token
+                const retryRes = await fetch(url, {
+                    credentials: 'include',
+                    ...options,
+                    headers,
+                });
+                
+                let retryData: any = null;
+                try {
+                    retryData = await retryRes.json();
+                } catch (_e) {
+                    retryData = null;
+                }
+                
+                return { ok: retryRes.ok, status: retryRes.status, data: retryData };
+            } else {
+                console.log('❌ Token refresh failed for user mgmt request');
+            }
+        } catch (e) {
+            console.log('💥 Error during user mgmt token refresh:', e);
+        }
+    }
 
     let data: any = null;
     try {
