@@ -217,23 +217,9 @@ services:
   #   env_file: .env
   #   environment:
   #     - SENDGRID_API_KEY=${SENDGRID_SMTP_PASS:-}
-  game_frontend:
+  game-backend:
     build:
-      context: ./game/frontend
-      dockerfile: Dockerfile
-    ports:
-      - ${GAME_FRONTEND_PORT:-4321}:${GAME_FRONTEND_PORT:-4321}
-    networks:
-      - ft_transendance
-    env_file: .env
-    volumes:
-      - ./game/frontend:/app  # Development volume for hot reload
-      - /app/node_modules     # Anonymous volume to preserve node_modules
-    # command: /bin/bash
-
-  game_backend:
-    build:
-      context: ./game/backend
+      context: ./game-backend
       dockerfile: Dockerfile
     ports:
       - ${GAME_BACKEND_PORT:-4322}:${GAME_BACKEND_PORT:-4322}
@@ -243,7 +229,7 @@ services:
     working_dir: /usr/src/app
     command: ["node", "server.js"]
     volumes:
-      - ./game/backend:/usr/src/app  # Development volume for hot reload
+      - ./game-backend:/usr/src/app  # Development volume for hot reload
       - /usr/src/app/node_modules    # Prevent node_modules from being overwritten
       - users_data:/usr/src/app/db   # Shared database volume
     depends_on:

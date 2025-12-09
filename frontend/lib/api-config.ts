@@ -19,7 +19,6 @@ export const PORTS = {
   CHAT: process.env.NEXT_PUBLIC_CHAT_PORT || '8006',
   FRONTEND: process.env.NEXT_PUBLIC_FRONTEND_PORT || '3010',
   GAME_BACKEND: process.env.NEXT_PUBLIC_GAME_BACKEND_PORT || '4322',
-  GAME_FRONTEND: process.env.NEXT_PUBLIC_GAME_FRONTEND_PORT || '4321',
 };
 
 // API URL builders for client-side requests
@@ -32,7 +31,6 @@ export const getApiUrls = () => {
     chat: `http://${hostname}:${PORTS.CHAT}`,
     frontend: `http://${hostname}:${PORTS.FRONTEND}`,
     gameBackend: `http://${hostname}:${PORTS.GAME_BACKEND}`,
-    gameFrontend: `http://${hostname}:${PORTS.GAME_FRONTEND}`,
   };
 };
 
