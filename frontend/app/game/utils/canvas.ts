@@ -1,0 +1,63 @@
+// Canvas rendering utilities
+
+import type { GameState, PlayerInfo } from '../types';
+
+/**
+ * Render the game state on the canvas
+ */
+export const renderGame = (
+  canvas: HTMLCanvasElement | null,
+  state: GameState,
+  playerInfo?: PlayerInfo
+): void => {
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Border
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+  // Center line
+  ctx.strokeStyle = "gray";
+  ctx.setLineDash([10, 10]);
+  ctx.beginPath();
+  ctx.moveTo(canvas.width / 2, 0);
+  ctx.lineTo(canvas.width / 2, canvas.height);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Paddles + ball
+  ctx.fillStyle = "white";
+  ctx.fillRect(state.player1.x, state.player1.y, 10, 100);
+  ctx.fillRect(state.player2.x, state.player2.y, 10, 100);
+  ctx.fillRect(state.ball.x, state.ball.y, 10, 10);
+
+  // Player role indicators
+  if (playerInfo?.role) {
+    ctx.fillStyle = "yellow";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "left";
+    
+    if (playerInfo.role === 'player1' || playerInfo.role === 'both') {
+      ctx.fillText("YOU", 25, 25);
+    }
+    if (playerInfo.role === 'player2' || playerInfo.role === 'both') {
+      ctx.textAlign = "right";
+      ctx.fillText(playerInfo.role === 'both' ? "YOU" : "YOU", canvas.width - 25, 25);
+    }
+  }
+
+  // Countdown
+  if (state.countdown && state.countdown > 0) {
+    ctx.fillStyle = "yellow";
+    ctx.font = "30px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(state.countdown.toString(), canvas.width / 2, canvas.height / 2);
+  }
+};
+
