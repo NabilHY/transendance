@@ -12,6 +12,7 @@ const authenticatedItems = [
     { id: "home", label: "Dashboard", href: "/" },
     { id: "profile", label: "Profile", href: "/profile" },
     { id: "chat", label: "Chat", href: "/chat" },
+    { id: "game", label: "Game", href: "/game" },
     { id: "settings", label: "Settings", href: "/settings", hasDropdown: true },
 ];
 
@@ -94,7 +95,7 @@ export default function NewSidebar() {
             <nav className={styles.nav}>
                 {items.map((item) => {
                     const active = item.id === activeItem?.id || (item.id === 'settings' && isSettingsActive);
-                    const isSettings = item.id === 'settings' && item.hasDropdown;
+                    const isSettings = item.id === 'settings' && (item as { hasDropdown?: boolean }).hasDropdown === true;
                     
                     return (
                         <div key={item.id} className={styles.navItemWrapper}>
