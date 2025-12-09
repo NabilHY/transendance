@@ -1,6 +1,7 @@
 // Win screen component - shows game results and stats
 
 import React from 'react';
+import styles from '../styles.module.css';
 import type { WinScreenData, GameState } from '../types';
 
 interface GameWinScreenProps {
@@ -26,187 +27,169 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
     const winRate = stats.totalMatches > 0 ? ((stats.wins / stats.totalMatches) * 100).toFixed(1) : '0.0';
     
     return (
-      <div style={{
-        padding: "30px",
-        backgroundColor: "#1a1a1a",
-        borderRadius: "15px",
-        border: `3px solid ${isWinner ? "#28a745" : "#dc3545"}`,
-        maxWidth: "700px",
-        margin: "0 auto",
-        textAlign: "center"
-      }}>
-        <h1 style={{
-          fontSize: "48px",
-          color: isWinner ? "#ffd700" : "#dc3545",
-          textShadow: isWinner ? "0 0 20px #ffd700" : "0 0 20px #dc3545",
-          marginBottom: "10px",
-          fontWeight: "bold"
+      <div className={styles.container}>
+        <div className={styles.card} style={{ 
+          maxWidth: "700px", 
+          margin: "0 auto",
+          borderColor: isWinner ? "#34ce57" : "#ff9595"
         }}>
-          {isChampion ? "👑 TOURNAMENT CHAMPION! 👑" : 
-           isWinner ? "🎉 VICTORY! 🎉" : 
-           "💔 ELIMINATED 💔"}
-        </h1>
-        
-        <p style={{ fontSize: "18px", color: "#ccc", marginBottom: "20px" }}>
-          <strong>vs</strong> {playerData.opponent}
-        </p>
-        
-        <div style={{
-          backgroundColor: "#2a2a2a",
-          padding: "25px",
-          borderRadius: "10px",
-          marginBottom: "20px"
-        }}>
-          <h3 style={{ color: "#ffc107", marginTop: 0, marginBottom: "20px" }}>
-            📊 Stats Update
-          </h3>
-          
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "12px",
-            backgroundColor: "#1a1a1a",
-            borderRadius: "8px",
-            marginBottom: "15px"
-          }}>
-            <span style={{ fontSize: "16px", color: "#aaa" }}>Ranked Rating</span>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ fontSize: "18px", color: "#fff" }}>{stats.oldRating}</span>
-              <span style={{ 
-                fontSize: "20px", 
-                color: playerData.ratingChange >= 0 ? "#28a745" : "#dc3545",
-                fontWeight: "bold"
-              }}>
-                →
-              </span>
-              <span style={{ 
-                fontSize: "20px", 
-                color: playerData.ratingChange >= 0 ? "#28a745" : "#dc3545",
-                fontWeight: "bold"
-              }}>
-                {stats.newRating} ({playerData.ratingChange >= 0 ? '+' : ''}{playerData.ratingChange})
-              </span>
-            </div>
-          </div>
-          
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "12px",
-            backgroundColor: "#1a1a1a",
-            borderRadius: "8px",
-            marginBottom: "15px"
-          }}>
-            <span style={{ fontSize: "16px", color: "#aaa" }}>Experience</span>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ fontSize: "18px", color: "#fff" }}>{stats.oldXp}</span>
-              <span style={{ fontSize: "20px", color: "#17a2b8", fontWeight: "bold" }}>→</span>
-              <span style={{ fontSize: "20px", color: "#17a2b8", fontWeight: "bold" }}>
-                {stats.newXp} (+{playerData.xpGain})
-              </span>
-            </div>
-          </div>
-          
-          {stats.newLevel > stats.oldLevel && (
-            <div style={{
-              padding: "12px",
-              backgroundColor: "#ffc107",
-              borderRadius: "8px",
-              marginBottom: "15px",
-              border: "2px solid #ff9800"
+          <div className={styles.cardHeader} style={{ textAlign: "center" }}>
+            <h1 style={{
+              fontSize: "36px",
+              color: isChampion ? "#ffc107" : isWinner ? "#34ce57" : "#ff9595",
+              margin: 0,
+              fontWeight: 700
             }}>
-              <span style={{ fontSize: "18px", color: "#000", fontWeight: "bold" }}>
-                🎊 LEVEL UP! Level {stats.oldLevel} → {stats.newLevel} 🎊
-              </span>
+              {isChampion ? "👑 TOURNAMENT CHAMPION! 👑" : 
+               isWinner ? "🎉 VICTORY! 🎉" : 
+               "💔 ELIMINATED 💔"}
+            </h1>
+            <p style={{ fontSize: "16px", color: "#8c96b6", margin: "12px 0 0 0" }}>
+              <strong>vs</strong> {playerData.opponent}
+            </p>
+          </div>
+          
+          <div className={styles.card} style={{ 
+            marginTop: "24px",
+            background: "rgba(12, 20, 35, 0.85)",
+            padding: "24px"
+          }}>
+            <h3 style={{ 
+              color: "#7ab8ff", 
+              marginTop: 0, 
+              marginBottom: "20px",
+              fontSize: "18px",
+              fontWeight: 600
+            }}>
+              📊 Stats Update
+            </h3>
+            
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "16px",
+              background: "#050b16",
+              borderRadius: "12px",
+              marginBottom: "12px",
+              border: "1px solid #1b253f"
+            }}>
+              <span style={{ fontSize: "14px", color: "#8c96b6", fontWeight: 500 }}>Ranked Rating</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <span style={{ fontSize: "16px", color: "#e4ecff" }}>{stats.oldRating}</span>
+                <span style={{ fontSize: "18px", color: "#6b7593" }}>→</span>
+                <span style={{ 
+                  fontSize: "18px", 
+                  color: playerData.ratingChange >= 0 ? "#34ce57" : "#ff9595",
+                  fontWeight: 700
+                }}>
+                  {stats.newRating} ({playerData.ratingChange >= 0 ? '+' : ''}{playerData.ratingChange})
+                </span>
+              </div>
+            </div>
+            
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "16px",
+              background: "#050b16",
+              borderRadius: "12px",
+              marginBottom: "12px",
+              border: "1px solid #1b253f"
+            }}>
+              <span style={{ fontSize: "14px", color: "#8c96b6", fontWeight: 500 }}>Experience</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <span style={{ fontSize: "16px", color: "#e4ecff" }}>{stats.oldXp}</span>
+                <span style={{ fontSize: "18px", color: "#6b7593" }}>→</span>
+                <span style={{ fontSize: "18px", color: "#7ab8ff", fontWeight: 700 }}>
+                  {stats.newXp} (+{playerData.xpGain})
+                </span>
+              </div>
+            </div>
+            
+            {stats.newLevel > stats.oldLevel && (
+              <div style={{
+                padding: "16px",
+                background: "linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.2))",
+                borderRadius: "12px",
+                marginBottom: "12px",
+                border: "2px solid rgba(255, 193, 7, 0.4)"
+              }}>
+                <span style={{ fontSize: "16px", color: "#ffc107", fontWeight: 700 }}>
+                  🎊 LEVEL UP! Level {stats.oldLevel} → {stats.newLevel} 🎊
+                </span>
+              </div>
+            )}
+            
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: "12px",
+              marginTop: "16px"
+            }}>
+              <div className={styles.statCard}>
+                <div className={styles.statLabel}>Matches</div>
+                <div className={styles.statValue}>{stats.totalMatches}</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statLabel}>Wins</div>
+                <div className={styles.statValue} style={{ color: "#34ce57" }}>{stats.wins}</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statLabel}>Win Rate</div>
+                <div className={styles.statValue} style={{ color: "#7ab8ff" }}>{winRate}%</div>
+              </div>
+            </div>
+          </div>
+          
+          {isChampion && (
+            <div style={{
+              background: "rgba(255, 193, 7, 0.1)",
+              padding: "20px",
+              borderRadius: "16px",
+              marginTop: "24px",
+              border: "2px solid rgba(255, 193, 7, 0.3)",
+              textAlign: "center"
+            }}>
+              <p style={{ fontSize: "20px", color: "#ffc107", fontWeight: 700, margin: 0 }}>
+                🏆 You are the Tournament Champion! 🏆
+              </p>
             </div>
           )}
           
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: "10px",
-            marginTop: "15px"
-          }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "14px", color: "#aaa" }}>Matches</div>
-              <div style={{ fontSize: "20px", color: "#fff", fontWeight: "bold" }}>{stats.totalMatches}</div>
+          {isWinner && waitingForNext && !isChampion && (
+            <div style={{
+              background: "rgba(52, 206, 87, 0.1)",
+              padding: "16px",
+              borderRadius: "12px",
+              marginTop: "24px",
+              border: "1px solid rgba(52, 206, 87, 0.3)",
+              textAlign: "center"
+            }}>
+              <p style={{ fontSize: "16px", color: "#34ce57", fontWeight: 600, margin: 0 }}>
+                ✅ You've Advanced to the Next Round!
+              </p>
             </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "14px", color: "#aaa" }}>Wins</div>
-              <div style={{ fontSize: "20px", color: "#28a745", fontWeight: "bold" }}>{stats.wins}</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "14px", color: "#aaa" }}>Win Rate</div>
-              <div style={{ fontSize: "20px", color: "#17a2b8", fontWeight: "bold" }}>{winRate}%</div>
-            </div>
-          </div>
-        </div>
-        
-        {isChampion && (
-          <div style={{
-            backgroundColor: "#2a2a2a",
-            padding: "20px",
-            borderRadius: "10px",
-            marginBottom: "20px",
-            border: "3px solid #ffd700",
-            boxShadow: "0 0 20px #ffd700"
-          }}>
-            <p style={{ fontSize: "24px", color: "#ffd700", fontWeight: "bold", margin: 0 }}>
-              🏆 You are the Tournament Champion! 🏆
-            </p>
-          </div>
-        )}
-        
-        {isWinner && waitingForNext && !isChampion && (
-          <div style={{
-            backgroundColor: "#2a2a2a",
-            padding: "18px",
-            borderRadius: "10px",
-            marginBottom: "20px",
-            border: "2px solid #28a745"
-          }}>
-            <p style={{ fontSize: "18px", color: "#28a745", fontWeight: "bold", margin: 0 }}>
-              ✅ You've Advanced to the Next Round!
-            </p>
-          </div>
-        )}
-        
-        <div style={{ display: "flex", gap: "15px", justifyContent: "center", marginTop: "20px" }}>
-          {isWinner && waitingForNext ? (
-            <button
-              onClick={onMainMenu}
-              style={{
-                padding: "15px 30px",
-                fontSize: "18px",
-                backgroundColor: "#28a745",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: "bold"
-              }}
-            >
-              ➡️ Continue
-            </button>
-          ) : (
-            <button
-              onClick={onMainMenu}
-              style={{
-                padding: "15px 30px",
-                fontSize: "18px",
-                backgroundColor: "#007bff",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: "bold"
-              }}
-            >
-              🏠 Return to Main Menu
-            </button>
           )}
+          
+          <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: "32px" }}>
+            {isWinner && waitingForNext ? (
+              <button
+                onClick={onMainMenu}
+                className={styles.buttonSuccess}
+              >
+                ➡️ Continue
+              </button>
+            ) : (
+              <button
+                onClick={onMainMenu}
+                className={styles.button}
+              >
+                🏠 Return to Main Menu
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -214,59 +197,40 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
   
   if (!winScreenData) {
     return (
-      <div style={{
-        padding: "30px",
-        backgroundColor: "#1a1a1a",
-        borderRadius: "15px",
-        border: "2px solid #333",
-        maxWidth: "600px",
-        margin: "0 auto",
-        textAlign: "center"
-      }}>
-        <h1 style={{
-          fontSize: "48px",
-          color: gameState?.winner === 'Player 1' ? "#28a745" : "#dc3545",
-          marginBottom: "20px",
-          fontWeight: "bold"
+      <div className={styles.container}>
+        <div className={styles.card} style={{ 
+          maxWidth: "600px", 
+          margin: "0 auto",
+          textAlign: "center"
         }}>
-          🎉 {gameState?.winner} Wins! 🎉
-        </h1>
-        
-        <p style={{ fontSize: "24px", marginBottom: "30px" }}>
-          Final Score: {gameState?.player1?.score || 0} - {gameState?.player2?.score || 0}
-        </p>
-        
-        <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
-          <button
-            onClick={onRestart}
-            style={{
-              padding: "12px 25px",
-              fontSize: "16px",
-              backgroundColor: "#28a745",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "bold"
-            }}
-          >
-            🎮 Play Again
-          </button>
-          <button
-            onClick={onMainMenu}
-            style={{
-              padding: "12px 25px",
-              fontSize: "16px",
-              backgroundColor: "#6c757d",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "bold"
-            }}
-          >
-            🏠 Main Menu
-          </button>
+          <div className={styles.cardHeader}>
+            <h1 style={{
+              fontSize: "36px",
+              color: gameState?.winner === 'Player 1' ? "#34ce57" : "#ff9595",
+              margin: 0,
+              fontWeight: 700
+            }}>
+              🎉 {gameState?.winner} Wins! 🎉
+            </h1>
+            <p style={{ fontSize: "18px", color: "#8c96b6", margin: "16px 0 0 0" }}>
+              Final Score: {gameState?.player1?.score || 0} - {gameState?.player2?.score || 0}
+            </p>
+          </div>
+          
+          <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: "32px" }}>
+            <button
+              onClick={onRestart}
+              className={styles.buttonSuccess}
+            >
+              🎮 Play Again
+            </button>
+            <button
+              onClick={onMainMenu}
+              className={styles.buttonSecondary}
+            >
+              🏠 Main Menu
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -275,73 +239,68 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
   const { playerData, matchData } = winScreenData;
   
   return (
-    <div style={{
-      padding: "30px",
-      backgroundColor: "#1a1a1a",
-      borderRadius: "15px",
-      border: "2px solid #333",
-      maxWidth: "600px",
-      margin: "0 auto"
-    }}>
-      <h1 style={{
-        fontSize: "48px",
-        color: playerData.result === 'victory' ? "#28a745" : "#dc3545",
-        marginBottom: "20px",
-        fontWeight: "bold"
+    <div className={styles.container}>
+      <div className={styles.card} style={{ 
+        maxWidth: "600px", 
+        margin: "0 auto"
       }}>
-        🎉 {playerData.result?.toUpperCase() || 'GAME OVER'} 🎉
-      </h1>
-
-      <div style={{ 
-        backgroundColor: "#2a2a2a", 
-        padding: "20px", 
-        borderRadius: "10px", 
-        marginBottom: "25px" 
-      }}>
-        <h3 style={{ color: "#ffd700", marginBottom: "15px" }}>Match Summary</h3>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-          <span><strong>Duration:</strong> {matchData.duration}</span>
-          <span><strong>Winner:</strong> {matchData.winnerName}</span>
+        <div className={styles.cardHeader} style={{ textAlign: "center" }}>
+          <h1 style={{
+            fontSize: "36px",
+            color: playerData.result === 'victory' ? "#34ce57" : "#ff9595",
+            margin: 0,
+            fontWeight: 700
+          }}>
+            🎉 {playerData.result?.toUpperCase() || 'GAME OVER'} 🎉
+          </h1>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span><strong>Final Score:</strong> {matchData.player1Score} - {matchData.player2Score}</span>
-          <span><strong>Total Volleys:</strong> {matchData.totalVolleys}</span>
-        </div>
-      </div>
 
-      <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
-        <button
-          onClick={onRestart}
-          style={{
-            padding: "12px 25px",
-            fontSize: "16px",
-            backgroundColor: "#28a745",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "bold"
-          }}
-        >
-          🎮 Play Again
-        </button>
-        <button
-          onClick={onMainMenu}
-          style={{
-            padding: "12px 25px",
-            fontSize: "16px",
-            backgroundColor: "#6c757d",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "bold"
-          }}
-        >
-          🏠 Main Menu
-        </button>
+        <div className={styles.card} style={{ 
+          marginTop: "24px",
+          background: "rgba(12, 20, 35, 0.85)",
+          padding: "24px"
+        }}>
+          <h3 style={{ 
+            color: "#7ab8ff", 
+            marginBottom: "16px",
+            fontSize: "18px",
+            fontWeight: 600
+          }}>
+            Match Summary
+          </h3>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+            <span style={{ color: "#8c96b6", fontSize: "14px" }}><strong>Duration:</strong></span>
+            <span style={{ color: "#e4ecff", fontSize: "14px" }}>{matchData.duration}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+            <span style={{ color: "#8c96b6", fontSize: "14px" }}><strong>Winner:</strong></span>
+            <span style={{ color: "#e4ecff", fontSize: "14px" }}>{matchData.winnerName}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+            <span style={{ color: "#8c96b6", fontSize: "14px" }}><strong>Final Score:</strong></span>
+            <span style={{ color: "#e4ecff", fontSize: "14px" }}>{matchData.player1Score} - {matchData.player2Score}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#8c96b6", fontSize: "14px" }}><strong>Total Volleys:</strong></span>
+            <span style={{ color: "#e4ecff", fontSize: "14px" }}>{matchData.totalVolleys}</span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: "32px" }}>
+          <button
+            onClick={onRestart}
+            className={styles.buttonSuccess}
+          >
+            🎮 Play Again
+          </button>
+          <button
+            onClick={onMainMenu}
+            className={styles.buttonSecondary}
+          >
+            🏠 Main Menu
+          </button>
+        </div>
       </div>
     </div>
   );
 };
-

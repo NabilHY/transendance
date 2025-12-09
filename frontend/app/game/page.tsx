@@ -13,6 +13,7 @@ import { GameWinScreen } from './components/GameWinScreen';
 import { GameTournamentWaitingScreen } from './components/GameTournamentWaitingScreen';
 import { GameTournamentMatchReadyScreen } from './components/GameTournamentMatchReadyScreen';
 import { GameLoadingScreen } from './components/GameLoadingScreen';
+import styles from './styles.module.css';
 import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, PlayerInfo, PlayerStats, WinScreenData, TournamentQueue, MatchReadyInfo } from './types';
 
 export default function GamePage() {
@@ -211,26 +212,7 @@ export default function GamePage() {
   }
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes game-spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        @keyframes game-pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}} />
-      <div style={{ 
-        padding: "20px",
-        height: "100%",
-        width: "100%",
-        overflow: "auto",
-        backgroundColor: "#0a0a0a",
-        color: "white",
-        boxSizing: "border-box"
-      }}>
+    <div className={styles.page}>
         {screen === "start" && (
           <GameStartScreen
             isAuthenticated={isAuthenticated}
@@ -281,7 +263,6 @@ export default function GamePage() {
             onMainMenu={handleMainMenu}
           />
         )}
-      </div>
-    </>
+    </div>
   );
 }
