@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRequireAuth } from '@/hooks/useAuthGuard';
 
 // Helper function to get the correct host (works with localhost, 127.0.0.1, or any IP)
 const getApiHost = () => {
@@ -17,8 +17,8 @@ const getAuthBackendUrl = () => `http://${getApiHost()}:8005`;
 const getGameBackendUrl = () => `http://${getApiHost()}:4322`;
 
 export default function GamePage() {
-  const { isLoggedIn, user } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
+  const { loading: authLoading, isAuthenticated: isLoggedIn } = useRequireAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const tournamentWaitingTimeoutRef = useRef<any>(null);
@@ -36,12 +36,33 @@ export default function GamePage() {
   const [tournamentBracket, setTournamentBracket] = useState<any>(null);
   const [matchReadyInfo, setMatchReadyInfo] = useState<any>(null);
 
-  // Redirect if not logged in
-  useEffect(() => {
-    if (!isLoggedIn) {
-      router.push('/login');
-    }
-  }, [isLoggedIn, router]);
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div style={{ 
+        padding: "20px",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#0a0a0a",
+        color: "white"
+      }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ 
+            width: "50px", 
+            height: "50px", 
+            border: "3px solid #ffc107", 
+            borderTop: "3px solid transparent", 
+            borderRadius: "50%", 
+            animation: "spin 1s linear infinite",
+            margin: "0 auto 20px"
+          }}></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Get authentication token by calling auth backend
   const getAuthToken = async () => {
@@ -184,7 +205,7 @@ export default function GamePage() {
 
   // Check if we have a valid token on component mount
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn || authLoading) return;
     
     const checkAuth = async () => {
       const token = await getAuthToken();
@@ -1017,10 +1038,6 @@ export default function GamePage() {
     );
   };
 
-  if (!isLoggedIn) {
-    return null; // Will redirect via useEffect
-  }
-
   return (
     <>
       <style dangerouslySetInnerHTML={{__html: `
@@ -1576,4 +1593,3 @@ export default function GamePage() {
     </>
   );
 }
-
