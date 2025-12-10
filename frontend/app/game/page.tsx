@@ -254,6 +254,7 @@ export default function GamePage() {
             gameState={gameState}
             playerInfo={playerInfo}
             isConnected={isConnected}
+            playerStats={playerStats}
           />
         )}
 
