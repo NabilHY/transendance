@@ -10,6 +10,8 @@ interface UseGameKeyboardProps {
 }
 
 export const useGameKeyboard = ({ enabled, playerInfo, sendUpdate }: UseGameKeyboardProps): void => {
+  const role = playerInfo?.role;
+
   useEffect(() => {
     if (!enabled) return;
     
@@ -66,6 +68,5 @@ export const useGameKeyboard = ({ enabled, playerInfo, sendUpdate }: UseGameKeyb
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [enabled, playerInfo, sendUpdate]);
+  }, [enabled, role, sendUpdate]);
 };
-

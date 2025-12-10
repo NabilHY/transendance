@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
 import { getAuthToken, fetchPlayerStats, getAuthBackendUrl } from './utils/api';
@@ -56,12 +56,14 @@ export default function GamePage() {
   );
 
   // Keyboard controls
+  const sendPlayerUpdate = useCallback((player1DY: number, player2DY: number) => {
+    sendMessage({ type: "update", player1DY, player2DY });
+  }, [sendMessage]);
+
   useGameKeyboard({
     enabled: screen === "game",
     playerInfo,
-    sendUpdate: (player1DY, player2DY) => {
-      sendMessage({ type: "update", player1DY, player2DY });
-    }
+    sendUpdate: sendPlayerUpdate
   });
 
   // Get authentication token with user info
