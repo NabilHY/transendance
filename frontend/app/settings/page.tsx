@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Search, User, Mail, Key, Github, Twitter, Trash2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import './styles.css';
 import { fetchCurrentUser } from '@/lib/fetcher';
 
@@ -24,6 +25,9 @@ interface User {
 }
 
 const SettingsPage = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -84,6 +88,19 @@ const SettingsPage = () => {
     loadCurrentUser();
   }, []);
 
+  // Redirect OAuth callbacks to security-settings page
+  useEffect(() => {
+    const connected = searchParams?.get('connected');
+    const error = searchParams?.get('error');
+    
+    if (connected || error) {
+      const params = new URLSearchParams();
+      if (connected) params.set('connected', connected);
+      if (error) params.set('error', error);
+      router.replace(`/settings/security-settings?${params.toString()}`);
+    }
+  }, [searchParams, router]);
+
   return (
     <div className={`container`}>
 
@@ -122,45 +139,6 @@ const SettingsPage = () => {
           </div>
         </div>
 
-
-        <div className="setting-card">
-          <h3>Email</h3>
-          <div className="input-group">
-            <Mail size={16} />
-            <input type="email" value={newInfoCurrentUser?.email} />
-          </div>
-          <div className="button-group">
-            <button className="btn" onClick={() => updateUserInfo('email')}>Change</button>
-            <button className="btn">Verify</button>
-          </div>
-        </div>
-
-        <div className="setting-card">
-          <h3>Password</h3>
-          <div className="input-group">
-            <Key size={16} />
-            <input type="password" placeholder='current password' value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-          </div>
-          <div className="input-group">
-            <Key size={16} />
-            <input type="password" placeholder='new password' value={newPassword} onChange={(e) => setNewPassword(e.target.value)}  />
-          </div>
-          <div className="input-group">
-            <Key size={16} />
-            <input type="password" placeholder='confirm password' value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-          </div>
-          <button className="btn">Update</button>
-        </div>
-
-        <div className="setting-card">
-          <h3>Two-Factor Auth</h3>
-          <div className="checkbox-group">
-            <input type="checkbox" />
-            <span>Authenticator App</span>
-            <button className="btn">Configure</button>
-          </div>
-        </div>
-
         <div className={`setting-card confirm-deletion ${showDeleteConfirm ? 'visible' : ''}`}>
           <h3>Are you sure ?</h3>
           <span>All your data will be lost.</span>
@@ -170,15 +148,26 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        <div className="setting-card danger-zone">
-          <h3>Danger Zone</h3>
-          <div className="danger-zone-content">
-            <span>
-              <Trash2 size={18} />
-              Delete account
-            </span>
-            <div className="danger-zone-actions">
-              <button className="btn btn-danger" onClick={() => setShowDeleteConfirm(true)}>Delete</button>
+        <div className="setting-card">
+          <h3>Delete Account</h3>
+          <div style={{ padding: '16px 0' }}>
+            <p style={{ color: '#9ca8c7', fontSize: '14px', marginBottom: '12px' }}>
+              Permanently delete your account and all associated data.
+            </p>
+            <div style={{ color: '#666', fontSize: '13px' }}>
+              This feature will be available soon.
+            </div>
+          </div>
+        </div>
+
+        <div className="setting-card">
+          <h3>Connected Accounts</h3>
+          <div style={{ padding: '16px 0' }}>
+            <p style={{ color: '#9ca8c7', fontSize: '14px', marginBottom: '12px' }}>
+              Manage your connected third-party accounts.
+            </p>
+            <div style={{ color: '#666', fontSize: '13px' }}>
+              This feature will be available soon.
             </div>
           </div>
         </div>

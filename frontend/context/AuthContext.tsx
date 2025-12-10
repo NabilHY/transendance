@@ -6,7 +6,13 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 import { UMUser, isProfileComplete, umGetMe, umProfileComplete } from '@/lib/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
+// Dynamic API base URL - uses current hostname for flexibility
+const getApiBase = () => {
+	if (typeof window !== 'undefined') {
+		return `http://${window.location.hostname}:8005`;
+	}
+	return process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
+};
 
 type AuthUser = {
 	id: number | string;
@@ -59,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [checkingProfileCompletion, setCheckingProfileCompletion] = useState<boolean>(false);
 	
 	const apiFetch = useCallback(async (path: string, options: RequestInit = {}) => {
-		const url = `${API_BASE}${path}`;
+		const url = `${getApiBase()}${path}`;
 		const headers: HeadersInit = new Headers(options.headers);
 		if (csrfToken) {
 			(headers as Headers).set('X-CSRF-Token', csrfToken);
@@ -85,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const ensureCsrf = useCallback(async (): Promise<string | null> => {
 		if (csrfToken) return csrfToken;
 		try {
-			const res = await fetch(`${API_BASE}/api/csrf-token`, { credentials: 'include' });
+			const res = await fetch(`${getApiBase()}/api/csrf-token`, { credentials: 'include' });
 			const json = await res.json();
 			if (res.ok && json?.csrfToken) {
 				setCsrfToken(json.csrfToken);

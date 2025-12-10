@@ -5,8 +5,16 @@ import { UserProvider } from '../context/UserContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
+// Dynamic API base URL - uses current hostname for flexibility
+const getApiBase = () => {
+	if (typeof window !== 'undefined') {
+		return `http://${window.location.hostname}:8005`;
+	}
+	return process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
+};
 
 function FetchInterceptor({ children }: { children?: React.ReactNode }) {
 	const { csrfToken } = useAuth();
@@ -29,7 +37,7 @@ function FetchInterceptor({ children }: { children?: React.ReactNode }) {
 				else if (input instanceof URL) urlString = input.toString();
 				else urlString = input.url;
 
-				const isApi = urlString.startsWith(API_BASE);
+				const isApi = urlString.startsWith(getApiBase());
 				const headers = new Headers(init?.headers);
 				const finalInit: RequestInit = {
 					credentials: 'include',
@@ -112,6 +120,18 @@ export default function Providers({ children }: { children?: React.ReactNode }) 
 			<UserProvider>
 				<FetchInterceptor>
 					<OAuthCallbackHandler children={children ?? null} />
+					<ToastContainer
+						position="top-right"
+						autoClose={5000}
+						hideProgressBar={false}
+						newestOnTop={false}
+						closeOnClick
+						rtl={false}
+						pauseOnFocusLoss
+						draggable
+						pauseOnHover
+						theme="light"
+					/>
 				</FetchInterceptor>
 			</UserProvider>
 		</AuthProvider>

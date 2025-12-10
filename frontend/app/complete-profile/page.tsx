@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { umUpdateProfile, getCsrfToken } from '@/lib/api';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import styles from '../login/LoginPage.module.css';
 
 export default function CompleteProfilePage() {
     const router = useRouter();
@@ -49,6 +50,14 @@ export default function CompleteProfilePage() {
                 return;
             }
 
+            // Validate username format (alphanumeric and underscores)
+            const usernameRegex = /^[a-zA-Z0-9_]+$/;
+            if (!usernameRegex.test(username.trim())) {
+                setError('Username can only contain letters, numbers, and underscores');
+                setSubmitting(false);
+                return;
+            }
+
             // Get CSRF token
             const csrfToken = await getCsrfToken();
 
@@ -61,7 +70,7 @@ export default function CompleteProfilePage() {
             }, csrfToken);
 
             if (result.ok) {
-                setMessage('Profile updated successfully!');
+                setMessage('Profile completed successfully!');
                 
                 // Refresh profile in auth context
                 await fetchMe();
@@ -75,99 +84,153 @@ export default function CompleteProfilePage() {
                 setError(errorMsg);
             }
         } catch (err) {
-            setError('An unexpected error occurred');
+            setError('An unexpected error occurred. Please try again.');
             console.error('Profile update error:', err);
         } finally {
             setSubmitting(false);
         }
     }
 
+    if (authLoading) {
+        return (
+            <main className={styles.page}>
+                <div className={styles.container}>
+                    <div style={{ color: '#8c96b6', fontSize: '15px' }}>Loading...</div>
+                </div>
+            </main>
+        );
+    }
+
     return (
-        <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 600, margin: '0 auto' }}>
-            <h1>Complete Your Profile</h1>
-            <p>Please complete your profile to continue.</p>
-            
-            {error && (
-                <div style={{ padding: 12, marginBottom: 16, backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: 4, color: '#c00' }}>
-                    {error}
+        <main className={styles.page}>
+            <div className={styles.container}>
+                <div className={styles.grid}>
+                    <section className={`${styles.card} ${styles.loginCard}`}>
+                        <div className={styles.cardHeader}>
+                            <h1 className={styles.title}>Complete your profile</h1>
+                            <p className={styles.subtitle}>
+                                Add your information to personalize your account and get started
+                            </p>
+                        </div>
+                        
+                        <div style={{
+                            padding: '16px',
+                            borderRadius: '12px',
+                            background: 'rgba(23, 144, 255, 0.1)',
+                            border: '1px solid rgba(23, 144, 255, 0.2)',
+                            marginBottom: '8px'
+                        }}>
+                            <p style={{
+                                margin: 0,
+                                fontSize: '13px',
+                                color: '#93a0c5',
+                                lineHeight: '1.6'
+                            }}>
+                                <strong style={{ color: '#c6d4ff' }}>Why complete your profile?</strong><br />
+                                Your profile information helps other users identify you and makes your 
+                                account more personal. You can update this information anytime from your 
+                                profile settings.
+                            </p>
+                        </div>
+
+                        <form className={styles.form} onSubmit={onSubmit}>
+                            <label className={styles.field}>
+                                <span>Username *</span>
+                                <div className={styles.inputWrapper}>
+                                    <input
+                                        className={styles.input}
+                                        type="text"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        placeholder="Choose a unique username"
+                                        required
+                                        disabled={submitting}
+                                        pattern="[a-zA-Z0-9_]+"
+                                        minLength={3}
+                                        maxLength={30}
+                                    />
+                                </div>
+                                <span className={styles.fieldHint}>
+                                    Letters, numbers, and underscores only. 3-30 characters.
+                                </span>
+                            </label>
+
+                            <label className={styles.field}>
+                                <span>First Name *</span>
+                                <div className={styles.inputWrapper}>
+                                    <input
+                                        className={styles.input}
+                                        type="text"
+                                        value={firstName}
+                                        onChange={(e) => setFirstName(e.target.value)}
+                                        placeholder="Enter your first name"
+                                        required
+                                        disabled={submitting}
+                                        maxLength={50}
+                                    />
+                                </div>
+                            </label>
+
+                            <label className={styles.field}>
+                                <span>Last Name *</span>
+                                <div className={styles.inputWrapper}>
+                                    <input
+                                        className={styles.input}
+                                        type="text"
+                                        value={lastName}
+                                        onChange={(e) => setLastName(e.target.value)}
+                                        placeholder="Enter your last name"
+                                        required
+                                        disabled={submitting}
+                                        maxLength={50}
+                                    />
+                                </div>
+                            </label>
+
+                            <label className={styles.field}>
+                                <span>Profile Picture URL</span>
+                                <div className={styles.inputWrapper}>
+                                    <input
+                                        className={styles.input}
+                                        type="url"
+                                        value={profilePic}
+                                        onChange={(e) => setProfilePic(e.target.value)}
+                                        placeholder="https://example.com/profile.jpg"
+                                        disabled={submitting}
+                                    />
+                                </div>
+                                <span className={styles.fieldHint}>
+                                    Optional. Enter a URL to your profile picture.
+                                </span>
+                            </label>
+
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
+                                <button 
+                                    type="submit" 
+                                    disabled={submitting || !username.trim() || !firstName.trim() || !lastName.trim()} 
+                                    className={styles.submitBtn}
+                                >
+                                    {submitting ? 'Completing profile…' : 'Complete profile'}
+                                </button>
+                            </div>
+
+                            {message && (
+                                <p className={styles.error} style={{ 
+                                    background: 'rgba(76, 175, 80, 0.1)', 
+                                    borderColor: 'rgba(76, 175, 80, 0.3)', 
+                                    color: '#81c784' 
+                                }}>
+                                    {message}
+                                </p>
+                            )}
+
+                            {error && (
+                                <p className={styles.error}>{error}</p>
+                            )}
+                        </form>
+                    </section>
                 </div>
-            )}
-            
-            {message && (
-                <div style={{ padding: 12, marginBottom: 16, backgroundColor: '#efe', border: '1px solid #cfc', borderRadius: 4, color: '#060' }}>
-                    {message}
-                </div>
-            )}
-
-            <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ fontWeight: 'bold' }}>Username *</span>
-                    <input 
-                        type="text" 
-                        value={username}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
-                        placeholder="Choose a username"
-                        required
-                        disabled={submitting}
-                        style={{ padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
-                    />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ fontWeight: 'bold' }}>First Name *</span>
-                    <input 
-                        type="text" 
-                        value={firstName}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)}
-                        placeholder="Enter your first name"
-                        required
-                        disabled={submitting}
-                        style={{ padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
-                    />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ fontWeight: 'bold' }}>Last Name *</span>
-                    <input 
-                        type="text" 
-                        value={lastName}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
-                        placeholder="Enter your last name"
-                        required
-                        disabled={submitting}
-                        style={{ padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
-                    />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ fontWeight: 'bold' }}>Profile Picture URL (optional)</span>
-                    <input 
-                        type="url" 
-                        value={profilePic}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProfilePic(e.target.value)}
-                        placeholder="https://example.com/profile.jpg"
-                        disabled={submitting}
-                        style={{ padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
-                    />
-                </label>
-
-                <button 
-                    type="submit" 
-                    disabled={submitting}
-                    style={{ 
-                        padding: 12, 
-                        fontSize: 16, 
-                        fontWeight: 'bold', 
-                        backgroundColor: submitting ? '#ccc' : '#007bff', 
-                        color: 'white', 
-                        border: 'none', 
-                        borderRadius: 4, 
-                        cursor: submitting ? 'not-allowed' : 'pointer' 
-                    }}
-                >
-                    {submitting ? 'Updating...' : 'Complete Profile'}
-                </button>
-            </form>
+            </div>
         </main>
     );
 }

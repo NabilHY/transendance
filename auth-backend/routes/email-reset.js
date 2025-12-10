@@ -121,7 +121,21 @@ module.exports = async function (fastify) {
 
         await fastify.accountSecurity.resetEmail(user.id, tokenRecord.new_email);
         
-        return rep.code(200).send({ message: 'Email reset successfully' });
+        // Clear the cookies with the same options they were set with
+        rep.clearCookie('accessToken', {
+            path: '/',
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict'
+        });
+        
+        rep.clearCookie('refreshToken', {
+            path: '/',
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict'
+        });
+        
+        return rep.code(200).send({ message: 'Email reset successfully. Please log in again.' });
     });
-
 }

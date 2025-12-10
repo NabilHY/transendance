@@ -4,6 +4,7 @@ const { hashPassword } = require('../utils/hash');
 const config  = require('../config');
 const { transporter } = require('../utils/email');
 const crypto = require('crypto');
+const { Console } = require('console');
 
 async function accountSecurityPlugin(fastify) {
     fastify.decorate('accountSecurity', {
@@ -48,7 +49,7 @@ async function accountSecurityPlugin(fastify) {
                 if (!fastify.db) {
                     return reject(new Error('Database not initialized'));
                 }
-                fastify.db.get('SELECT id FROM users WHERE email = ?', [newEmail], (err, row) => {
+                fastify.db.get('SELECT id FROM users WHERE email = ? AND id != ?', [newEmail, userId], (err, row) => {
                     if (err) {
                         fastify.log.error({ 
                             err, 
@@ -93,6 +94,9 @@ async function accountSecurityPlugin(fastify) {
 
             return emailVerificationToken;
         } catch (err) {
+            if (err.message === 'Invalid email address' || err.message === 'Email already in use' || err.message === 'Email from address not configured') {
+                throw err;
+            }
             fastify.log.error({ 
                 err, 
                 email: newEmail, 
@@ -100,14 +104,19 @@ async function accountSecurityPlugin(fastify) {
                 errMessage: err.message,
                 errStack: err.stack
             }, 'Database error checking email');
+            throw err;
         }
         },
         resetEmail(userId, newEmail) {
+            console.log("email before update ::::: ", fastify.db.get('SELECT email FROM users WHERE id = ?', [userId]));
             return new Promise((resolve, reject) => {
-                fastify.db.run('UPDATE users SET email = ?, google_id = NULL WHERE id = ?', [newEmail, userId], 
+                fastify.db.run('UPDATE users SET email = ? WHERE id = ?', [newEmail, userId], 
                     (err) => {
                         if (err) reject(err);
-                        else resolve();
+                        else {
+                            console.log("email after update ::::: ", fastify.db.get('SELECT email FROM users WHERE id = ?', [userId]));
+                            resolve();
+                        }
                     });
             });
         },
@@ -157,8 +166,18 @@ async function accountSecurityPlugin(fastify) {
             await this.deleteRefreshToken(userId);
         },
         async isLocked(userId) {
+            const user = await new Promise((resolve, reject) => {
+                fastify.db.get('SELECT email FROM users WHERE id = ?', [userId], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+            
+            if (!user || !user.email) {
+                return false;
+            }
             return new Promise((resolve, reject) => {
-                fastify.db.get('SELECT locked_until FROM account_lockouts WHERE user_id = ?', [userId], (err, row) => {
+                fastify.db.get('SELECT locked_until FROM account_lockouts WHERE identifier = ?', [user.email], (err, row) => {
                     if (err) reject(err);
                     else resolve(row && row.locked_until > Math.floor(Date.now() / 1000));
                 });

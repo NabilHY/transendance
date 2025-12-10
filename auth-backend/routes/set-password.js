@@ -103,7 +103,7 @@ module.exports = async function (fastify) {
         if (isOAuthFlow) {
             // For OAuth users, redirect to login
             return reply.code(200).send({ 
-                message: 'Password set successfully', 
+                message: 'Password set was successful', 
                 redirect: `${config.FRONTEND_URL}/login` 
             });
         } else {
@@ -117,7 +117,7 @@ module.exports = async function (fastify) {
                 fastify.db.run('DELETE FROM refresh_tokens WHERE user_id = ?', [userId], (err) => (err ? reject(err) : resolve()));
             });
             
-            return reply.code(200).send({ message: 'Password reset successfully' });
+            return reply.code(200).send({ message: 'Password reset was successful' });
         }
     });
 

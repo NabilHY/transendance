@@ -11,10 +11,11 @@ services:
       - users_data:/usr/src/app/db
       - ./db-init:/usr/src/app
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:${DB_INIT_PORT:-3000}/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 24
+      test: ["CMD", "curl", "-fsS", "http://localhost:${DB_INIT_PORT:-3005}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   auth-backend:
     build: ./auth-backend
@@ -33,9 +34,10 @@ services:
     healthcheck:
       # test: ["CMD", "curl", "-fsS", "http://localhost:8005/health"]
       test: ["CMD", "curl", "-fsS", "http://localhost:${AUTH_PORT:-8005}/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 24
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
       # disable: true
 
   frontend:
@@ -73,32 +75,33 @@ services:
     env_file: .env
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${USR_MANAG_PORT:-4000}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 24
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
-  prometheus:
-    build: ./monitoring/prometheus
-    ports:
-      - ${PROMETHEUS_PORT:-9090}:9090
-    networks:
-      - ft_transendance
-    depends_on:
-      auth-backend:
-        condition: service_healthy
-      usr-manag:
-        condition: service_healthy
-      chat:
-        condition: service_started
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
-      - prometheus_data:/prometheus
-    develop:
-      watch:
-        - path: ./monitoring/prometheus
-          action: restart
-    env_file: .env
+  # prometheus:
+  #   build: ./monitoring/prometheus
+  #   ports:
+  #     - ${PROMETHEUS_PORT:-9090}:9090
+  #   networks:
+  #     - ft_transendance
+  #   depends_on:
+  #     auth-backend:
+  #       condition: service_healthy
+  #     usr-manag:
+  #       condition: service_healthy
+  #     chat:
+  #       condition: service_started
+  #   volumes:
+  #     - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #     - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+  #     - prometheus_data:/prometheus
+  #   develop:
+  #     watch:
+  #       - path: ./monitoring/prometheus
+  #         action: restart
+  #   env_file: .env
     
   mailpit:
     image: axllent/mailpit
@@ -110,55 +113,55 @@ services:
       - ft_transendance
     env_file: .env
 
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - ${GRAFANA_PORT:-4010}:${GRAFANA_PORT:-4010}
-    networks:
-      - ft_transendance
-    environment:
-      - GF_SERVER_HTTP_PORT=${GRAFANA_PORT:-4010}
-      # Security: Disable default admin/admin creation
-      - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true
-      # Security: Disable anonymous access (explicit)
-      - GF_AUTH_ANONYMOUS_ENABLED=false
-      # Security Headers: HSTS
-      - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
-      - GF_SECURITY_STRICT_TRANSPORT_SECURITY_MAX_AGE_SECONDS=31536000
-      - GF_SECURITY_STRICT_TRANSPORT_SECURITY_PRELOAD=true
-      - GF_SECURITY_STRICT_TRANSPORT_SECURITY_SUBDOMAINS=true
-      # Security Headers: Content Security Policy
-      - GF_SECURITY_CONTENT_SECURITY_POLICY=true
-      # Additional security settings
-      - GF_SECURITY_DISABLE_GRAVATAR=true
-      - GF_SECURITY_COOKIE_SECURE=true
-      - GF_SECURITY_COOKIE_SAMESITE=strict
-    depends_on:
-      prometheus:
-        condition: service_started
-    env_file: .env
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-      
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    pid: host
-    networks:
-      - ft_transendance
-    restart: unless-stopped
-    command:
-      - '--path.rootfs=/host'
-    volumes:
-      - '/:/host:ro,rslave'
-    env_file: .env
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:9100/metrics >/dev/null 2>&1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 5s
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   ports:
+  #     - ${GRAFANA_PORT:-4010}:${GRAFANA_PORT:-4010}
+  #   networks:
+  #     - ft_transendance
+  #   environment:
+  #     - GF_SERVER_HTTP_PORT=${GRAFANA_PORT:-4010}
+  #     # Security: Disable default admin/admin creation
+  #     - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true
+  #     # Security: Disable anonymous access (explicit)
+  #     - GF_AUTH_ANONYMOUS_ENABLED=false
+  #     # Security Headers: HSTS
+  #     - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
+  #     - GF_SECURITY_STRICT_TRANSPORT_SECURITY_MAX_AGE_SECONDS=31536000
+  #     - GF_SECURITY_STRICT_TRANSPORT_SECURITY_PRELOAD=true
+  #     - GF_SECURITY_STRICT_TRANSPORT_SECURITY_SUBDOMAINS=true
+  #     # Security Headers: Content Security Policy
+  #     - GF_SECURITY_CONTENT_SECURITY_POLICY=true
+  #     # Additional security settings
+  #     - GF_SECURITY_DISABLE_GRAVATAR=true
+  #     - GF_SECURITY_COOKIE_SECURE=true
+  #     - GF_SECURITY_COOKIE_SAMESITE=strict
+  #   depends_on:
+  #     prometheus:
+  #       condition: service_started
+  #   env_file: .env
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #     - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+
+  # node-exporter:
+  #   image: prom/node-exporter:latest
+  #   container_name: node-exporter
+  #   pid: host
+  #   networks:
+  #     - ft_transendance
+  #   restart: unless-stopped
+  #   command:
+  #     - '--path.rootfs=/host'
+  #   volumes:
+  #     - '/:/host:ro,rslave'
+  #   env_file: .env
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "wget -q -O - http://localhost:9100/metrics >/dev/null 2>&1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 5s
   
   chat:
     build: ./chat
@@ -177,23 +180,23 @@ services:
       - users_data:/usr/src/app/db
     env_file: .env
     
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: cadvisor
-    restart: unless-stopped
-    privileged: true
-    networks:
-      - ft_transendance
+  # cadvisor:
+  #   image: gcr.io/cadvisor/cadvisor:latest
+  #   container_name: cadvisor
+  #   restart: unless-stopped
+  #   privileged: true
+  #   networks:
+  #     - ft_transendance
 
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    env_file: .env
-    depends_on:
-      node-exporter:
-        condition: service_healthy
+  #   volumes:
+  #     - /:/rootfs:ro
+  #     - /var/run:/var/run:ro
+  #     - /sys:/sys:ro
+  #     - /var/lib/docker/:/var/lib/docker:ro
+  #   env_file: .env
+  #   depends_on:
+  #     node-exporter:
+  #       condition: service_healthy
         
   # alertmanager:
   #   image: prom/alertmanager:latest
@@ -214,6 +217,30 @@ services:
   #   env_file: .env
   #   environment:
   #     - SENDGRID_API_KEY=${SENDGRID_SMTP_PASS:-}
+  game-backend:
+    build:
+      context: ./game-backend
+      dockerfile: Dockerfile
+    ports:
+      - ${GAME_BACKEND_PORT:-4322}:${GAME_BACKEND_PORT:-4322}
+    networks:
+      - ft_transendance
+    env_file: .env
+    working_dir: /usr/src/app
+    command: ["node", "server.js"]
+    volumes:
+      - ./game-backend:/usr/src/app  # Development volume for hot reload
+      - /usr/src/app/node_modules    # Prevent node_modules from being overwritten
+      - users_data:/usr/src/app/db   # Shared database volume
+    depends_on:
+      db-init:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${GAME_BACKEND_PORT:-4322}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 networks:
   ft_transendance:
