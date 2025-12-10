@@ -75,7 +75,7 @@ fastify.register(require('@fastify/cors'), {
     ];
     
     // Also allow specific configured URLs
-    const configuredOrigins = [config.FRONTEND_URL, config.USR_MANAG_URL, 'http://localhost:4321'].filter(Boolean);
+    const configuredOrigins = [config.FRONTEND_URL, config.USR_MANAG_URL, 'http://localhost:3010'].filter(Boolean);
     
     // Check if origin matches configured URLs or allowed patterns
     const isAllowed = configuredOrigins.includes(origin) || 

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { getRankInfo } from '../utils/rank';
+import { getGameBackendUrl, getAuthToken } from '../utils/api';
 import styles from '../styles.module.css';
 import type { GameMode, AIDifficulty, PlayerStats, PlayerInfo } from '../types';
 
@@ -18,7 +19,7 @@ interface GameStartScreenProps {
 
 export const GameStartScreen: React.FC<GameStartScreenProps> = ({
   isAuthenticated,
-  playerStats,
+  playerStats: propsPlayerStats,
   playerInfo,
   gameMode,
   aiDifficulty,
@@ -28,6 +29,61 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
   onStartGame,
   onRefreshStats
 }) => {
+  // Internal state for stats if not provided via props
+  const [localPlayerStats, setLocalPlayerStats] = useState<PlayerStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  
+  // Use props stats if available, otherwise use local state
+  const playerStats = propsPlayerStats || localPlayerStats;
+
+  // Fetch player stats directly from API
+  const fetchPlayerStats = async () => {
+    if (!isAuthenticated) return;
+    
+    setStatsLoading(true);
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        console.log('❌ No token available for stats fetch');
+        setStatsLoading(false);
+        return;
+      }
+
+      const makeRequest = async (authToken: string) => {
+        return await fetch(`${getGameBackendUrl()}/api/player-stats`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+      };
+
+      const response = await makeRequest(token);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Got player stats:', data);
+        if (data.stats) {
+          setLocalPlayerStats(data.stats);
+        }
+      } else {
+        console.log('❌ Failed to fetch player stats:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching player stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // Fetch stats on mount if authenticated and no stats provided
+  useEffect(() => {
+    if (isAuthenticated && !propsPlayerStats) {
+      fetchPlayerStats();
+    }
+  }, [isAuthenticated]);
+
   return (
     <div className={styles.container}>
       <div className={styles.cardHeader} style={{ textAlign: 'center', marginBottom: '32px' }}>
@@ -46,7 +102,7 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
           }}>
             <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 600, color: "#e4ecff" }}>Player Statistics</h2>
             {playerInfo?.username && (
-              <div style={{ 
+              <div style={{
                 fontSize: "14px", 
                 color: "#7ab8ff",
                 fontWeight: 600,
@@ -127,11 +183,18 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
 
           <div style={{ marginTop: "20px", textAlign: "center" }}>
             <button
-              onClick={onRefreshStats}
+              onClick={() => {
+                if (onRefreshStats) {
+                  onRefreshStats();
+                } else {
+                  fetchPlayerStats();
+                }
+              }}
               className={styles.buttonSecondary}
               style={{ padding: "8px 16px", fontSize: "13px" }}
+              disabled={statsLoading}
             >
-              Refresh Stats
+              {statsLoading ? 'Loading...' : 'Refresh Stats'}
             </button>
           </div>
         </div>

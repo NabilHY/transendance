@@ -9,14 +9,54 @@ const fastify = Fastify({
 
 // Manual CORS handling for all routes
 fastify.addHook('preHandler', async (request, reply) => {
-  reply.header('Access-Control-Allow-Origin', '*');
+  // Get the origin from the request
+  const origin = request.headers.origin;
+  
+  // Allowed origins
+  const allowedOrigins = [
+    'http://localhost:3010',
+    'http://localhost:3000',
+    'http://localhost:4321',
+    'http://127.0.0.1:3010',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:4321'
+  ];
+  
+  // Check if origin is allowed - must match exactly or match localhost/127.0.0.1 patterns
+  let isAllowed = false;
+  if (origin) {
+    // First check exact match
+    if (allowedOrigins.includes(origin)) {
+      isAllowed = true;
+    } 
+    // Then check regex patterns for localhost with any port
+    else if (/^http:\/\/localhost(:\d+)?$/.test(origin)) {
+      isAllowed = true;
+    }
+    // Then check regex patterns for 127.0.0.1 with any port
+    else if (/^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {
+      isAllowed = true;
+    }
+  }
+  
+  // Set CORS headers - CRITICAL: When credentials are used, we MUST use specific origin, never '*'
+  if (origin && isAllowed) {
+    // For allowed origins with credentials, set specific origin (NEVER '*')
+    reply.header('Access-Control-Allow-Origin', origin);
+    reply.header('Access-Control-Allow-Credentials', 'true');
+  } else if (!origin) {
+    // Only use '*' when there's no origin (non-browser requests) and NO credentials
+    reply.header('Access-Control-Allow-Origin', '*');
+    // Explicitly do NOT set credentials when using '*'
+  }
+  // If origin is present but not allowed, don't set CORS headers (will be blocked by browser)
+  
   reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  reply.header('Access-Control-Allow-Credentials', 'true');
   
-  // Handle preflight requests
+  // Handle preflight OPTIONS requests
   if (request.method === 'OPTIONS') {
-    reply.status(200).send();
+    return reply.status(200).send();
   }
 });
 
