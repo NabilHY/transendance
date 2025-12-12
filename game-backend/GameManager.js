@@ -1056,24 +1056,45 @@ class GameManager {
       
       console.log(`📊 Tournament match scores: P1=${scores.player1}, P2=${scores.player2}`);
       
-      // Get player IDs from connection IDs
-      const playerIds = Array.from(gameRoom.players.keys());
-      const player1Id = playerIds[0];
-      const player2Id = playerIds[1];
+      // Get user data for both players by their roles (not by array position)
+      let player1Data = null;
+      let player2Data = null;
       
-      // Get user data for both players
-      const player1Data = this.players.get(player1Id);
-      const player2Data = this.players.get(player2Id);
+      // First, try to get players who are still connected
+      // gameRoom.players is a Set of connection IDs
+      for (const connectionId of gameRoom.players) {
+        const playerData = this.players.get(connectionId);
+        if (playerData) {
+          if (playerData.role === 'player1') {
+            player1Data = playerData;
+            console.log(`📝 Found connected player1: ${playerData.user.username}`);
+          } else if (playerData.role === 'player2') {
+            player2Data = playerData;
+            console.log(`📝 Found connected player2: ${playerData.user.username}`);
+          }
+        }
+      }
+      
+      // If a player is missing, check if they disconnected and use stored data
+      if (!player1Data && gameRoom.disconnectedPlayer && gameRoom.disconnectedPlayer.role === 'player1') {
+        console.log(`📝 Using stored disconnected player data for player1: ${gameRoom.disconnectedPlayer.user.username}`);
+        player1Data = gameRoom.disconnectedPlayer;
+      }
+      if (!player2Data && gameRoom.disconnectedPlayer && gameRoom.disconnectedPlayer.role === 'player2') {
+        console.log(`📝 Using stored disconnected player data for player2: ${gameRoom.disconnectedPlayer.user.username}`);
+        player2Data = gameRoom.disconnectedPlayer;
+      }
       
       if (!player1Data || !player2Data) {
-        console.error('❌ Missing player data for tournament match');
+        console.error('❌ Missing player data for tournament match (even after checking disconnectedPlayer)');
+        console.error(`   player1Data: ${player1Data ? player1Data.user.username + ' (role: ' + player1Data.role + ')' : 'NULL'}`);
+        console.error(`   player2Data: ${player2Data ? player2Data.user.username + ' (role: ' + player2Data.role + ')' : 'NULL'}`);
+        console.error(`   disconnectedPlayer: ${gameRoom.disconnectedPlayer ? gameRoom.disconnectedPlayer.user.username + ' (role: ' + gameRoom.disconnectedPlayer.role + ')' : 'NULL'}`);
         return;
       }
 
       // Determine winner
       const player1Won = scores.player1 > scores.player2;
-      const winnerId = player1Won ? player1Id : player2Id;
-      const loserId = player1Won ? player2Id : player1Id;
       const winnerData = player1Won ? player1Data : player2Data;
       const loserData = player1Won ? player2Data : player1Data;
 
@@ -1180,21 +1201,40 @@ class GameManager {
       }
       
       // Update both players' states to 'waiting'
-      this.players.set(winnerId, {
-        ...winnerData,
-        roomId: null,
-        role: 'waiting',
-        matchId: null
-        // Keep tournamentId for next round
-      });
+      // Find connection IDs for winner and loser
+      let winnerConnectionId = null;
+      let loserConnectionId = null;
       
-      this.players.set(loserId, {
-        ...loserData,
-        roomId: null,
-        role: 'waiting',
-        tournamentId: null,
-        matchId: null
-      });
+      for (const [connId, playerData] of this.players.entries()) {
+        if (playerData.user && playerData.user.id === winnerData.user.id) {
+          winnerConnectionId = connId;
+        }
+        if (playerData.user && playerData.user.id === loserData.user.id) {
+          loserConnectionId = connId;
+        }
+      }
+      
+      // Update winner's state (keep tournamentId for next round)
+      if (winnerConnectionId && this.players.has(winnerConnectionId)) {
+        this.players.set(winnerConnectionId, {
+          ...winnerData,
+          roomId: null,
+          role: 'waiting',
+          matchId: null
+          // Keep tournamentId for next round
+        });
+      }
+      
+      // Update loser's state (remove from tournament)
+      if (loserConnectionId && this.players.has(loserConnectionId)) {
+        this.players.set(loserConnectionId, {
+          ...loserData,
+          roomId: null,
+          role: 'waiting',
+          tournamentId: null,
+          matchId: null
+        });
+      }
       
       // If tournament is complete, notify winner
       if (tournamentResult.tournamentComplete && tournamentResult.tournamentWinner) {

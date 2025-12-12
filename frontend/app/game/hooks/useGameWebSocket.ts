@@ -22,12 +22,23 @@ export const useGameWebSocket = (
   setTournamentQueue: (queue: any) => void,
   setTournamentBracket: (bracket: any) => void,
   setMatchReadyInfo: (info: any) => void,
-  tournamentWaitingTimeoutRef: React.MutableRefObject<any>
+  tournamentWaitingTimeoutRef: React.MutableRefObject<any>,
+  matchReadyCountdownRef: React.MutableRefObject<any>
 ): UseGameWebSocketReturn => {
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   const disconnect = useCallback(() => {
+    // Clear any pending timeouts
+    if (matchReadyCountdownRef.current) {
+      clearTimeout(matchReadyCountdownRef.current);
+      matchReadyCountdownRef.current = null;
+    }
+    if (tournamentWaitingTimeoutRef.current) {
+      clearTimeout(tournamentWaitingTimeoutRef.current);
+      tournamentWaitingTimeoutRef.current = null;
+    }
+    
     if (wsRef.current) {
       if (wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.close();
@@ -146,7 +157,14 @@ export const useGameWebSocket = (
           matchData: message.matchData
         }));
         
-        setTimeout(() => {
+        // Clear any existing countdown timeout
+        if (matchReadyCountdownRef.current) {
+          clearTimeout(matchReadyCountdownRef.current);
+        }
+        
+        // Store the countdown timeout so it can be cleared if opponent disconnects
+        matchReadyCountdownRef.current = setTimeout(() => {
+          matchReadyCountdownRef.current = null;
           setScreen("game");
           setPlayerInfo({
             role: message.playerRole,
@@ -160,6 +178,14 @@ export const useGameWebSocket = (
           setGameState(message.gameState);
         }, 3000);
       } else if (message.type === 'tournamentMatchResult') {
+        // Clear any pending match ready countdown if we get a result early
+        // (e.g., due to opponent disconnection during countdown)
+        if (matchReadyCountdownRef.current) {
+          clearTimeout(matchReadyCountdownRef.current);
+          matchReadyCountdownRef.current = null;
+          console.log('⏱️ Cleared match ready countdown due to early match result (opponent disconnected)');
+        }
+        
         setWinScreenData({
           playerData: {
             won: message.won,
@@ -237,7 +263,7 @@ export const useGameWebSocket = (
         }
       }
     };
-  }, [disconnect, setGameState, setScreen, setPlayerInfo, setAuthError, setIsAuthenticated, setWinScreenData, setTournamentQueue, setTournamentBracket, setMatchReadyInfo, tournamentWaitingTimeoutRef]);
+  }, [disconnect, setGameState, setScreen, setPlayerInfo, setAuthError, setIsAuthenticated, setWinScreenData, setTournamentQueue, setTournamentBracket, setMatchReadyInfo, tournamentWaitingTimeoutRef, matchReadyCountdownRef]);
 
   return {
     wsRef,

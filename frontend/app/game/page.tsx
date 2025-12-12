@@ -20,6 +20,7 @@ export default function GamePage() {
   const { user } = useAuth();
   const { loading: authLoading, isAuthenticated: isLoggedIn } = useRequireAuth();
   const tournamentWaitingTimeoutRef = useRef<any>(null);
+  const matchReadyCountdownRef = useRef<any>(null);
   
   // Game state
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -52,7 +53,8 @@ export default function GamePage() {
     setTournamentQueue,
     setTournamentBracket,
     setMatchReadyInfo,
-    tournamentWaitingTimeoutRef
+    tournamentWaitingTimeoutRef,
+    matchReadyCountdownRef
   );
 
   // Keyboard controls
