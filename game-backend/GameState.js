@@ -3,14 +3,15 @@ const CANVAS_WIDTH = 600;
 const CANVAS_HEIGHT = 400;
 const PADDLE_WIDTH = 10;
 const PADDLE_HEIGHT = 100;
+const PADDLE_MARGIN = 25; // Margin from canvas edge (accounting for stroke width + glow)
 const BALL_SIZE = 10;
 
 class GameState {
   constructor(gameMode = 'multiplayer', aiDifficulty = null) {
     this.gameState = {
       ball: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, dx: 0, dy: 0 },
-      player1: { x: 20, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
-      player2: { x: CANVAS_WIDTH - 20 - PADDLE_WIDTH, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
+      player1: { x: PADDLE_MARGIN, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
+      player2: { x: CANVAS_WIDTH - PADDLE_MARGIN - PADDLE_WIDTH, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
       winner: null,
       countdown: 0,
       gameActive: false,
@@ -86,7 +87,7 @@ class GameState {
     let dy = Math.random() < 0.5 ? -this.baseSpeed : this.baseSpeed;
 
     this.gameState.ball = { x: CANVAS_WIDTH / 2, y: startY, dx: 0, dy: 0 };
-    this.gameState.countdown = 3; // 3 second countdown
+    this.gameState.countdown = 3; // Start at 3 for 3-2-1-GO
     this.gameState.gameActive = false;
 
     // Reset paddles to center
@@ -99,7 +100,7 @@ class GameState {
       this.gameState.countdown -= 1;
       console.log(`Countdown: ${this.gameState.countdown}`);
       
-      if (this.gameState.countdown <= 0) {
+      if (this.gameState.countdown < 0) {
         clearInterval(this.countdownInterval);
         this.countdownInterval = null;
         
@@ -123,6 +124,11 @@ class GameState {
         this.movementSpeed = 0;
         this.lastSpeedIncrease = Date.now();
         
+        // Clear countdown display after GO
+        setTimeout(() => {
+          this.gameState.countdown = -1;
+        }, 500);
+        
         console.log(`Game started! Ball speed: dx=${dx}, dy=${dy}, baseSpeed=${this.baseSpeed}`);
       }
     }, 1000);
@@ -141,8 +147,8 @@ class GameState {
     // Reset ALL game state
     this.gameState = {
       ball: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, dx: 0, dy: 0 },
-      player1: { x: 20, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
-      player2: { x: CANVAS_WIDTH - 20 - PADDLE_WIDTH, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
+      player1: { x: PADDLE_MARGIN, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
+      player2: { x: CANVAS_WIDTH - PADDLE_MARGIN - PADDLE_WIDTH, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
       winner: null,
       countdown: 0,
       gameActive: false,

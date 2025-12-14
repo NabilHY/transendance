@@ -79,10 +79,14 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
 
   // Fetch stats on mount if authenticated and no stats provided
   useEffect(() => {
+    console.log('[GameStartScreen] useEffect - isAuthenticated:', isAuthenticated, 'propsPlayerStats:', propsPlayerStats, 'localPlayerStats:', localPlayerStats);
     if (isAuthenticated && !propsPlayerStats) {
+      console.log('[GameStartScreen] Fetching player stats...');
       fetchPlayerStats();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, propsPlayerStats]);
+
+  console.log('[GameStartScreen] Render - isAuthenticated:', isAuthenticated, 'playerStats:', playerStats);
 
   return (
     <div className={styles.container}>
@@ -92,6 +96,12 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
       </div>
       
       {/* Player Statistics Card */}
+      {isAuthenticated && !playerStats && statsLoading && (
+        <div className={styles.card} style={{ marginBottom: '24px', textAlign: 'center', padding: '40px' }}>
+          <p style={{ color: '#7ab8ff', margin: 0 }}>Loading stats...</p>
+        </div>
+      )}
+      
       {isAuthenticated && playerStats && (
         <div className={styles.card} style={{ marginBottom: '24px' }}>
           <div style={{ 
@@ -268,6 +278,18 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
               8-player bracket
             </small>
           </div>
+          <div style={{ textAlign: "center" }}>
+            <button
+              onClick={() => onGameModeChange("quad")}
+              className={`${styles.modeButton} ${gameMode === "quad" ? styles.modeButtonActive : ''}`}
+              style={{ width: "100%", marginBottom: "8px" }}
+            >
+              🎯 Quadra Pong
+            </button>
+            <small style={{ color: "#8c96b6", fontSize: "12px" }}>
+              4-player team battle (2v2)
+            </small>
+          </div>
         </div>
 
         {/* AI Difficulty Selection */}
@@ -310,6 +332,7 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
             {gameMode === "matchmaking" ? "🎮 Find Opponent" : 
              gameMode === "ai" ? `🤖 Fight ${aiDifficulty.toUpperCase()} AI` : 
              gameMode === "tournament" ? "🏆 Join Tournament" :
+             gameMode === "quad" ? "🎯 Find Team Match" :
              "👥 Start Coop"}
           </button>
         </div>

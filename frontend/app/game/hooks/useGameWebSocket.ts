@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { getAuthToken } from '../utils/api';
-import type { GameState, PlayerInfo, GameMode, AIDifficulty, GameScreen as GameScreenType, WebSocketMessage } from '../types';
+import type { GameState, QuadGameState, PlayerInfo, GameMode, AIDifficulty, GameScreen as GameScreenType, WebSocketMessage, QuadWaitingInfo, QuadWinScreenData } from '../types';
 
 interface UseGameWebSocketReturn {
   wsRef: React.MutableRefObject<WebSocket | null>;
@@ -23,7 +23,10 @@ export const useGameWebSocket = (
   setTournamentBracket: (bracket: any) => void,
   setMatchReadyInfo: (info: any) => void,
   tournamentWaitingTimeoutRef: React.MutableRefObject<any>,
-  matchReadyCountdownRef: React.MutableRefObject<any>
+  matchReadyCountdownRef: React.MutableRefObject<any>,
+  setQuadGameState: (state: QuadGameState | null) => void,
+  setQuadWaitingInfo: (info: QuadWaitingInfo | null) => void,
+  setQuadWinScreenData: (data: QuadWinScreenData | null) => void
 ): UseGameWebSocketReturn => {
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -237,6 +240,37 @@ export const useGameWebSocket = (
         setPlayerInfo(null);
         setGameState(null);
         setWinScreenData(null);
+      } else if (message.type === 'quadWaiting') {
+        console.log('[QUAD] Added to waiting queue:', message);
+        setScreen("quadWaiting");
+        setQuadWaitingInfo({
+          queuePosition: message.queuePosition,
+          totalWaiting: message.totalWaiting
+        });
+      } else if (message.type === 'quadGameJoined') {
+        console.log('[QUAD] Game joined:', message);
+        setScreen("game");
+        setPlayerInfo({
+          role: message.playerRole,
+          team: message.team,
+          roomId: message.roomId,
+          gameType: 'quad',
+          teammates: message.teammates,
+          opponents: message.opponents,
+          user: message.user
+        });
+        setQuadGameState(message.gameState);
+      } else if (message.type === 'quadGameResult') {
+        console.log('[QUAD] Game result:', message);
+        setQuadWinScreenData(message as unknown as QuadWinScreenData);
+        setScreen("end");
+      } else if (message.type === 'quadGameAborted') {
+        console.log('[QUAD] Game aborted:', message.message);
+        alert(message.message || 'Quad match was cancelled');
+        setScreen("start");
+        setPlayerInfo(null);
+        setQuadGameState(null);
+        setQuadWaitingInfo(null);
       } else if (message.type === 'gameResult') {
         setWinScreenData({
           playerData: message.data,
@@ -252,18 +286,32 @@ export const useGameWebSocket = (
           if (state.winner) {
             setScreen("end");
           }
+        } else if (message.ball && message.team1Player1 && message.team2Player1) {
+          // Quad game state update
+          const quadState = message as unknown as QuadGameState;
+          setQuadGameState(quadState);
+          
+          // Don't set screen to "end" here - wait for quadGameResult message with stats
         }
       } else {
         // Regular game state update
-        const state = message as GameState;
-        setGameState(state);
-        
-        if (state.winner) {
-          setScreen("end");
+        if (message.ball && message.player1 && message.player2) {
+          const state = message as unknown as GameState;
+          setGameState(state);
+          
+          if (state.winner) {
+            setScreen("end");
+          }
+        } else if (message.ball && message.team1Player1 && message.team2Player1) {
+          // Quad game state update
+          const quadState = message as unknown as QuadGameState;
+          setQuadGameState(quadState);
+          
+          // Don't set screen to "end" here - wait for quadGameResult message with stats
         }
       }
     };
-  }, [disconnect, setGameState, setScreen, setPlayerInfo, setAuthError, setIsAuthenticated, setWinScreenData, setTournamentQueue, setTournamentBracket, setMatchReadyInfo, tournamentWaitingTimeoutRef, matchReadyCountdownRef]);
+  }, [disconnect, setGameState, setScreen, setPlayerInfo, setAuthError, setIsAuthenticated, setWinScreenData, setTournamentQueue, setTournamentBracket, setMatchReadyInfo, tournamentWaitingTimeoutRef, matchReadyCountdownRef, setQuadGameState, setQuadWaitingInfo, setQuadWinScreenData]);
 
   return {
     wsRef,

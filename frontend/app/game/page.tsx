@@ -12,9 +12,10 @@ import { GameScreen } from './components/GameScreen';
 import { GameWinScreen } from './components/GameWinScreen';
 import { GameTournamentWaitingScreen } from './components/GameTournamentWaitingScreen';
 import { GameTournamentMatchReadyScreen } from './components/GameTournamentMatchReadyScreen';
+import { GameQuadWaitingScreen } from './components/GameQuadWaitingScreen';
 import { GameLoadingScreen } from './components/GameLoadingScreen';
 import styles from './styles.module.css';
-import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, PlayerInfo, PlayerStats, WinScreenData, TournamentQueue, MatchReadyInfo } from './types';
+import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, QuadGameState, PlayerInfo, PlayerStats, WinScreenData, TournamentQueue, MatchReadyInfo, QuadWaitingInfo, QuadWinScreenData } from './types';
 
 export default function GamePage() {
   const { user } = useAuth();
@@ -24,6 +25,7 @@ export default function GamePage() {
   
   // Game state
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [quadGameState, setQuadGameState] = useState<QuadGameState | null>(null);
   const [screen, setScreen] = useState<GameScreenType>("start");
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
@@ -35,6 +37,8 @@ export default function GamePage() {
   const [tournamentQueue, setTournamentQueue] = useState<TournamentQueue | null>(null);
   const [tournamentBracket, setTournamentBracket] = useState<any>(null);
   const [matchReadyInfo, setMatchReadyInfo] = useState<MatchReadyInfo | null>(null);
+  const [quadWaitingInfo, setQuadWaitingInfo] = useState<QuadWaitingInfo | null>(null);
+  const [quadWinScreenData, setQuadWinScreenData] = useState<QuadWinScreenData | null>(null);
 
   // WebSocket connection
   const {
@@ -54,7 +58,10 @@ export default function GamePage() {
     setTournamentBracket,
     setMatchReadyInfo,
     tournamentWaitingTimeoutRef,
-    matchReadyCountdownRef
+    matchReadyCountdownRef,
+    setQuadGameState,
+    setQuadWaitingInfo,
+    setQuadWinScreenData
   );
 
   // Keyboard controls
@@ -62,10 +69,15 @@ export default function GamePage() {
     sendMessage({ type: "update", player1DY, player2DY });
   }, [sendMessage]);
 
+  const sendQuadUpdate = useCallback((dy: number) => {
+    sendMessage({ type: "quadUpdate", dy });
+  }, [sendMessage]);
+
   useGameKeyboard({
     enabled: screen === "game",
     playerInfo,
-    sendUpdate: sendPlayerUpdate
+    sendUpdate: sendPlayerUpdate,
+    sendQuadUpdate: sendQuadUpdate
   });
 
   // Get authentication token with user info
@@ -158,6 +170,11 @@ export default function GamePage() {
     await connectWebSocket('tournament');
   };
 
+  const handleStartQuad = async () => {
+    console.log("🎯 Starting quadra pong matchmaking...");
+    await connectWebSocket('quad');
+  };
+
   const handleStartGame = () => {
     if (gameMode === "matchmaking") {
       handleStartMultiplayer();
@@ -165,6 +182,8 @@ export default function GamePage() {
       handleStartAI();
     } else if (gameMode === "tournament") {
       handleStartTournament();
+    } else if (gameMode === "quad") {
+      handleStartQuad();
     } else {
       handleStartSolo();
     }
@@ -251,9 +270,17 @@ export default function GamePage() {
           />
         )}
 
+        {screen === "quadWaiting" && (
+          <GameQuadWaitingScreen
+            quadWaitingInfo={quadWaitingInfo}
+            onCancel={cancelMatchmaking}
+          />
+        )}
+
         {screen === "game" && (
           <GameScreen
             gameState={gameState}
+            quadGameState={quadGameState}
             playerInfo={playerInfo}
             isConnected={isConnected}
             playerStats={playerStats}
@@ -263,6 +290,7 @@ export default function GamePage() {
         {screen === "end" && (
           <GameWinScreen
             winScreenData={winScreenData}
+            quadWinScreenData={quadWinScreenData}
             gameState={gameState}
             onRestart={handleRestart}
             onMainMenu={handleMainMenu}
