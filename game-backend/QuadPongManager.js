@@ -434,26 +434,66 @@ class QuadPongManager {
     if (player.roomId) {
       const gameRoom = this.quadGames.get(player.roomId);
       if (gameRoom) {
+        const disconnectedTeam = player.team;
         gameRoom.players.delete(connectionId);
         
-        // If game was active and someone disconnects, end the game
-        if (gameRoom.gameState.getState().gameActive) {
-          console.log(`⚠️  [QUAD] Player disconnected during active game, ending match`);
+        // Count remaining players per team
+        let team1Count = 0;
+        let team2Count = 0;
+        
+        for (const remainingId of gameRoom.players) {
+          const remainingPlayer = this.quadPlayers.get(remainingId);
+          if (remainingPlayer) {
+            if (remainingPlayer.team === 'team1') team1Count++;
+            if (remainingPlayer.team === 'team2') team2Count++;
+          }
+        }
+        
+        console.log(`⚠️  [QUAD] Player from ${disconnectedTeam} disconnected. Remaining: Team1=${team1Count}, Team2=${team2Count}`);
+        
+        // Only end game if a team has NO players left
+        if (team1Count === 0 || team2Count === 0) {
+          console.log(`🏆 [QUAD] A team has no players left - ending game`);
           
           // Stop game loop
           if (gameRoom.gameInterval) {
             clearInterval(gameRoom.gameInterval);
             gameRoom.gameInterval = null;
           }
-
-          // Notify remaining players
+          
+          // Determine winning team
+          const winningTeam = team1Count > 0 ? 'team1' : 'team2';
+          
+          // Award win to remaining team and process stats
+          if (gameRoom.players.size > 0) {
+            console.log(`🎉 [QUAD] Awarding win to ${winningTeam} due to opponent team disconnect`);
+            
+            // Set final score - winning team gets 5
+            const state = gameRoom.gameState.getState();
+            if (winningTeam === 'team1') {
+              state.team1Score = 5;
+            } else {
+              state.team2Score = 5;
+            }
+            state.winner = winningTeam;
+            state.gameActive = false;
+            gameRoom.gameEndTime = Date.now();
+            
+            // Process game completion with stats
+            await this.processQuadGameCompletion(player.roomId, gameRoom, state);
+          }
+        } else {
+          // Both teams still have players - game continues
+          console.log(`✅ [QUAD] Game continues with remaining players`);
+          
+          // Notify remaining players about the disconnection
           for (const remainingId of gameRoom.players) {
             const remainingPlayer = this.quadPlayers.get(remainingId);
             if (remainingPlayer && remainingPlayer.connection && remainingPlayer.connection.readyState === 1) {
               remainingPlayer.connection.send(JSON.stringify({
-                type: 'quadGameAborted',
-                message: 'A player disconnected. Match cancelled.',
-                reason: 'player_disconnected'
+                type: 'playerLeft',
+                message: `A player from ${disconnectedTeam} left. Game continues.`,
+                team: disconnectedTeam
               }));
             }
           }

@@ -883,14 +883,13 @@ class GameManager {
       if (gameRoom) {
         const gameState = gameRoom.gameState.getState();
         const totalScore = gameState.player1.score + gameState.player2.score;
-        const gameHadMeaningfulProgress = totalScore > 0 || gameState.countdown === 0;
         
         console.log(`🔌 Player disconnection in room ${player.roomId}:`, {
           playersRemaining: gameRoom.players.size - 1,
           totalScore,
           countdown: gameState.countdown,
-          gameHadMeaningfulProgress,
-          gameActive: gameState.gameActive
+          gameActive: gameState.gameActive,
+          mode: gameRoom.mode
         });
         
         // Remove from game room
@@ -904,27 +903,9 @@ class GameManager {
         if (gameRoom.players.size === 0) {
           console.log(`Removing empty game room ${player.roomId}`);
           this.games.delete(player.roomId);
-        } else if (!gameHadMeaningfulProgress) {
-          // If game hadn't started yet (still in countdown or no scoring), just end it cleanly without stats processing
-          console.log(`🚫 Aborting game ${player.roomId} - no meaningful progress made (disconnection during countdown/early game)`);
-          gameRoom.gameProcessed = true; // Mark as processed to prevent stats processing
-          gameRoom.aborted = true; // Flag as aborted rather than completed
-          
-          // Notify remaining player
-          const remainingPlayers = Array.from(gameRoom.players);
-          for (const playerId of remainingPlayers) {
-            const otherPlayer = this.players.get(playerId);
-            if (otherPlayer && otherPlayer.connection.readyState === 1) {
-              otherPlayer.connection.send(JSON.stringify({
-                type: 'gameAborted',
-                message: 'Game was cancelled due to early disconnection. No stats affected.',
-                reason: 'early_disconnection'
-              }));
-            }
-          }
         } else {
-          // Game had meaningful progress - award win to remaining player
-          console.log(`⚡ Player disconnected mid-game in ${player.roomId} - awarding win to remaining player`);
+          // ANY disconnection after game is created = award win to remaining player
+          console.log(`⚡ Player disconnected in ${player.roomId} - awarding win to remaining player`);
           
           const remainingPlayers = Array.from(gameRoom.players);
           if (remainingPlayers.length === 1) {
