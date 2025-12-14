@@ -3,15 +3,16 @@ const CANVAS_WIDTH = 600;
 const CANVAS_HEIGHT = 400;
 const PADDLE_WIDTH = 10;
 const PADDLE_HEIGHT = 100;
-const PADDLE_MARGIN = 25; // Margin from canvas edge (accounting for stroke width + glow)
+const PADDLE_MARGIN_X = 10; // Horizontal margin from left/right edges
+const PADDLE_MARGIN_Y = 8; // Vertical margin to prevent touching top/bottom borders
 const BALL_SIZE = 10;
 
 class GameState {
   constructor(gameMode = 'multiplayer', aiDifficulty = null) {
     this.gameState = {
       ball: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, dx: 0, dy: 0 },
-      player1: { x: PADDLE_MARGIN, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
-      player2: { x: CANVAS_WIDTH - PADDLE_MARGIN - PADDLE_WIDTH, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
+      player1: { x: PADDLE_MARGIN_X, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
+      player2: { x: CANVAS_WIDTH - PADDLE_MARGIN_X - PADDLE_WIDTH, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
       winner: null,
       countdown: 0,
       gameActive: false,
@@ -147,8 +148,8 @@ class GameState {
     // Reset ALL game state
     this.gameState = {
       ball: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, dx: 0, dy: 0 },
-      player1: { x: PADDLE_MARGIN, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
-      player2: { x: CANVAS_WIDTH - PADDLE_MARGIN - PADDLE_WIDTH, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
+      player1: { x: PADDLE_MARGIN_X, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
+      player2: { x: CANVAS_WIDTH - PADDLE_MARGIN_X - PADDLE_WIDTH, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0, score: 0 },
       winner: null,
       countdown: 0,
       gameActive: false,

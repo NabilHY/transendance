@@ -61,6 +61,10 @@ export const useGameWebSocket = (
     // Close existing connection if any
     disconnect();
 
+    // Clear any previous game data
+    setWinScreenData(null);
+    setQuadWinScreenData(null);
+
     // Get authentication token
     const token = await getAuthToken();
     if (!token) {
@@ -272,8 +276,29 @@ export const useGameWebSocket = (
         setQuadGameState(null);
         setQuadWaitingInfo(null);
       } else if (message.type === 'gameResult') {
+        console.log('[MATCHMAKING] Game result received:', message);
+        
+        // Transform backend data structure to frontend expected structure
+        const playerData = {
+          ...message.data,
+          won: message.data.result === 'victory',
+          stats: message.data.progression ? {
+            oldRating: message.data.progression.before.rankPoints,
+            newRating: message.data.progression.after.rankPoints,
+            oldXp: message.data.progression.before.experience,
+            newXp: message.data.progression.after.experience,
+            oldLevel: message.data.progression.before.level,
+            newLevel: message.data.progression.after.level,
+            totalMatches: message.data.progression.after.gamesPlayed,
+            wins: message.data.progression.after.gamesWon,
+            losses: message.data.progression.after.gamesLost
+          } : undefined
+        };
+        
+        console.log('[MATCHMAKING] Transformed playerData:', playerData);
+        
         setWinScreenData({
-          playerData: message.data,
+          playerData: playerData,
           matchData: message.matchData
         });
         setScreen("end");

@@ -28,19 +28,23 @@ export const detectSoundEvents = (
   const prevBall = prevState.ball;
   const currBall = currentState.ball;
 
-  // Detect paddle hit - ball crossed paddle threshold and changed direction
-  const crossedLeftPaddle = prevBall.x > 45 && currBall.x <= 45;
-  const crossedRightPaddle = prevBall.x < 555 && currBall.x >= 555;
+  // Detect paddle hit by checking if ball just crossed a paddle threshold
+  // Left paddle: ball crosses x=30 from right to left
+  const crossedLeftPaddle = prevBall.x > 30 && currBall.x <= 30;
+  // Right paddle: ball crosses x=570 from left to right
+  const crossedRightPaddle = prevBall.x < 570 && currBall.x >= 570;
   
   if (crossedLeftPaddle || crossedRightPaddle) {
     events.paddleHit = true;
   }
 
-  // Detect wall bounce - ball bounced off top or bottom
-  const bouncedOffTop = prevBall.y > 5 && currBall.y <= 5;
-  const bouncedOffBottom = prevBall.y < 390 && currBall.y >= 390;
+  // Detect wall bounce by checking if ball just crossed wall boundaries
+  // Top wall: ball crosses y=5 from below
+  const crossedTopWall = prevBall.y > 5 && currBall.y <= 5;
+  // Bottom wall: ball crosses y=385 from above (400 - 10 ball size - 5 buffer)
+  const crossedBottomWall = prevBall.y < 385 && currBall.y >= 385;
   
-  if (bouncedOffTop || bouncedOffBottom) {
+  if (crossedTopWall || crossedBottomWall) {
     events.wallBounce = true;
   }
 

@@ -224,6 +224,7 @@ export default function GamePage() {
     setPlayerInfo(null);
     setGameState(null);
     setWinScreenData(null);
+    setQuadWinScreenData(null);
     setTournamentQueue(null);
     setTournamentBracket(null);
     disconnectWebSocket();

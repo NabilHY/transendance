@@ -64,9 +64,10 @@ class GameLoop {
     state.player1.y += state.player1.dy;
     state.player2.y += state.player2.dy;
 
-    // Clamp paddles to screen
-    state.player1.y = Math.max(0, Math.min(this.constants.CANVAS_HEIGHT - this.constants.PADDLE_HEIGHT, state.player1.y));
-    state.player2.y = Math.max(0, Math.min(this.constants.CANVAS_HEIGHT - this.constants.PADDLE_HEIGHT, state.player2.y));
+    // Clamp paddles to screen with vertical margin
+    const PADDLE_MARGIN_Y = 8; // Vertical margin to prevent touching borders
+    state.player1.y = Math.max(PADDLE_MARGIN_Y, Math.min(this.constants.CANVAS_HEIGHT - this.constants.PADDLE_HEIGHT - PADDLE_MARGIN_Y, state.player1.y));
+    state.player2.y = Math.max(PADDLE_MARGIN_Y, Math.min(this.constants.CANVAS_HEIGHT - this.constants.PADDLE_HEIGHT - PADDLE_MARGIN_Y, state.player2.y));
   }
 
   // Handle ball collisions with walls and paddles
