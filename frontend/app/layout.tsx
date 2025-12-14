@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 					<Providers>
 
 						<Header />
-						<main style={{ display: 'flex', flex: 1, height: 'calc(100vh - 60px)' }}>
+						<main style={{ display: 'flex', flex: 1, height: 'calc(100dvh - 60px)' }}>
 							<Sidebar />
 							<div style={{width: '100%', overflowY: 'auto' }}>
 							{/* <div> */}

@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { Conversation } from "../src/pages/Chat";
 import styles from "./ConversationsList.module.css";
+import { Friend } from "@/app/chat/layout";
 
 interface ConversationsListProps {
   conversations: Conversation[];
@@ -10,6 +12,7 @@ interface ConversationsListProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSendMessage: (content: string, getPending: number) => Promise<void>;
+  friends: Friend[];
 }
 
 export default function ConversationsList({
@@ -19,6 +22,7 @@ export default function ConversationsList({
   searchQuery,
   onSearchChange,
   onSendMessage,
+  friends,
 }: ConversationsListProps) {
 
   const handleConversationSelect = async (id: string) => {
@@ -26,6 +30,11 @@ export default function ConversationsList({
     // await onSendMessage("", 1);
     console.log("=====> selected conversation id: ", id);
   }
+
+  useEffect(() => {
+    console.log("conversations: ", conversations);
+    
+  }, [])
 
   return (
     <div className={styles.container}>
@@ -41,6 +50,28 @@ export default function ConversationsList({
       </div>
 
       <div className={styles.conversationsList}>
+        {friends.map(friend => (
+          <div
+            key={friend.id}
+            className={styles.chatUserItem}
+          >
+            <img
+              src={friend.profile_pic}
+              alt={friend.username}
+              className={styles.chatUserAvatar}
+            />
+
+          <div className={styles.chatUserInfo}>
+            <div className={styles.chatUserName}>
+              {friend.first_name} {friend.last_name}
+            </div>
+
+            <div className={styles.chatUserUsername}>
+              @{friend.username}
+            </div>
+          </div>
+        </div>
+      ))}
         {conversations.map((conversation) => (
           <button
             key={conversation.id}

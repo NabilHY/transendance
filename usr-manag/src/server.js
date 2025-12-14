@@ -110,6 +110,7 @@ fastify.get('/service-info', {
             'POST /users/:id/friend',
             'POST /users/:id/block',
             'GET /conversations/:id',
+            'GET /chat/direct/:targetUserId',
         ],
         dependencies: ['auth-backend']
     };

@@ -75,15 +75,28 @@ function getChannelMembers(channel_id, db) {
 
 function sendToReceiver(message, db) {
   const receiverSocket = connectedUsers.get(message.receiver_id);
-  const isOnline = receiverSocket && receiverSocket.readyState === 1;
+  let delivered = 0;
 
-  if (isOnline) {
-    receiverSocket.send(JSON.stringify(message));
+  console.log("connected users ===> ", connectedUsers.size);
+  console.log("looking for user: ", message.receiver_id);
+
+  connectedUsers.forEach((socket, userId) => {
+    console.log("Connected user:", userId);
+  });
+
+  if (receiverSocket) {
+    try {
+      receiverSocket.send(JSON.stringify(message));
+      delivered = 1;
+    } catch (err) {
+      console.error("Error sending message to receiver:", err);
+    }
   }
 
-  storeMessage(message, isOnline ? 1 : 0, db);
-}
+  // receiverSocket.send(JSON.stringify(message));
 
+  storeMessage(message, delivered, db);
+}
 function sendToChannel(message, db) {
   const members = getChannelMembers(message.channel_id, db);
   for (const memberId of members) {
@@ -161,8 +174,11 @@ fastify.get("/ws", { websocket: true }, (socket, req) => {
   connectedUsers.set(userId, socket);
 
   socket.on("message", (rawMsg) => {
+    
     try {
       const msg = JSON.parse(rawMsg.toString());
+      console.log("received a message: ", msg, " | " , msg.pending);
+      
       if (msg.pending && msg.pending === 1) {
         sendPendingMessages(socket, userId, msg.channel_id, fastify.db);
         return;
@@ -171,6 +187,9 @@ fastify.get("/ws", { websocket: true }, (socket, req) => {
         console.log("------------------------------- PRIVATE -----------------------------------");
         if (msg.receiver_id && not_blocked(msg.sender_id, msg.receiver_id, fastify.db)) {
           console.log("not blocked user");
+          msg.receiver_id = msg.receiver_id[0];
+          console.log("updated recv ===> ", msg);
+          
           sendToReceiver(msg, fastify.db);
         } else if (msg.receiver_id && !not_blocked(msg.sender_id, msg.receiver_id, fastify.db)) {
           console.log("* PRIVATE CHANNEL: user_id  ", msg.receiver_id, "blocked the user ", msg.sender_id);

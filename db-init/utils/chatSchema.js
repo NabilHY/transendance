@@ -25,8 +25,8 @@ const initializeChatSchema = (db) => {
                 if (err) return reject(err);
                     db.run(`
                         CREATE TABLE IF NOT EXISTS channel_members (
-                        channel_id  TEXT NOT NULL,
-                        user_id     TEXT NOT NULL,
+                        channel_id  TEXT NOT NULL,   
+                        user_id     TEXT NOT NULL,   
                         role        TEXT NOT NULL CHECK(role IN ('owner','admin','member')),
                         joined_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         PRIMARY KEY (channel_id, user_id),
@@ -57,15 +57,15 @@ const initializeChatSchema = (db) => {
                                     friend_id TEXT NOT NULL,
                                     status TEXT CHECK(status IN ('pending', 'accepted', 'blocked')) DEFAULT 'pending',
                                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                    FOREIGN KEY(user_id) REFERENCES Users(id),
-                                    FOREIGN KEY(friend_id) REFERENCES Users(id)
+                                    FOREIGN KEY(user_id) REFERENCES users(id),
+                                    FOREIGN KEY(friend_id) REFERENCES users(id)
                                 )
                         `, (err) => {
                             if (err) return reject(err);
 
                             db.run(`
                                 CREATE TABLE IF NOT EXISTS channels (
-                                    id            TEXT PRIMARY KEY,
+                                    id            TEXT NOT NULL PRIMARY KEY AUTOINCREMENT,
                                     name          TEXT,
                                     is_private    INTEGER NOT NULL DEFAULT 0,           
                                     description   TEXT,

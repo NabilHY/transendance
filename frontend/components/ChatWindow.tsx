@@ -3,19 +3,32 @@
 import { useState, useRef, useEffect } from "react";
 import { Conversation, Message } from "../src/pages/Chat";
 import styles from "./ChatWindow.module.css";
+import { User } from "@/app/settings/page";
+import { sendMessage } from "@/lib/chat";
 
 interface ChatWindowProps {
   conversation: Conversation;
   messages: Message[];
-  currentUserId: string;
-  onSendMessage: (content: string, getPending: number) => void;
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  currentUser: User | null;
+  ws: WebSocket | null, 
+  // onSendMessage: (
+  //   content: string, 
+  //   getPending: number, 
+  //   ws: WebSocket | null, 
+  //   Messages: React.Dispatch<React.SetStateAction<Message[]>>,
+  //   conversation: Conversation,
+  //   currentUser: { id: string; name: string; avatar?: string } | null
+  // ) => void;
 }
 
 export default function ChatWindow({
   conversation,
   messages,
-  currentUserId,
-  onSendMessage,
+  setMessages,
+  currentUser,
+  // onSendMessage,
+  ws,
 }: ChatWindowProps) {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -31,8 +44,9 @@ export default function ChatWindow({
   // ! handle blocked users
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("submitting message: ", inputValue);
     if (inputValue.trim()) {
-      onSendMessage(inputValue, 0);
+      sendMessage(inputValue, 0, ws, setMessages, conversation, currentUser);
       setInputValue("");
     }
   };
@@ -44,14 +58,22 @@ export default function ChatWindow({
 
   return (
     <div className={styles.container}>
+      {/* <h1>tfooo</h1>    */}
       <div className={styles.header}>
         <div className={styles.userInfo}>
           <div className={styles.avatarContainer}>
-            <img
-              src={conversation.avatar}
-              alt={conversation.name}
-              className={styles.avatar}
-            />
+            {conversation?.avatar ? (
+              <img
+                src={conversation.avatar}
+                alt={conversation.name}
+                className={styles.avatar}
+              />
+            ) : (
+              <div className={styles.placeholderAvatar}>
+                {/* {conversation?.name.charAt(0).toUpperCase()} */}
+                S
+              </div>
+            )}
             {conversation.status === "online" && (
               <div className={styles.onlineIndicator}></div>
             )}
@@ -71,7 +93,7 @@ export default function ChatWindow({
           <div
             key={index}
             className={`${styles.messageWrapper} ${
-              (message.sender_id === currentUserId || message.sender_id === currentUserId.toString()) ? styles.sent : styles.received
+              (message.sender_id === currentUser?.id || message.sender_id === currentUser?.id.toString()) ? styles.sent : styles.received
             }`}
           >
             <div className={styles.message}>
@@ -84,7 +106,7 @@ export default function ChatWindow({
             </div>
           </div>
         ))}
-        <div ref={messagesEndRef} />
+        {/* <div ref={messagesEndRef} /> */}
       </div>
 
       <form onSubmit={handleSubmit} className={styles.inputForm}>
@@ -100,5 +122,7 @@ export default function ChatWindow({
         </button>
       </form>
     </div>
+
+    // </div>
   );
 }

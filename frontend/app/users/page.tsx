@@ -19,9 +19,10 @@ export default function UsersPage() {
         blockUser, 
         clearError 
     } = useUser();
+
     const { loading: authLoading} = useRequireAuth();
     const [actionLoading, setActionLoading] = useState<number | null>(null);
-    
+
     useEffect(() => {
         if (!authLoading) {
             fetchUsers();

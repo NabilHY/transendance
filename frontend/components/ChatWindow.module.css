@@ -2,14 +2,15 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  background: #121212;
-  height: 70vh;
+  /* background: #121212; */
+  background: 'radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912';
+  height: 100%;
 }
 
 .header {
   padding: 1.5rem;
   border-bottom: 1px solid #1e90ff;
-  background: #0f0f0f;
+  /* background: #0f0f0f; */
 }
 
 .userInfo {
@@ -20,6 +21,19 @@
 
 .avatarContainer {
   position: relative;
+}
+
+.placeholderAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #444444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bbbbbb;
+  font-size: 1.5rem;
+  font-weight: bold;
 }
 
 .avatar {

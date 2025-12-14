@@ -127,3 +127,46 @@
 .conversationItem.active .lastMessage {
   color: #cccccc;
 }
+
+.chatUserItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+  margin: 10px;
+  border: 2px rgb(0, 45, 101) solid;
+}
+
+.chatUserItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.chatUserAvatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.chatUserInfo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.chatUserName {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.chatUserUsername {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-top: 2px;
+  line-height: 1.2;
+}
