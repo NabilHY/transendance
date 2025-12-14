@@ -6,7 +6,8 @@ const CANVAS_HEIGHT = 400;
 const PADDLE_WIDTH = 10;
 const PADDLE_HEIGHT = 100;
 const PADDLE_STACK_OFFSET = 20; // 20px between stacked paddles for better visibility
-const PADDLE_MARGIN = 25; // Margin from canvas edge (accounting for stroke width + glow)
+const PADDLE_MARGIN_X = 10; // Horizontal margin from left/right edges
+const PADDLE_MARGIN_Y = 8; // Vertical margin to prevent touching top/bottom borders
 const BALL_SIZE = 10;
 
 class QuadPongState {
@@ -14,11 +15,11 @@ class QuadPongState {
     this.gameState = {
       ball: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, dx: 0, dy: 0 },
       // Team 1 (Left side) - two paddles horizontally stacked (front and back)
-      team1Player1: { x: PADDLE_MARGIN, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0 }, // Front paddle
-      team1Player2: { x: PADDLE_MARGIN + PADDLE_WIDTH + PADDLE_STACK_OFFSET, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0 }, // Back paddle
+      team1Player1: { x: PADDLE_MARGIN_X, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0 }, // Front paddle
+      team1Player2: { x: PADDLE_MARGIN_X + PADDLE_WIDTH + PADDLE_STACK_OFFSET, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0 }, // Back paddle
       // Team 2 (Right side) - two paddles horizontally stacked (front and back)
-      team2Player1: { x: CANVAS_WIDTH - PADDLE_MARGIN - PADDLE_WIDTH, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0 }, // Front paddle
-      team2Player2: { x: CANVAS_WIDTH - PADDLE_MARGIN - PADDLE_WIDTH - PADDLE_WIDTH - PADDLE_STACK_OFFSET, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0 }, // Back paddle
+      team2Player1: { x: CANVAS_WIDTH - PADDLE_MARGIN_X - PADDLE_WIDTH, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0 }, // Front paddle
+      team2Player2: { x: CANVAS_WIDTH - PADDLE_MARGIN_X - PADDLE_WIDTH - PADDLE_WIDTH - PADDLE_STACK_OFFSET, y: (CANVAS_HEIGHT - PADDLE_HEIGHT) / 2, dy: 0 }, // Back paddle
       // Team scores
       team1Score: 0,
       team2Score: 0,
@@ -127,18 +128,18 @@ class QuadPongState {
 
     paddles.forEach(paddle => {
       paddle.y += paddle.dy;
-      paddle.y = Math.max(PADDLE_MARGIN, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT - PADDLE_MARGIN, paddle.y));
+      paddle.y = Math.max(PADDLE_MARGIN_Y, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT - PADDLE_MARGIN_Y, paddle.y));
     });
 
     // Move ball
     state.ball.x += state.ball.dx;
     state.ball.y += state.ball.dy;
 
-    // Ball collision with top/bottom walls (with margin)
-    if (state.ball.y <= PADDLE_MARGIN || state.ball.y >= CANVAS_HEIGHT - BALL_SIZE - PADDLE_MARGIN) {
+    // Ball collision with top/bottom walls (no margin - ball bounces off actual walls)
+    if (state.ball.y <= 0 || state.ball.y >= CANVAS_HEIGHT - BALL_SIZE) {
       state.ball.dy = -state.ball.dy;
       // Clamp ball within boundaries
-      state.ball.y = Math.max(PADDLE_MARGIN, Math.min(CANVAS_HEIGHT - BALL_SIZE - PADDLE_MARGIN, state.ball.y));
+      state.ball.y = Math.max(0, Math.min(CANVAS_HEIGHT - BALL_SIZE, state.ball.y));
     }
 
     // Ball collision with Team 1 paddles (left side)

@@ -318,7 +318,7 @@ class QuadPongManager {
     for (const player of [...team1Players, ...team2Players]) {
       const statsBefore = await this.statsHandler.getUserStats(player.user.id);
       statsBeforeMap.set(player.user.id, statsBefore);
-      console.log(`📊 [QUAD] Stats BEFORE for ${player.user.username}: RR=${statsBefore.rankPoints}, XP=${statsBefore.experience}`);
+      console.log(`📊 [QUAD] Stats BEFORE for ${player.user.username}: RR=${statsBefore.rank_points}, XP=${statsBefore.experience_points}`);
     }
 
     // Process stats for each player individually
@@ -378,8 +378,8 @@ class QuadPongManager {
       const statsBefore = statsBeforeMap.get(player.user.id);
       const statsAfter = await this.statsHandler.getUserStats(player.user.id);
 
-      console.log(`📊 [QUAD] Stats AFTER for ${player.user.username}: RR=${statsAfter.rankPoints}, XP=${statsAfter.experience}`);
-      console.log(`📊 [QUAD] Stats DIFF for ${player.user.username}: RR=${(statsAfter.rankPoints||0)-(statsBefore.rankPoints||0)}, XP=${(statsAfter.experience||0)-(statsBefore.experience||0)}`);
+      console.log(`📊 [QUAD] Stats AFTER for ${player.user.username}: RR=${statsAfter.rank_points}, XP=${statsAfter.experience_points}`);
+      console.log(`📊 [QUAD] Stats DIFF for ${player.user.username}: RR=${(statsAfter.rank_points||0)-(statsBefore.rank_points||0)}, XP=${(statsAfter.experience_points||0)-(statsBefore.experience_points||0)}`);
 
       if (player.connection && player.connection.readyState === 1) {
         console.log(`📤 [QUAD] Sending quadGameResult to ${player.user.username}: won=${won}, team=${player.team}`);
@@ -400,15 +400,15 @@ class QuadPongManager {
             team2: gameRoom.finalScores.team2Score
           },
           stats: (statsBefore && statsAfter) ? {
-            oldRating: statsBefore.rankPoints || 0,
-            newRating: statsAfter.rankPoints || 0,
-            oldXp: statsBefore.experience || 0,
-            newXp: statsAfter.experience || 0,
-            oldLevel: statsBefore.playerLevel || 1,
-            newLevel: statsAfter.playerLevel || 1,
-            totalMatches: statsAfter.gamesPlayed || 0,
-            wins: statsAfter.gamesWon || 0,
-            losses: statsAfter.gamesLost || 0
+            oldRating: statsBefore.rank_points || 0,
+            newRating: statsAfter.rank_points || 0,
+            oldXp: statsBefore.experience_points || 0,
+            newXp: statsAfter.experience_points || 0,
+            oldLevel: statsBefore.player_level || 1,
+            newLevel: statsAfter.player_level || 1,
+            totalMatches: statsAfter.games_played || 0,
+            wins: statsAfter.games_won || 0,
+            losses: statsAfter.games_lost || 0
           } : null
         }));
         
