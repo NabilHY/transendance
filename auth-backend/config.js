@@ -12,7 +12,9 @@ module.exports = {
 	FRONTEND_URL: process.env.FRONTEND_URL,
 	USR_MANAG_URL: process.env.USR_MANAG_SERVICE_URL || 'http://localhost:4000',
 	
-	BACKEND_URL: process.env.AUTH_BACKEND_URL,
+	// Public-facing backend URL for email links (should be accessible from user's browser)
+	// Defaults to localhost for development, should be set to public URL in production
+	BACKEND_URL: process.env.AUTH_BACKEND_URL || process.env.PUBLIC_AUTH_BACKEND_URL || `http://localhost:${process.env.AUTH_PORT || 8005}`,
 	
 	// Email Configuration
 	EMAIL_FROM: process.env.EMAIL_FROM,

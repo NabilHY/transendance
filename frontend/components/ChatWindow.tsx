@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Conversation, Message } from "../src/pages/Chat";
+import { Conversation, Message } from "../app/chat/page";
 import styles from "./ChatWindow.module.css";
 
 interface ChatWindowProps {
@@ -48,18 +48,18 @@ export default function ChatWindow({
         <div className={styles.userInfo}>
           <div className={styles.avatarContainer}>
             <img
-              src={conversation.avatar}
+              src={'/default-avatar.png'}
               alt={conversation.name}
               className={styles.avatar}
             />
-            {conversation.status === "online" && (
+            {false && (
               <div className={styles.onlineIndicator}></div>
             )}
           </div>
           <div className={styles.userDetails}>
             <h3 className={styles.userName}>{conversation.name}</h3>
             <span className={styles.userStatus}>
-              {conversation.status === "online" ? "Online" : "Offline"}
+              {"Offline"}
             </span>
           </div>
         </div>

@@ -8,7 +8,7 @@ import type { GameState, PlayerInfo } from '../types';
 export const renderGame = (
   canvas: HTMLCanvasElement | null,
   state: GameState,
-  playerInfo?: PlayerInfo
+  playerInfo?: PlayerInfo | null
 ): void => {
   if (!canvas) return;
   

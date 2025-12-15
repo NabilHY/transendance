@@ -1,6 +1,6 @@
 "use client";
 
-import { Conversation } from "../src/pages/Chat";
+import { Conversation } from "../app/chat/page";
 import styles from "./ConversationsList.module.css";
 
 interface ConversationsListProps {
@@ -55,11 +55,11 @@ export default function ConversationsList({
           >
             <div className={styles.avatarContainer}>
               <img
-                src={conversation.avatar}
+                src={'/default-avatar.png'}
                 alt={conversation.name}
                 className={styles.avatar}
               />
-              {conversation.status === "online" && (
+              {false && (
                 <div className={styles.onlineIndicator}></div>
               )}
             </div>
@@ -67,9 +67,9 @@ export default function ConversationsList({
             <div className={styles.conversationContent}>
               <div className={styles.conversationHeader}>
                 <span className={styles.name}>{conversation.name}</span>
-                <span className={styles.timestamp}>{conversation.timestamp}</span>
+                <span className={styles.timestamp}>{conversation.last_message_time || ''}</span>
               </div>
-              <div className={styles.lastMessage}>{conversation.lastMessage}</div>
+              <div className={styles.lastMessage}>{conversation.last_message_content || ''}</div>
             </div>
           </button>
         ))}

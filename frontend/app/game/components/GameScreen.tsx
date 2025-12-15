@@ -18,7 +18,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, playerInfo, i
 
   useEffect(() => {
     if (gameState && canvasRef.current) {
-      renderGame(canvasRef.current, gameState, playerInfo);
+      renderGame(canvasRef.current, gameState, playerInfo ?? undefined);
     }
   }, [gameState, playerInfo]);
 

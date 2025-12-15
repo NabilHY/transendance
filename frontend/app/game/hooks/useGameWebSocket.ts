@@ -220,7 +220,7 @@ export const useGameWebSocket = (
       } else if (message.type) {
         // Unknown message type - check if it's a game state update
         if (message.ball && message.player1 && message.player2) {
-          const state = message as GameState;
+          const state = message as unknown as GameState;
           setGameState(state);
           
           if (state.winner) {
@@ -229,7 +229,7 @@ export const useGameWebSocket = (
         }
       } else {
         // Regular game state update
-        const state = message as GameState;
+        const state = message as unknown as GameState;
         setGameState(state);
         
         if (state.winner) {

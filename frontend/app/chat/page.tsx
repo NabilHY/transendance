@@ -71,11 +71,11 @@ const getReceivers = async (channelId: string, userId: number) => {
   }
 }
 
-export const Chat = () => {
+const Chat = () => {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
-  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string | number; name: string; avatar?: string } | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -189,16 +189,22 @@ useEffect(() => {
     if (!ws || (getPending == 0 && !content.trim())) return;
 
     const activeConv = conversations.find(conv => conv.id === activeConversation);
+    if (!activeConv) return;
+    if (!currentUser) return;
 
-    let receivers: string[] = await getReceivers(activeConv.id, currentUser?.id);
+    const currentUserIdNum =
+      typeof currentUser.id === "number" ? currentUser.id : Number(currentUser.id);
+    if (!Number.isFinite(currentUserIdNum)) return;
+
+    let receivers: string[] = await getReceivers(activeConv.id, currentUserIdNum);
 
     const message: Message = {
       uuid: crypto.randomUUID(),
       channel_id: activeConversation,
-      sender_id: currentUser != null ? currentUser.id : 'unknown',
+      sender_id: String(currentUser.id),
       sent_at: new Date().toISOString(),
       content: content,
-      sender_name: currentUser != null ? currentUser.name : "unknown",
+      sender_name: currentUser.name,
       receiver_id: receivers,
       pending: getPending,
     };
@@ -245,7 +251,7 @@ useEffect(() => {
                   <ChatWindow
                     conversation={activeConv}
                     messages={conversationMessages}
-                    currentUserId={currentUser != null ? currentUser.id : "unknown"}
+                    currentUserId={currentUser != null ? String(currentUser.id) : "unknown"}
                     onSendMessage={sendMessage}
                   />
                 )}

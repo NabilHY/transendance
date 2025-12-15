@@ -22,8 +22,13 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
     const isWinner = playerData.won;
     const isChampion = matchData.isTournamentWinner;
     const waitingForNext = matchData.waitingForNextRound;
-    const stats = playerData.stats;
     
+    if (!playerData.stats) {
+      return null;
+    }
+    
+    // After the guard, stats is guaranteed to be defined
+    const stats = playerData.stats;
     const winRate = stats.totalMatches > 0 ? ((stats.wins / stats.totalMatches) * 100).toFixed(1) : '0.0';
     
     return (
@@ -80,10 +85,10 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
                 <span style={{ fontSize: "18px", color: "#6b7593" }}>→</span>
                 <span style={{ 
                   fontSize: "18px", 
-                  color: playerData.ratingChange >= 0 ? "#34ce57" : "#ff9595",
+                  color: (playerData.ratingChange ?? 0) >= 0 ? "#34ce57" : "#ff9595",
                   fontWeight: 700
                 }}>
-                  {stats.newRating} ({playerData.ratingChange >= 0 ? '+' : ''}{playerData.ratingChange})
+                  {stats.newRating} ({(playerData.ratingChange ?? 0) >= 0 ? '+' : ''}{playerData.ratingChange ?? 0})
                 </span>
               </div>
             </div>
@@ -103,7 +108,7 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
                 <span style={{ fontSize: "16px", color: "#e4ecff" }}>{stats.oldXp}</span>
                 <span style={{ fontSize: "18px", color: "#6b7593" }}>→</span>
                 <span style={{ fontSize: "18px", color: "#7ab8ff", fontWeight: 700 }}>
-                  {stats.newXp} (+{playerData.xpGain})
+                  {stats.newXp} (+{playerData.xpGain ?? 0})
                 </span>
               </div>
             </div>

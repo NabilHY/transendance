@@ -25,7 +25,7 @@ const SettingsPage = () => {
   const [confirmDeletion, setConfirmDeletion] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const updateUserInfo = async (field: string) => {
+  const updateUserInfo = async (field: keyof User) => {
     if (!newInfoCurrentUser || !currentUser) return;
 
     const newValue = newInfoCurrentUser[field];
