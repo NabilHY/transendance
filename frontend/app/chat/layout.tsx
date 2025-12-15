@@ -92,12 +92,12 @@ const layout = ({children}: {children: React.ReactNode}) => {
     }
   }
 
-  const filteredConversations = conversations.filter(conv => {
-    if(conv.name === null) return false;
-    conv?.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // const filteredConversations = conversations.filter(conv => {
+  //   if(conv.name === null) return false;
+  //   conv?.name.toLowerCase().includes(searchQuery.toLowerCase())
 
-  }
-  );
+  // }
+  // );
 
   // const activeConv = conversations.find(conv => conv.id === activeConversation);
   // const conversationMessages = messages.filter(msg => msg.channel_id === activeConversation);
@@ -114,7 +114,7 @@ const layout = ({children}: {children: React.ReactNode}) => {
           <div className={styles.mainContent}>
             <div className={styles.chatSection}>
               <ConversationsList
-                conversations={filteredConversations}
+                conversations={conversations}
                 friends={friends}
                 activeConversation={activeConversation}
                 onConversationSelect={setActiveConversation}

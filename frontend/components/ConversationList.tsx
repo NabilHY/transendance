@@ -3,7 +3,9 @@
 import { useEffect } from "react";
 import { Conversation } from "../src/pages/Chat";
 import styles from "./ConversationsList.module.css";
-import { Friend } from "@/app/chat/layout";
+// import { Friend } from "@/app/chat/layout";
+import { Friend } from "@/lib/chat";
+
 
 interface ConversationsListProps {
   conversations: Conversation[];
@@ -34,7 +36,7 @@ export default function ConversationsList({
   useEffect(() => {
     console.log("conversations: ", conversations);
     
-  }, [])
+  }, [conversations]);
 
   return (
     <div className={styles.container}>
@@ -50,60 +52,74 @@ export default function ConversationsList({
       </div>
 
       <div className={styles.conversationsList}>
-        {friends.map(friend => (
-          <div
-            key={friend.id}
-            className={styles.chatUserItem}
-          >
-            <img
-              src={friend.profile_pic}
-              alt={friend.username}
-              className={styles.chatUserAvatar}
-            />
+        {/* Friends Section */}
+        {friends.length > 0 && (
+          <>
+            <div className={styles.sectionHeader}>Friends</div>
+            {friends.map(friend => (
+              <div
+                key={friend.id}
+                className={styles.chatUserItem}
+              >
+                <img
+                  src={friend.profile_pic}
+                  alt={friend.username}
+                  className={styles.chatUserAvatar}
+                />
 
-          <div className={styles.chatUserInfo}>
-            <div className={styles.chatUserName}>
-              {friend.first_name} {friend.last_name}
-            </div>
+                <div className={styles.chatUserInfo}>
+                  <div className={styles.chatUserName}>
+                    {friend.first_name} {friend.last_name}
+                  </div>
 
-            <div className={styles.chatUserUsername}>
-              @{friend.username}
-            </div>
-          </div>
-        </div>
-      ))}
-        {conversations.map((conversation) => (
-          <button
-            key={conversation.id}
-            onClick={
-              () => {
-                handleConversationSelect(conversation.id);
-              }
-            }
-            className={`${styles.conversationItem} ${
-              activeConversation === conversation.id ? styles.active : ""
-            }`}
-          >
-            <div className={styles.avatarContainer}>
-              <img
-                src={conversation.avatar}
-                alt={conversation.name}
-                className={styles.avatar}
-              />
-              {conversation.status === "online" && (
-                <div className={styles.onlineIndicator}></div>
-              )}
-            </div>
-
-            <div className={styles.conversationContent}>
-              <div className={styles.conversationHeader}>
-                <span className={styles.name}>{conversation.name}</span>
-                <span className={styles.timestamp}>{conversation.timestamp}</span>
+                  <div className={styles.chatUserUsername}>
+                    @{friend.username}
+                  </div>
+                </div>
               </div>
-              <div className={styles.lastMessage}>{conversation.lastMessage}</div>
-            </div>
-          </button>
-        ))}
+            ))}
+          </>
+        )}
+
+        {/* Conversations Section */}
+        {conversations.length > 0 && (
+          <>
+            <div className={styles.sectionHeader}>Recent Conversations</div>
+            {conversations.map((conversation) => (
+              <button
+                key={conversation.id}
+                onClick={
+                  () => {
+                    handleConversationSelect(conversation.id);
+                  }
+                }
+                className={`${styles.conversationItem} ${
+                  activeConversation === conversation.id ? styles.active : ""
+                }`}
+              >
+                <div className={styles.avatarContainer}>
+                  <img
+                    src={conversation.avatar}
+                    alt={conversation.name}
+                    className={styles.avatar}
+                  />
+                  {conversation?.status === "online" && (
+                    <div className={styles.onlineIndicator}></div>
+                  )}
+                </div>
+
+                <div className={styles.conversationContent}>
+                  <div className={styles.conversationHeader}>
+                    <span className={styles.name}>{conversation.name}</span>
+                    <span className={styles.timestamp}>{conversation?.timestamp}</span>
+                  </div>
+                  <div className={styles.lastMessage}>{conversation.lastMessage}</div>
+                </div>
+
+              </button>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );

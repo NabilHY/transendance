@@ -107,7 +107,13 @@ export const getConversation = async (id: string) => {
     if (!conversation.ok)
         throw new Error(`Server error: ${conversation.status}`);
     const data = await conversation.json();
-    return data;
+    if(data.is_private) {
+      data.name = await getChannelName(data.id);
+      console.log("* DATA: ", data);
+      return data;
+    }
+    // const name = data?.is_private ? getChannelName(data.id) : data.name;
+    
   } catch (err) {
     console.error("Failed to fetch channel info:", err);
     return [];

@@ -34,12 +34,19 @@ export default function ChatWindow({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scroll({ top: messagesEndRef.current?.scrollHeight, behavior: 'smooth' });
   };
 
   useEffect(() => {
     scrollToBottom();
+    console.log("scrolling to bottom");
   }, [messages]);
+
+  useEffect(() => {
+    // scrollToBottom();
+    console.log("* NAME: ", conversation.name.value[0]?.toUpperCase());
+  }, []);
 
   // ! handle blocked users
   const handleSubmit = (e: React.FormEvent) => {
@@ -71,7 +78,8 @@ export default function ChatWindow({
             ) : (
               <div className={styles.placeholderAvatar}>
                 {/* {conversation?.name.charAt(0).toUpperCase()} */}
-                S
+                {conversation.name.value && conversation.name.value[0]?.toUpperCase()}
+                {/* {conversation?.name[0]?.toUpperCase()} */}
               </div>
             )}
             {conversation.status === "online" && (
@@ -87,7 +95,7 @@ export default function ChatWindow({
         </div>
       </div>
 
-      <div className={styles.messagesContainer}>
+      <div ref={messagesEndRef} className={styles.messagesContainer}>
       
         {messages.map((message, index) => (
           <div
