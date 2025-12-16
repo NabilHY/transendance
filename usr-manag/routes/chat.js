@@ -103,7 +103,6 @@ module.exports = async function (fastify) {
             return reply.status(400).send({ error: "Missing targetUserId" });
 
         try {
-            // 1. Check if DM already exists (safe double-check)
             const existing = fastify.db.prepare(`
                 SELECT c.id
                 FROM channels c
@@ -114,8 +113,6 @@ module.exports = async function (fastify) {
                 AND m2.user_id = ?
                 LIMIT 1
             `).get(userId, targetUserId);
-
-            // console.log("existing dm: ", existing);
 
             if (existing !== undefined && existing !== null) {
                 return reply.send({ conversationId: existing.id });
@@ -133,7 +130,6 @@ module.exports = async function (fastify) {
             const insertDM = fastify.db.transaction(() => {
                 console.log("channel_id ===> ", channelId, " | result ====> ", result);
                 
-
                 fastify.db.prepare(`
                     INSERT INTO channel_members (channel_id, user_id, role)
                     VALUES (?, ?, ?)
@@ -297,4 +293,126 @@ module.exports = async function (fastify) {
             return reply.status(500).send({ error: "Failed to fetch channel name" });
         }
     }); 
+
+    fastify.post('/channel/group/create', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+        const userId = req.user.id;
+        const { name, description } = req.body;
+
+        try {
+            const uniqueId = crypto.randomUUID();
+
+            const result = fastify.db.prepare(`
+                INSERT INTO channels (id, name, description, is_private, created_at, created_by)
+                VALUES (? ,?, ?, ?, datetime('now'), ?)
+            `).run(uniqueId, name, description, 0, userId.toString());
+
+            const channelId = uniqueId;
+            
+            const insertGroup = fastify.db.transaction(() => {
+                console.log("channel_id ===> ", channelId, " | result ====> ", result);
+                
+                fastify.db.prepare(`
+                    INSERT INTO channel_members (channel_id, user_id, role)
+                    VALUES (?, ?, ?)
+                `).run(uniqueId, userId.toString(), 'admin');
+
+                return uniqueId;
+            });
+
+            const newChannelId = insertGroup();
+
+            return reply.send({
+                conversationId: newChannelId,
+                created: true,
+            });
+
+        } catch (err) {
+            console.error(err);
+            return reply.status(500).send({ error: "Failed to create group channel" });
+        }   
+    });
+
+    fastify.post('/channel/group/:id/add-member', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+        const userId = req.user.id;
+        const { id } = req.params;
+        const { newMemberId } = req.body;
+
+        try {
+            const roleCheck = fastify.db.prepare(`
+                SELECT role FROM channel_members
+                WHERE channel_id = ? AND user_id = ?
+            `).get(id, userId.toString());
+
+            if (!roleCheck || (roleCheck.role !== 'admin' && roleCheck.role !== 'owner')) {
+                return reply.status(403).send({ error: "Only admins or owners can add members" });
+            }
+
+            fastify.db.prepare(`
+                INSERT INTO channel_members (channel_id, user_id, role)
+                VALUES (?, ?, ?)
+            `).run(id, newMemberId.toString(), 'member');
+
+            return reply.send({ success: true });
+
+        } catch (err) {
+            console.error(err);
+            return reply.status(500).send({ error: "Failed to add member to group channel" });
+        }
+    }); 
+
+    fastify.delete('/channel/:id/leave', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+        const userId = req.user.id;
+        const { id } = req.params;
+
+        const membershipCheck = fastify.db.prepare(`
+            SELECT 1 FROM channel_members
+            WHERE channel_id = ? AND user_id = ?
+        `).get(id, userId.toString());
+
+        if (!membershipCheck) {
+            return reply.status(403).send({ error: "You are not a member of this channel" });
+        }
+
+        try {
+
+            fastify.db.prepare(`
+                DELETE FROM channel_members
+                WHERE channel_id = ? AND user_id = ?
+            `).run(id, userId.toString());
+
+            return reply.send({ success: true });
+
+        } catch (err) {
+            console.error(err);
+            return reply.status(500).send({ error: "Failed to leave channel" });
+        }
+    });         
+
+    fastify.delete('/channel/:id/remove-member', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+        const userId = req.user.id;
+        const { id } = req.params;
+        const { memberId } = req.body;
+
+        try {
+            const roleCheck = fastify.db.prepare(`
+                SELECT role FROM channel_members
+                WHERE channel_id = ? AND user_id = ?
+            `).get(id, userId.toString());
+
+            if (!roleCheck || (roleCheck.role !== 'admin')) {
+                return reply.status(403).send({ error: "Only admins can remove members" });
+            }
+
+            fastify.db.prepare(`
+                DELETE FROM channel_members
+                WHERE channel_id = ? AND user_id = ?
+            `).run(id, memberId.toString());
+
+            return reply.send({ success: true });
+
+        } catch (err) {
+            console.error(err);
+            return reply.status(500).send({ error: "Failed to remove member from channel" });
+        }
+    });
 };

@@ -21,7 +21,11 @@ export default function ConversationsList({
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [haveNames, setHaveNames] = useState(false);
-  const [activeTab, setActiveTab] = useState<"friends" | "conversations">("friends");
+  const [activeTab, setActiveTab] = useState<"friends" | "conversations">("conversations");
+  const [showGroupForm, setShowGroupForm] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupDescription, setGroupDescription] = useState("");
+
   const router = useRouter();
 
   const getConversations = async (id: string) => {
@@ -39,7 +43,6 @@ export default function ConversationsList({
       return [];
     }
   }
-
 
   useEffect(() => {
     const run = async () => {
@@ -59,13 +62,20 @@ export default function ConversationsList({
     const fetchPrivateChannelsNames = () => {
       let counter = 0;
       conversations.forEach(async (conv) => {
+        
         if(conv && conv.is_private) {
           conv.name = await getChannelName(conv.id);
+          console.log("name +++++ ", conv.name);
+          
           if(conv.name !== null)
             counter++;
+        } else if(conv && !conv.is_private) {
+          counter++;
         }
         if(counter === conversations.length)
           setHaveNames(true);
+        console.log("counter: ", counter, " | length: ", conversations.length);
+        
       })
     }
 
@@ -85,10 +95,86 @@ export default function ConversationsList({
       router.push(chatURL);
   }
 
+  const handleCreateGroupClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setShowGroupForm(true);
+    };
+  
+    const handleGroupSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!groupName.trim()) return;
+      // TODO: wire up group creation API once available
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/group/create`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: groupName,
+            description: groupDescription || "",
+          }),
+        });
+        if(!res.ok)
+          throw new Error(`Server error: ${res.status}`);
+        const data = await res.json();
+        router.push(`/chat/${data.conversationId}`);
+        console.log("Group created successfully:", data);
+        
+      } catch (err) {
+        console.error("Failed to create group:", err);
+      }
+      console.log("Creating group:", groupName);
+      setShowGroupForm(false);
+      setGroupName("");
+      setGroupDescription("");
+    };
+  
+    const handleGroupCancel = () => {
+      setShowGroupForm(false);
+      setGroupName("");
+      setGroupDescription("");
+    };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <h2 className={styles.title}>Chat</h2>
+        
+        <div className={styles.actionsRow}>
+          <button type="button" className={styles.createGroupButton} onClick={handleCreateGroupClick}>
+            Create channel group
+          </button>
+        </div>
+
+        {showGroupForm && (
+          <form className={styles.groupForm} onSubmit={handleGroupSubmit}>
+            <input
+              className={styles.groupInput}
+              type="text"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Group name"
+              autoFocus
+            />
+            <textarea
+              className={styles.groupTextarea}
+              value={groupDescription}
+              onChange={(e) => setGroupDescription(e.target.value)}
+              placeholder="Group description (optional)"
+            />
+            <div className={styles.groupActions}>
+              <button type="submit" className={styles.groupSubmitButton}>
+                Create
+              </button>
+              <button type="button" className={styles.groupCancelButton} onClick={handleGroupCancel}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
         <div className={styles.tabToggle}>
           <button
             className={`${styles.tabButton} ${activeTab === "friends" ? styles.active : ""}`}

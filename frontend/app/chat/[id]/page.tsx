@@ -116,8 +116,10 @@ const page = () => {
       console.log("current user in chat page: ", data);
     });
     getConversation(params.id).then((data) => {
-      const name = data?.is_private ? getChannelName(params.id) : data.name;
-      setConversation({...data, name: name});
+      if(!data)
+        return;
+      // const name = data?.is_private ? getChannelName(params.id) : data.name;
+      setConversation({ ...data });
     });
   }, [params.id]);
 

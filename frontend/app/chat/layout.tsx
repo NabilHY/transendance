@@ -6,6 +6,7 @@ import ChatWindow from "../../components/ChatWindow";
 import styles from "./styles.module.css";
 import { fetchCurrentUser } from "@/lib/fetcher";
 import { Conversation, Message, Friend } from "@/lib/chat";
+import Link from "next/link";
 
 
 
@@ -69,16 +70,6 @@ const layout = ({children}: {children: React.ReactNode}) => {
     }
   }
 
-  // const filteredConversations = conversations.filter(conv => {
-  //   if(conv.name === null) return false;
-  //   conv?.name.toLowerCase().includes(searchQuery.toLowerCase())
-
-  // }
-  // );
-
-  // const activeConv = conversations.find(conv => conv.id === activeConversation);
-  // const conversationMessages = messages.filter(msg => msg.channel_id === activeConversation);
-
   const sendMessage = async () => {
     console.log("send message tfooooooooooo");
   }
@@ -87,6 +78,7 @@ const layout = ({children}: {children: React.ReactNode}) => {
     <>
       {isSuccess === true && currentUser !== null && (
         <>
+        {/* <Link href="/chat/270d54e4-a0e2-42d9-8f48-4807054e3b25" >&larr; Back to Chats</Link> */}
         <div className={styles.container}>
           <div className={styles.mainContent}>
             <div className={styles.chatSection}>
