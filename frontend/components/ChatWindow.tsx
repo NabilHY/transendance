@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Conversation, Message } from "../src/pages/Chat";
+import { Conversation } from "../src/pages/Chat";
 import styles from "./ChatWindow.module.css";
 import { User } from "@/app/settings/page";
 import { sendMessage } from "@/lib/chat";
-
+import { useRouter } from "next/navigation";
+import { getReceiverId, Message } from "@/lib/chat";
 interface ChatWindowProps {
   conversation: Conversation;
   messages: Message[];
@@ -27,11 +28,11 @@ export default function ChatWindow({
   messages,
   setMessages,
   currentUser,
-  // onSendMessage,
   ws,
 }: ChatWindowProps) {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const scrollToBottom = () => {
     // messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -58,6 +59,17 @@ export default function ChatWindow({
     }
   };
 
+  const handleUserInfoClick = async (conversation: Conversation) => {
+  
+    const id = await getReceiverId(conversation);
+    if (id) {
+      router.push(`/users/${id}`);
+    } else {
+      console.log("No receiver id found");
+    }
+    
+  }
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -67,7 +79,7 @@ export default function ChatWindow({
     <div className={styles.container}>
       {/* <h1>tfooo</h1>    */}
       <div className={styles.header}>
-        <div className={styles.userInfo}>
+        <div className={styles.userInfo} onClick={() => handleUserInfoClick(conversation)}>
           <div className={styles.avatarContainer}>
             {conversation?.avatar ? (
               <img
@@ -99,7 +111,7 @@ export default function ChatWindow({
           <div
             key={index}
             className={`${styles.messageWrapper} ${
-              (message.sender_id === currentUser?.id || message.sender_id === currentUser?.id.toString()) ? styles.sent : styles.received
+              (message.sender_id === currentUser?.id.toString() || message.sender_id === currentUser?.id.toString()) ? styles.sent : styles.received
             }`}
           >
             <div className={styles.message}>

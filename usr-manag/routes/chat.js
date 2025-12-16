@@ -232,7 +232,6 @@ module.exports = async function (fastify) {
         }
     });
 
-    // get the the user's name if the channel is private
     fastify.get('/channel/:id/name', { preHandler: [fastify.authenticate] }, async (req, reply) => {
         const userId = req.user.id;
         const { id } = req.params;
@@ -264,5 +263,38 @@ module.exports = async function (fastify) {
             console.error(err);
             return reply.status(500).send({ error: "Failed to fetch channel name" });
         }
-    });       
+    }); 
+    
+    fastify.get('/channel/:id/receiverId', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+        const userId = req.user.id;
+        const { id } = req.params;
+        try {
+            const channel = fastify.db.prepare(`
+                SELECT is_private FROM channels WHERE id = ?
+            `).get(id);
+
+            if (!channel) {
+                return reply.status(404).send({ error: "Channel not found" });
+            }
+
+            if (channel.is_private) {
+                const member = fastify.db.prepare(`
+                    SELECT u.id
+                    FROM channel_members cm
+                    JOIN users u ON cm.user_id = u.id
+                    WHERE cm.channel_id = ? AND cm.user_id != ?
+                `).get(id, userId.toString());
+
+                return reply.send({ id: member ? member.id : null });
+            } else {
+                const publicChannel = fastify.db.prepare(`
+                    SELECT name FROM channels WHERE id = ?
+                `).get(id);
+                return reply.send({ name: publicChannel.name });
+            }
+        } catch (err) {
+            console.error(err);
+            return reply.status(500).send({ error: "Failed to fetch channel name" });
+        }
+    }); 
 };

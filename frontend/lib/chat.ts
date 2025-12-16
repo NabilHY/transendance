@@ -1,4 +1,5 @@
 import { User } from "@/app/settings/page";
+// import { useRouter } from "next/navigation";
 
 export interface Message {
   uuid: string;
@@ -135,5 +136,26 @@ export const getChannelName = async (channelId: string) => {
   } catch (err) {
     console.error("Failed to fetch channel name:", err);
     return "";
+  }
+}
+
+export const getReceiverId = async (conversation: Conversation) => {
+  console.log("clicked on user info of conversation: ", conversation);
+  if(conversation.is_private) {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/${conversation.id}/receiverId`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if(!res.ok)
+        throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      console.log("* INFO: ", data);
+      return data.id;
+    } catch (err) {
+      console.error("Failed to fetch user info:", err);
+    }
+  } else {
+    // groupe page I should add it later -- simo
   }
 }

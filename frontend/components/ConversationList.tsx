@@ -1,18 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// import { Conversation } from "../src/pages/Chat";
 import { Conversation } from "@/lib/chat";
 import styles from "./ConversationsList.module.css";
-// import { Friend } from "@/app/chat/layout";
 import { Friend, getChannelName } from "@/lib/chat";
 import { useRouter } from "next/navigation";
-// import { Conversation } from "@/lib/chat";
 
 interface ConversationsListProps {
   currentUser: {id: string; name: string; avatar?: string } | null;
-  // activeConversation: string;
-  // onConversationSelect: (id: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSendMessage: (content: string, getPending: number) => Promise<void>;
