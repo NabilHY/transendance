@@ -295,6 +295,18 @@ services:
         - path: ./monitoring/prometheus
           action: restart
     env_file: .env
+    
+  ngrok:
+    image: ngrok/ngrok:latest
+    depends_on:
+      nginx:
+        condition: service_started
+    environment:
+      - NGROK_AUTHTOKEN=36qHZyVLbGbty71Ix6Ox3hDOrBm_4sYrNZbnbnxbqCgKdTwxE
+    command: ["http", "nginx:80"]
+    networks:
+      - ft_transendance
+    env_file: .env
 
 # ---------------------------------------------------------------------------
 #  Networks & Volumes
