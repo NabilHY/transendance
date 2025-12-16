@@ -19,22 +19,33 @@
   color: #ffffff;
 }
 
-.searchInput {
-  all: unset;
-  width: 80%;
-  background: #2a2a2a;
-  border-radius: 8px;
+.tabToggle {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.tabButton {
+  flex: 1;
   padding: 0.75rem;
-  color: #ffffff;
+  background: #2a2a2a;
+  color: #999999;
+  border: 1px solid #1765b35d;
+  border-radius: 8px;
   font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.searchInput::placeholder {
-  color: #666666;
+.tabButton:hover {
+  background: #333333;
+  color: #ffffff;
 }
 
-.searchInput:focus {
-  outline: none;
+.tabButton.active {
+  background: #1e90ff;
+  color: #ffffff;
   border-color: #1e90ff;
 }
 

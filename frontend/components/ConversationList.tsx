@@ -9,22 +9,19 @@ import { handleMessageClick } from "@/lib/chat";
 
 interface ConversationsListProps {
   currentUser: {id: string; name: string; avatar?: string } | null;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
   onSendMessage: (content: string, getPending: number) => Promise<void>;
   friends: Friend[];
 }
 
 export default function ConversationsList({
   currentUser,
-  searchQuery,
-  onSearchChange,
   onSendMessage,
   friends,
 }: ConversationsListProps) {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [haveNames, setHaveNames] = useState(false);
+  const [activeTab, setActiveTab] = useState<"friends" | "conversations">("friends");
   const router = useRouter();
 
   const getConversations = async (id: string) => {
@@ -92,20 +89,26 @@ export default function ConversationsList({
     <div className={styles.container}>
       <div className={styles.header}>
         <h2 className={styles.title}>Chat</h2>
-        <input
-          type="text"
-          placeholder="Search conversations"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className={styles.searchInput}
-        />
+        <div className={styles.tabToggle}>
+          <button
+            className={`${styles.tabButton} ${activeTab === "friends" ? styles.active : ""}`}
+            onClick={() => setActiveTab("friends")}
+          >
+            Friends
+          </button>
+          <button
+            className={`${styles.tabButton} ${activeTab === "conversations" ? styles.active : ""}`}
+            onClick={() => setActiveTab("conversations")}
+          >
+            Conversations
+          </button>
+        </div>
       </div>
 
       <div className={styles.conversationsList}>
         {/* Friends Section */}
-        {friends.length > 0 && (
+        {activeTab === "friends" && friends.length > 0 && (
           <>
-            <div className={styles.sectionHeader}>Friends</div>
             {friends.map(friend => (
               <div
                 key={friend.id}
@@ -138,9 +141,8 @@ export default function ConversationsList({
         )}
 
         {/* Conversations Section */}
-        {conversations.length > 0 && haveNames === true && (          
+        {activeTab === "conversations" && conversations.length > 0 && haveNames === true && (          
           <>
-            <div className={styles.sectionHeader}>Recent Conversations</div>
             {conversations.map(conv => (
               
               <div

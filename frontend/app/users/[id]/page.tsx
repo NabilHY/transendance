@@ -14,7 +14,6 @@ import CurrentUserProfileNotice from '@/components/CurrentUserProfileNotice';
 export default function UserDetailPage() {
     const params = useParams();
     const userId = params?.id as string;
-    const { addFriend, blockUser, clearError } = useUser();
     const { loading: authLoading } = useRequireAuth();
     const [user, setUser] = useState<UMUser | null>(null);
     const [loading, setLoading] = useState(true);
@@ -22,7 +21,6 @@ export default function UserDetailPage() {
     const [actionLoading, setActionLoading] = useState(false);
     const [friendshipStatus, setFriendshipStatus] = useState<string | null>(null);
     const [invitationReceived, setInvitationReceived] = useState<boolean>(false);
-    const [blockerOrblocked, setBlockerOrblocked] = useState<boolean>(false);
     const router = useRouter();
     const { user: currentUser, ensureCsrf } = useAuth();
 
@@ -45,12 +43,10 @@ export default function UserDetailPage() {
     }, [userId]);
 
     const invitationsReceived = async () => {
-        // Implement fetching invitations if needed
         console.log("Fetching invitations received...");
         if(currentUser == null || user == null)
             return;
         try {
-            // const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friend-invitations`, {
             const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser.id}/friends/${user.id}/invitation`, {
                 method: 'GET',
                 headers: {

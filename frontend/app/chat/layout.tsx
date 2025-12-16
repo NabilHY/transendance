@@ -93,23 +93,10 @@ const layout = ({children}: {children: React.ReactNode}) => {
               <ConversationsList
                 currentUser={currentUser}
                 friends={friends}
-                // activeConversation={activeConversation}
-                // onConversationSelect={setActiveConversation}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
                 onSendMessage={sendMessage}
               />
               <div className={styles.rightPanel}>
                 { children }
-                {/* {activeConv && (
-                  <ChatWindow
-                    conversation={activeConv}
-                    messages={conversationMessages}
-                    currentUserId={currentUser != null ? currentUser.id : "unknown"}
-                    onSendMessage={sendMessage}
-                  />
-                )} */}
-                {/* <QuickActions /> */}
               </div>
             </div>
           </div>
