@@ -27,8 +27,19 @@ export const PORTS = {
 
 // API URL builders for client-side requests
 export const getApiUrls = () => {
+  // In production (NEXT_PUBLIC_BASE_URL defined), construct URLs from it
+  if (API_ORIGIN) {
+    return {
+      authBackend: `${API_ORIGIN}:${PORTS.AUTH_BACKEND}`,
+      usrManag: `${API_ORIGIN}:${PORTS.USR_MANAG}`,
+      chat: `${API_ORIGIN}:${PORTS.CHAT}`,
+      frontend: `${API_ORIGIN}:${PORTS.FRONTEND}`,
+      gameBackend: `${API_ORIGIN}:${PORTS.GAME_BACKEND}`,
+    };
+  }
+
+  // Fallback for dev – build from current hostname
   const hostname = getHostname();
-  
   return {
     authBackend: `http://${hostname}:${PORTS.AUTH_BACKEND}`,
     usrManag: `http://${hostname}:${PORTS.USR_MANAG}`,
@@ -40,8 +51,12 @@ export const getApiUrls = () => {
 
 // WebSocket URL builder
 export const getWsUrl = (port: string, path: string = '/ws'): string => {
+  if (WS_ORIGIN) {
+    return `${WS_ORIGIN}${path}`;
+  }
   const hostname = getHostname();
-  return `ws://${hostname}:${port}${path}`;
+  const scheme = window?.location?.protocol === 'https:' ? 'wss' : 'ws';
+  return `${scheme}://${hostname}:${port}${path}`;
 };
 
 // Helper to get chat WebSocket URL

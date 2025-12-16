@@ -56,8 +56,9 @@ export const useGameWebSocket = (
 
     setAuthError(null);
 
-    // Dynamic WebSocket URL
-    const wsUrl = `ws://${window.location.hostname}:4322/ws?token=${encodeURIComponent(token)}`;
+    // Dynamic WebSocket URL - use env override for prod HTTPS, else derive from current protocol
+    const baseWs = process.env.NEXT_PUBLIC_WS_URL || `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:4322`;
+    const wsUrl = `${baseWs}/ws?token=${encodeURIComponent(token)}`;
     
     console.log(`🔗 Connecting to WebSocket: ${wsUrl.replace(/token=[^&]+/, 'token=***')}`);
     const ws = new WebSocket(wsUrl);
