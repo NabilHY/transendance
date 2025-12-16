@@ -98,7 +98,6 @@ const initializeDatabase = (db) => {
                                 `, (err) => {
                                     if (err) return reject(err);
 
-                                    // Create friends table (references users.id instead of user_profiles.user_id)
                                     db.run(`
                                         CREATE TABLE IF NOT EXISTS friends (
                                             id TEXT PRIMARY KEY,

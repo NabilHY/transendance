@@ -31,6 +31,8 @@ export default function ChatWindow({
   ws,
 }: ChatWindowProps) {
   const [inputValue, setInputValue] = useState("");
+  const [showGroupForm, setShowGroupForm] = useState(false);
+  const [groupName, setGroupName] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -70,6 +72,25 @@ export default function ChatWindow({
     
   }
 
+  const handleCreateGroupClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowGroupForm(true);
+  };
+
+  const handleGroupSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!groupName.trim()) return;
+    // TODO: wire up group creation API once available
+    console.log("Creating group:", groupName);
+    setShowGroupForm(false);
+    setGroupName("");
+  };
+
+  const handleGroupCancel = () => {
+    setShowGroupForm(false);
+    setGroupName("");
+  };
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -96,6 +117,8 @@ export default function ChatWindow({
               <div className={styles.onlineIndicator}></div>
             )}
           </div>
+
+          {/* button here */}
           <div className={styles.userDetails}>
             <h3 className={styles.userName}>{conversation.name}</h3>
             <span className={styles.userStatus}>
@@ -103,6 +126,33 @@ export default function ChatWindow({
             </span>
           </div>
         </div>
+
+        <div className={styles.actionsRow}>
+          <button type="button" className={styles.createGroupButton} onClick={handleCreateGroupClick}>
+            Create channel group
+          </button>
+        </div>
+
+        {showGroupForm && (
+          <form className={styles.groupForm} onSubmit={handleGroupSubmit}>
+            <input
+              className={styles.groupInput}
+              type="text"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Group name"
+              autoFocus
+            />
+            <div className={styles.groupActions}>
+              <button type="submit" className={styles.groupSubmitButton}>
+                Create
+              </button>
+              <button type="button" className={styles.groupCancelButton} onClick={handleGroupCancel}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       <div ref={messagesEndRef} className={styles.messagesContainer}>

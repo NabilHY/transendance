@@ -276,9 +276,14 @@ module.exports = async function (fastify) {
         const friends = fastify.db.prepare(`
             SELECT u.id, u.username, u.first_name, u.last_name, u.profile_pic, u.is_online, f.status
             FROM friends f
-            JOIN users u ON (f.friend_id = u.id)
-            WHERE f.user_id = ? AND f.status = 'accepted'
-        `).all(userId);
+            JOIN users u ON (
+                CASE 
+                    WHEN f.user_id = ? THEN f.friend_id = u.id
+                    WHEN f.friend_id = ? THEN f.user_id = u.id
+                END
+            )
+            WHERE (f.user_id = ? OR f.friend_id = ?) AND f.status = 'accepted'
+        `).all(userId, userId, userId, userId);
 
         return friends;
     });

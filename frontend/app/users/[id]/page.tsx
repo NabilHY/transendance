@@ -10,6 +10,7 @@ import { useRequireAuth } from '@/hooks/useAuthGuard';
 import { ProfileCard } from '@/components/ProfileCard';
 import { headers } from 'next/dist/client/components/headers';
 import CurrentUserProfileNotice from '@/components/CurrentUserProfileNotice';
+import { handleMessageClick } from '@/lib/chat';
 
 export default function UserDetailPage() {
     const params = useParams();
