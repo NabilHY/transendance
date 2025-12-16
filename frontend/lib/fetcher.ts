@@ -3,7 +3,16 @@ export async function fetchCurrentUser() {
   // console.log("url --> ", process.env.NEXT_PUBLIC_USR_MANAG_URL);
   try {
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/me`, {
+    const base =
+      process.env.NEXT_PUBLIC_BASE_URL
+        ? `${process.env.NEXT_PUBLIC_BASE_URL}/api/users`
+        : process.env.NEXT_PUBLIC_USR_MANAG_URL;
+
+    if (!base) {
+      throw new Error('User management base URL is not configured');
+    }
+
+    const res = await fetch(`${base}/me`, {
       method: "GET",
       credentials: "include",
     });

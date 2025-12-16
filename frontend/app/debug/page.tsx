@@ -55,7 +55,7 @@ export default function DebugPage() {
 			<div style={{ marginBottom: 20, padding: 16, backgroundColor: '#f0f0f0', borderRadius: 8 }}>
 				<h3>OAuth Test</h3>
 				<a 
-					href={`${process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005'}/api/auth/google`}
+					href={`${(process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8005')}/api/auth/google`}
 					style={{ 
 						display: 'inline-block',
 						padding: '10px 20px',

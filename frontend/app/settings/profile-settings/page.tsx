@@ -41,7 +41,7 @@ const SettingsPage = () => {
 
     try {
       const update = await fetch(
-        `${process.env.NEXT_PUBLIC_USR_MANAG_URL}/me/profile`,
+        `${process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/api/users` : process.env.NEXT_PUBLIC_USR_MANAG_URL}/me/profile`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

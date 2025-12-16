@@ -9,7 +9,14 @@ export const getApiHost = () => {
 };
 
 // API URL builders
-export const getAuthBackendUrl = () => `http://${getApiHost()}:8005`;
+export const getAuthBackendUrl = () => {
+  // Prod: use nginx public origin when provided
+  if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  // Dev: direct to auth-backend port
+  return `http://${getApiHost()}:8005`;
+};
 export const getGameBackendUrl = () => `http://${getApiHost()}:4322`;
 
 export interface GameTokenResponse {

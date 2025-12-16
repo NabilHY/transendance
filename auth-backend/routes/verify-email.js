@@ -35,12 +35,12 @@ module.exports = async function (fastify) {
                     });
                 });
 
-                // Use public-facing URL from config (should be set in AUTH_BACKEND_URL env var)
-                // Check X-Forwarded-Host for reverse proxy, but prefer explicit config
-                const baseUrl = config.BACKEND_URL || 
-                    (req.headers['x-forwarded-host'] 
+                // Build a browser-reachable link (prefer the public site origin behind nginx)
+                const baseUrlRaw = config.PUBLIC_URL || config.FRONTEND_URL ||
+                    (req.headers['x-forwarded-host']
                         ? `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers['x-forwarded-host']}`
                         : (req.headers.host ? `${req.protocol || 'http'}://${req.headers.host}` : 'http://localhost:8005'));
+                const baseUrl = String(baseUrlRaw).replace(/\/+$/, '');
                 const link = `${baseUrl}/api/auth/verify-email/confirm?token=${token}`;
                 try {
                     await fastify.trackExternal('smtp', () => transporter.sendMail({

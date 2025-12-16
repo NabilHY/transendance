@@ -30,11 +30,11 @@ export const getApiUrls = () => {
   // In production (NEXT_PUBLIC_BASE_URL defined), construct URLs from it
   if (API_ORIGIN) {
     return {
-      authBackend: `${API_ORIGIN}:${PORTS.AUTH_BACKEND}`,
-      usrManag: `${API_ORIGIN}:${PORTS.USR_MANAG}`,
-      chat: `${API_ORIGIN}:${PORTS.CHAT}`,
-      frontend: `${API_ORIGIN}:${PORTS.FRONTEND}`,
-      gameBackend: `${API_ORIGIN}:${PORTS.GAME_BACKEND}`,
+      authBackend: `${API_ORIGIN}/api/auth`,
+      usrManag: `${API_ORIGIN}/api/users`,
+      chat: `${API_ORIGIN}/api/chat`,
+      frontend: `${API_ORIGIN}`,
+      gameBackend: `${API_ORIGIN}/api/game`,
     };
   }
 

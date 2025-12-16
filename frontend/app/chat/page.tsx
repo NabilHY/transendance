@@ -35,7 +35,9 @@ export interface Conversation {
 const chatPort = process.env.NEXT_PUBLIC_WS_URL
   ? `${process.env.NEXT_PUBLIC_WS_URL}/api/chat`
   : `${typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss' : 'ws'}://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8006`;
-const userMgntURL = process.env.NEXT_PUBLIC_USR_MANAG_URL || "http://localhost:4000";
+const userMgntURL = process.env.NEXT_PUBLIC_BASE_URL
+  ? `${process.env.NEXT_PUBLIC_BASE_URL}/api/users`
+  : (process.env.NEXT_PUBLIC_USR_MANAG_URL || "http://localhost:4000");
 
 const getConversations = async (id: string) => {
   try {
