@@ -119,7 +119,7 @@ module.exports = async function (fastify) {
             },
             404: { type: 'object', properties: { error: { type: 'string' } } }
         }
-    } }, async (request, reply) => {
+    }}, async (request, reply) => {
         const { id, friendId } = request.params;
         const userId = request.user.id;
 
@@ -185,9 +185,9 @@ module.exports = async function (fastify) {
             return { status: 'Add Friend' };
         }
 
-        // if(friendship === "blocked")
-
-        return { status: userFriendship.status };
+        if(userFriendship)  
+            return { status: userFriendship.status };
+        return { status: friendFriendship.status };
     });
 
     // Add friend
@@ -203,15 +203,12 @@ module.exports = async function (fastify) {
             404: { type: 'object', properties: { error: { type: 'string' } } }
         }
     } }, async (request, reply) => {
-
-        // console.log("* USR MANAG: ", request.user.id + " wanna add friend " + request.params.id);
-        console.log("***** REQUEST BODY *****", request.user);
-        // console.log("***** REQUEST PARAMS *****", JSON.parse(request.params));
+        // console.log("***** REQUEST BODY *****", request.user);
 
         const { id } = request.body;
         const userId = request.user.id;
 
-        console.log("* USR MANAG: ", userId + " wanna add friend " + id);
+        // console.log("* USR MANAG: ", userId + " wanna add friend " + id);
 
         if (Number(id) === Number(userId))
             return reply.code(400).send({ error: 'You cannot friend yourself' });
