@@ -66,7 +66,7 @@ class QuadPongManager {
     // Check if we have 4 players
     if (this.quadWaitingQueue.length >= 4) {
       console.log(`🎮 [QUAD] 4 players found! Creating quad pong match...`);
-      return this.createQuadPongMatch();
+      return await this.createQuadPongMatch();
     }
     
     return {
@@ -91,7 +91,7 @@ class QuadPongManager {
   }
 
   // Create a 4-player quad pong match
-  createQuadPongMatch() {
+  async createQuadPongMatch() {
     const roomId = this.generateRoomId();
     
     // Get 4 players from queue
@@ -117,6 +117,18 @@ class QuadPongManager {
     // Create game state
     const gameState = new QuadPongState();
     
+    // Fetch stats BEFORE game starts for ALL players
+    const statsBeforeMap = new Map();
+    for (const player of players) {
+      try {
+        const statsBefore = await this.statsHandler.getUserStats(player.user.id);
+        statsBeforeMap.set(player.user.id, statsBefore);
+        console.log(`📊 [QUAD] Stats BEFORE game start for ${player.user.username}: RR=${statsBefore.rank_points}, XP=${statsBefore.experience_points}`);
+      } catch (err) {
+        console.error(`❌ [QUAD] Failed to get stats for user ${player.user.id}:`, err);
+      }
+    }
+
     // Create game room
     const game = {
       mode: 'quad',
@@ -132,7 +144,8 @@ class QuadPongManager {
         team1: [players[0].user.id, players[1].user.id],
         team2: [players[2].user.id, players[3].user.id]
       },
-      playerRoles: new Map(playerAssignments.map(pa => [pa.player.connectionId, pa.role]))
+      playerRoles: new Map(playerAssignments.map(pa => [pa.player.connectionId, pa.role])),
+      statsBeforeMap: statsBeforeMap // Store initial stats for all players
     };
 
     this.quadGames.set(roomId, game);
@@ -298,81 +311,100 @@ class QuadPongManager {
     const winningTeam = team1Won ? 'team1' : 'team2';
     const losingTeam = team1Won ? 'team2' : 'team1';
 
-    // Get all players
-    const team1Players = [];
-    const team2Players = [];
+    // Get ALL players (including disconnected ones) from the original team rosters
+    const team1UserIds = gameRoom.teams.team1;
+    const team2UserIds = gameRoom.teams.team2;
 
-    for (const connectionId of gameRoom.players) {
-      const playerData = this.quadPlayers.get(connectionId);
-      if (playerData) {
-        if (playerData.team === 'team1') {
-          team1Players.push(playerData);
-        } else {
-          team2Players.push(playerData);
+    console.log(`📋 [QUAD] Team 1 IDs: ${team1UserIds.join(', ')}`);
+    console.log(`📋 [QUAD] Team 2 IDs: ${team2UserIds.join(', ')}`);
+
+    // Use the stats captured at game start (from gameRoom.statsBeforeMap)
+    const statsBeforeMap = gameRoom.statsBeforeMap || new Map();
+    console.log(`📊 [QUAD] Using stats captured at game start for ${statsBeforeMap.size} players`);
+
+    // Process stats for ALL team 1 players (winners or losers)
+    for (const userId of team1UserIds) {
+      try {
+        const currentStats = statsBeforeMap.get(userId);
+        if (currentStats) {
+          await this.statsHandler.updatePlayerStats(
+            userId,
+            currentStats,
+            team1Won,
+            'quad'
+          );
+          console.log(`✅ [QUAD] Updated stats for team1 user ${userId} (won: ${team1Won})`);
         }
+      } catch (err) {
+        console.error(`❌ [QUAD] Failed to update stats for team1 user ${userId}:`, err);
       }
     }
 
-    // Fetch stats BEFORE processing game completion
-    const statsBeforeMap = new Map();
-    for (const player of [...team1Players, ...team2Players]) {
-      const statsBefore = await this.statsHandler.getUserStats(player.user.id);
-      statsBeforeMap.set(player.user.id, statsBefore);
-      console.log(`📊 [QUAD] Stats BEFORE for ${player.user.username}: RR=${statsBefore.rank_points}, XP=${statsBefore.experience_points}`);
-    }
-
-    // Process stats for each player individually
-    // Update stats for team 1 players (winners)
-    for (const player of team1Players) {
-      const currentStats = statsBeforeMap.get(player.user.id);
-      await this.statsHandler.updatePlayerStats(
-        player.user.id,
-        currentStats,
-        team1Won,
-        'quad'
-      );
-    }
-
-    // Update stats for team 2 players (losers)
-    for (const player of team2Players) {
-      const currentStats = statsBeforeMap.get(player.user.id);
-      await this.statsHandler.updatePlayerStats(
-        player.user.id,
-        currentStats,
-        !team1Won,
-        'quad'
-      );
+    // Process stats for ALL team 2 players (winners or losers)
+    for (const userId of team2UserIds) {
+      try {
+        const currentStats = statsBeforeMap.get(userId);
+        if (currentStats) {
+          await this.statsHandler.updatePlayerStats(
+            userId,
+            currentStats,
+            !team1Won,
+            'quad'
+          );
+          console.log(`✅ [QUAD] Updated stats for team2 user ${userId} (won: ${!team1Won})`);
+        }
+      } catch (err) {
+        console.error(`❌ [QUAD] Failed to update stats for team2 user ${userId}:`, err);
+      }
     }
 
     // Log game to history (one entry for the whole match)
     const gameDuration = Math.floor((gameRoom.gameEndTime - gameRoom.gameStartTime) / 1000);
     await this.statsHandler.logGameHistory({
-      player1Id: team1Players[0]?.user.id,
-      player2Id: team2Players[0]?.user.id,
+      player1Id: team1UserIds[0],
+      player2Id: team2UserIds[0],
       player1Score: scores.team1,
       player2Score: scores.team2,
       gameMode: 'quad',
       gameDuration,
-      winner: team1Won ? team1Players[0]?.user.id : team2Players[0]?.user.id
+      winner: team1Won ? team1UserIds[0] : team2UserIds[0]
     });
 
     console.log(`✅ [QUAD] Stats updated for all players`);
 
     // Send win screens to all players
-    await this.sendQuadWinScreens(gameRoom, team1Players, team2Players, team1Won, statsBeforeMap);
+    await this.sendQuadWinScreens(gameRoom, team1Won, statsBeforeMap, scores);
   }
 
-  // Send win screens to all quad players
-  async sendQuadWinScreens(gameRoom, team1Players, team2Players, team1Won, statsBeforeMap) {
-    // Generate win screen data for each player
-    for (const player of [...team1Players, ...team2Players]) {
+  // Send win screens to all quad players (only connected ones)
+  async sendQuadWinScreens(gameRoom, team1Won, statsBeforeMap, scores) {
+    // Get all user info from authenticated players map
+    const allPlayers = Array.from(gameRoom.authenticatedPlayers.entries()).map(([connId, user]) => {
+      // Find if this player is still connected
+      const playerData = this.quadPlayers.get(connId);
+      const team = gameRoom.teams.team1.includes(user.id) ? 'team1' : 'team2';
+      
+      return {
+        connectionId: connId,
+        user: user,
+        team: team,
+        connected: playerData && playerData.connection && playerData.connection.readyState === 1,
+        connection: playerData?.connection
+      };
+    });
+
+    // Send win screens only to connected players
+    for (const player of allPlayers) {
+      if (!player.connected) {
+        console.log(`⚠️  [QUAD] Skipping win screen for disconnected player: ${player.user.username}`);
+        continue;
+      }
+
       const won = (player.team === 'team1' && team1Won) || (player.team === 'team2' && !team1Won);
       
-      // Get opponents (other team)
-      const opponents = player.team === 'team1' ? team2Players : team1Players;
-      const teammates = player.team === 'team1' ? 
-        team1Players.filter(p => p.user.id !== player.user.id) :
-        team2Players.filter(p => p.user.id !== player.user.id);
+      // Get teammates and opponents
+      const teammates = allPlayers.filter(p => p.team === player.team && p.user.id !== player.user.id);
+      const opponents = allPlayers.filter(p => p.team !== player.team);
 
       // Get stats before and after
       const statsBefore = statsBeforeMap.get(player.user.id);
@@ -381,39 +413,37 @@ class QuadPongManager {
       console.log(`📊 [QUAD] Stats AFTER for ${player.user.username}: RR=${statsAfter.rank_points}, XP=${statsAfter.experience_points}`);
       console.log(`📊 [QUAD] Stats DIFF for ${player.user.username}: RR=${(statsAfter.rank_points||0)-(statsBefore.rank_points||0)}, XP=${(statsAfter.experience_points||0)-(statsBefore.experience_points||0)}`);
 
-      if (player.connection && player.connection.readyState === 1) {
-        console.log(`📤 [QUAD] Sending quadGameResult to ${player.user.username}: won=${won}, team=${player.team}`);
-        player.connection.send(JSON.stringify({
-          type: 'quadGameResult',
-          won,
-          team: player.team,
-          teammates: teammates.map(t => ({
-            username: t.user.username,
-            id: t.user.id
-          })),
-          opponents: opponents.map(o => ({
-            username: o.user.username,
-            id: o.user.id
-          })),
-          finalScore: {
-            team1: gameRoom.finalScores.team1Score,
-            team2: gameRoom.finalScores.team2Score
-          },
-          stats: (statsBefore && statsAfter) ? {
-            oldRating: statsBefore.rank_points || 0,
-            newRating: statsAfter.rank_points || 0,
-            oldXp: statsBefore.experience_points || 0,
-            newXp: statsAfter.experience_points || 0,
-            oldLevel: statsBefore.player_level || 1,
-            newLevel: statsAfter.player_level || 1,
-            totalMatches: statsAfter.games_played || 0,
-            wins: statsAfter.games_won || 0,
-            losses: statsAfter.games_lost || 0
-          } : null
-        }));
-        
-        console.log(`📤 [QUAD] Sent win screen to ${player.user.username} (won: ${won})`);
-      }
+      console.log(`📤 [QUAD] Sending quadGameResult to ${player.user.username}: won=${won}, team=${player.team}`);
+      player.connection.send(JSON.stringify({
+        type: 'quadGameResult',
+        won,
+        team: player.team,
+        teammates: teammates.map(t => ({
+          username: t.user.username,
+          id: t.user.id
+        })),
+        opponents: opponents.map(o => ({
+          username: o.user.username,
+          id: o.user.id
+        })),
+        finalScore: {
+          team1: scores.team1,
+          team2: scores.team2
+        },
+        stats: (statsBefore && statsAfter) ? {
+          oldRating: statsBefore.rank_points || 0,
+          newRating: statsAfter.rank_points || 0,
+          oldXp: statsBefore.experience_points || 0,
+          newXp: statsAfter.experience_points || 0,
+          oldLevel: statsBefore.player_level || 1,
+          newLevel: statsAfter.player_level || 1,
+          totalMatches: statsAfter.games_played || 0,
+          wins: statsAfter.games_won || 0,
+          losses: statsAfter.games_lost || 0
+        } : null
+      }));
+      
+      console.log(`📤 [QUAD] Sent win screen to ${player.user.username} (won: ${won})`);
     }
   }
 
@@ -483,19 +513,26 @@ class QuadPongManager {
             await this.processQuadGameCompletion(player.roomId, gameRoom, state);
           }
         } else {
-          // Both teams still have players - game continues
-          console.log(`✅ [QUAD] Game continues with remaining players`);
+          // Both teams still have players
+          const state = gameRoom.gameState.getState();
           
-          // Notify remaining players about the disconnection
-          for (const remainingId of gameRoom.players) {
-            const remainingPlayer = this.quadPlayers.get(remainingId);
-            if (remainingPlayer && remainingPlayer.connection && remainingPlayer.connection.readyState === 1) {
-              remainingPlayer.connection.send(JSON.stringify({
-                type: 'playerLeft',
-                message: `A player from ${disconnectedTeam} left. Game continues.`,
-                team: disconnectedTeam
-              }));
+          // Only notify if game is still active (not ended)
+          if (state.gameActive && !state.winner) {
+            console.log(`✅ [QUAD] Game continues with remaining players`);
+            
+            // Notify remaining players about the disconnection
+            for (const remainingId of gameRoom.players) {
+              const remainingPlayer = this.quadPlayers.get(remainingId);
+              if (remainingPlayer && remainingPlayer.connection && remainingPlayer.connection.readyState === 1) {
+                remainingPlayer.connection.send(JSON.stringify({
+                  type: 'playerLeft',
+                  message: `A player from ${disconnectedTeam} left. Game continues.`,
+                  team: disconnectedTeam
+                }));
+              }
             }
+          } else {
+            console.log(`🏁 [QUAD] Game already ended - no notification sent for disconnect`);
           }
         }
 

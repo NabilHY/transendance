@@ -224,10 +224,10 @@ export const useGameWebSocket = (
         setPlayerInfo(null);
         setGameState(null);
       } else if (message.type === 'playerLeft') {
-        alert(message.message);
-        setScreen("start");
-        setPlayerInfo(null);
-        setGameState(null);
+        // For quad games, just show a console message, don't reset the screen
+        // The game will continue or end with proper win screens
+        console.log('Player left:', message.message);
+        // Don't show alert or reset screen - let the game handle it naturally
       } else if (message.type === 'matchCancelled') {
         setScreen("start");
         setPlayerInfo(null);

@@ -12,31 +12,26 @@ fastify.addHook('preHandler', async (request, reply) => {
   // Get the origin from the request
   const origin = request.headers.origin;
   
-  // Allowed origins
-  const allowedOrigins = [
-    'http://localhost:3010',
-    'http://localhost:3000',
-    'http://localhost:4321',
-    'http://127.0.0.1:3010',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:4321'
-  ];
-  
-  // Check if origin is allowed - must match exactly or match localhost/127.0.0.1 patterns
+  // Check if origin is allowed
   let isAllowed = false;
   if (origin) {
-    // First check exact match
-    if (allowedOrigins.includes(origin)) {
-      isAllowed = true;
-    } 
-    // Then check regex patterns for localhost with any port
-    else if (/^http:\/\/localhost(:\d+)?$/.test(origin)) {
-      isAllowed = true;
-    }
-    // Then check regex patterns for 127.0.0.1 with any port
-    else if (/^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {
-      isAllowed = true;
-    }
+    // Allow localhost and 127.0.0.1 with any port
+    const allowedPatterns = [
+      /^http:\/\/localhost(:\d+)?$/,
+      /^https?:\/\/localhost(:\d+)?$/,
+      /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+      /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+      /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,  // Local network IPs
+      /^https?:\/\/192\.168\.\d+\.\d+(:\d+)?$/,  // Local network IPs (HTTPS)
+      /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs
+      /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs (HTTPS)
+      /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs
+      /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs (HTTPS)
+      /^https?:\/\/[\d.]+:\d+$/  // Any IP address with port (development mode)
+    ];
+    
+    isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+    console.log(`[CORS] Origin: ${origin} - Allowed: ${isAllowed}`);
   }
   
   // Set CORS headers - CRITICAL: When credentials are used, we MUST use specific origin, never '*'
