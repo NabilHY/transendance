@@ -9,14 +9,11 @@ import { umGetUser, UMUser } from '@/lib/api';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
 import { ProfileCard } from '@/components/ProfileCard';
 import { headers } from 'next/dist/client/components/headers';
-// import { log } from 'console';
 import CurrentUserProfileNotice from '@/components/CurrentUserProfileNotice';
 
 export default function UserDetailPage() {
     const params = useParams();
-    const router = useRouter();
     const userId = params?.id as string;
-    const { user: currentUser, ensureCsrf } = useAuth();
     const { addFriend, blockUser, clearError } = useUser();
     const { loading: authLoading } = useRequireAuth();
     const [user, setUser] = useState<UMUser | null>(null);
@@ -26,6 +23,8 @@ export default function UserDetailPage() {
     const [friendshipStatus, setFriendshipStatus] = useState<string | null>(null);
     const [invitationReceived, setInvitationReceived] = useState<boolean>(false);
     const [blockerOrblocked, setBlockerOrblocked] = useState<boolean>(false);
+    const router = useRouter();
+    const { user: currentUser, ensureCsrf } = useAuth();
 
     useEffect(() => {
         console.log("---------------->");
@@ -246,41 +245,10 @@ export default function UserDetailPage() {
         }
     };
 
-    const handleMessageClick = async () => {
-        try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/chat/direct/${user?.id}`, {
-                method: "GET",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                console.log("direct data ---> ", data);
-                if(data.conversationId !== -1) {
-                    console.log("conversation found: ", data.conversationId);
-                    router.push(`/chat/${data.conversationId}`);
-                } else {
-                    console.log("conversation found not found: ", data.conversationId);
-                    try {
-                        const createRes = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/chat/direct`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
-                            body: JSON.stringify({ targetUserId: user?.id }),
-                        });
-                        const conv = await createRes.json();
-                        console.log("conv ID: ", conv);
-                        router.push(`/chat/${conv.conversationId}`);
-                    } catch (err) {
-                        console.error("Failed to create direct conversation", err);
-                    }
-                }
-            }
-            // router.push(`/chat/${data.channelId}`);
-        } catch (err) {
-            console.error("Failed to open conversation", err);
-        }
+    const handleMessageBtn = async (userId: string) => {
+        const chatURL = await handleMessageClick(userId);
+        if(chatURL)
+            router.push(chatURL);
     }
 
     if (authLoading) {
@@ -329,7 +297,7 @@ export default function UserDetailPage() {
                 invitationReceived={invitationReceived}
                 blockUser={handleBlockUser}
                 rejectRequest={rejectRequest}
-                handleMessageBtn={handleMessageClick}
+                handleMessageBtn={() => handleMessageBtn(user.id.toString())}
             />
 
             <CurrentUserProfileNotice isCurrentUser={isCurrentUser}/>

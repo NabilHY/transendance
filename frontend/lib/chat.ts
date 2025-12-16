@@ -159,3 +159,39 @@ export const getReceiverId = async (conversation: Conversation) => {
     // groupe page I should add it later -- simo
   }
 }
+
+export const handleMessageClick = async (userId: string) => {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/chat/direct/${userId}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+        console.log("direct data ---> ", data);
+        if(data.conversationId !== -1) {
+            console.log("convers`/chat/${data.conversationId}`ation found: ", data.conversationId);
+            return `/chat/${data.conversationId}`;
+        } else {
+            console.log("conversation found not found: ", data.conversationId);
+            try {
+                const createRes = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/chat/direct`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ targetUserId: user?.id }),
+                });
+                const conv = await createRes.json();
+                console.log("conv ID: ", conv);
+                return `/chat/${conv.conversationId}`;
+            } catch (err) {
+                console.error("Failed to create direct conversation", err);
+            }
+        }
+    }
+  } catch (err) {
+      console.error("Failed to open conversation", err);
+  }
+}

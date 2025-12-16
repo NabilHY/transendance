@@ -5,6 +5,7 @@ import { Conversation } from "@/lib/chat";
 import styles from "./ConversationsList.module.css";
 import { Friend, getChannelName } from "@/lib/chat";
 import { useRouter } from "next/navigation";
+import { handleMessageClick } from "@/lib/chat";
 
 interface ConversationsListProps {
   currentUser: {id: string; name: string; avatar?: string } | null;
@@ -42,9 +43,6 @@ export default function ConversationsList({
     }
   }
 
-  const handleConversationSelect = async (id: string) => {
-    console.log("=====> selected conversation id: ", id);
-  }
 
   useEffect(() => {
     const run = async () => {
@@ -84,6 +82,12 @@ export default function ConversationsList({
 
   }, [conversations])
 
+  const startFriendConv = async (friendId: string) => {
+    const chatURL = await handleMessageClick(friendId);
+    if(chatURL)
+      router.push(chatURL);
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -106,6 +110,7 @@ export default function ConversationsList({
               <div
                 key={friend.id}
                 className={styles.chatUserItem}
+                onClick={() => startFriendConv(friend.id)}
               >
 
                 {friend.profile_pic ? (

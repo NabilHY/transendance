@@ -137,7 +137,6 @@ const page = () => {
           messages={messages}
           setMessages={setMessages}
           conversation={conversation}
-          // onSendMessage={sendMessage}
           ws={ws}
           currentUser={currentUser}
         />
