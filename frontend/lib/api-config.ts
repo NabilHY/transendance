@@ -4,6 +4,10 @@
  * This allows the app to work with localhost, 127.0.0.1, or any IP address
  */
 
+// Base origins supplied via env for prod HTTPS
+export const API_ORIGIN = process.env.NEXT_PUBLIC_BASE_URL || '';
+export const WS_ORIGIN = process.env.NEXT_PUBLIC_WS_URL || '';
+
 // Get the current hostname (works in browser only)
 export const getHostname = (): string => {
   if (typeof window !== 'undefined') {
