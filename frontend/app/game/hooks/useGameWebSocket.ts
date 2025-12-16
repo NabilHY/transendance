@@ -56,9 +56,12 @@ export const useGameWebSocket = (
 
     setAuthError(null);
 
-    // Dynamic WebSocket URL - use env override for prod HTTPS, else derive from current protocol
-    const baseWs = process.env.NEXT_PUBLIC_WS_URL || `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:4322`;
-    const wsUrl = `${baseWs}/ws?token=${encodeURIComponent(token)}`;
+    // Dynamic WebSocket URL:
+    // - Prod (behind nginx TLS): NEXT_PUBLIC_WS_URL should be like "wss://10.32.110.187" and we connect via /api/game/ws
+    // - Dev: connect directly to game-backend on :4322/ws
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL
+      ? `${process.env.NEXT_PUBLIC_WS_URL}/api/game/ws?token=${encodeURIComponent(token)}`
+      : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:4322/ws?token=${encodeURIComponent(token)}`;
     
     console.log(`🔗 Connecting to WebSocket: ${wsUrl.replace(/token=[^&]+/, 'token=***')}`);
     const ws = new WebSocket(wsUrl);

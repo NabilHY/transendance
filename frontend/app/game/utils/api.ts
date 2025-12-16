@@ -17,7 +17,14 @@ export const getAuthBackendUrl = () => {
   // Dev: direct to auth-backend port
   return `http://${getApiHost()}:8005`;
 };
-export const getGameBackendUrl = () => `http://${getApiHost()}:4322`;
+export const getGameBackendUrl = () => {
+  // Prod: use nginx public origin and let it route /api/game/*
+  if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
+    return `${process.env.NEXT_PUBLIC_BASE_URL}/api/game`;
+  }
+  // Dev: direct to game-backend port
+  return `http://${getApiHost()}:4322`;
+};
 
 export interface GameTokenResponse {
   token: string;
