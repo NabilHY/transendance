@@ -118,7 +118,6 @@ const page = () => {
     getConversation(params.id).then((data) => {
       const name = data?.is_private ? getChannelName(params.id) : data.name;
       setConversation({...data, name: name});
-      // console.log("conversation data: ", conversation);
     });
   }, [params.id]);
 

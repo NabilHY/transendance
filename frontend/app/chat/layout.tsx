@@ -16,7 +16,7 @@ const layout = ({children}: {children: React.ReactNode}) => {
 
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar?: string } | null>(null);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  // const [conversations, setConversations] = useState<Conversation[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [activeConversation, setActiveConversation] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,7 +39,7 @@ const layout = ({children}: {children: React.ReactNode}) => {
         return;
       }
 
-      setConversations(await getConversations(currentUser.id));
+      // setConversations(await getConversations(currentUser.id));
       setFriends(await getFriends(currentUser.id));
       const data = await res.json();
     };
@@ -51,12 +51,6 @@ const layout = ({children}: {children: React.ReactNode}) => {
     console.log("out");
   };
 }, []);
-
-  useEffect(() => {
-    if(activeConversation === "") return;
-    console.log("* conversations updated: ", conversations);
-    sendMessage("", 1);
-  }, [activeConversation]);
 
   const getFriends = async (id: string) => {
     try {
@@ -71,23 +65,6 @@ const layout = ({children}: {children: React.ReactNode}) => {
       return data;
     } catch (err) {
       console.error("Failed to fetch friends:", err);
-      return [];
-    }
-  }
-
-  const getConversations = async (id: string) => {
-    try {
-      const res = await fetch(`${userMgntURL}/conversations/${id}`, {
-        method: "GET",
-        credentials: "include",
-      });
-      if (!res.ok)
-        throw new Error(`Server error: ${res.status}`);
-      const data = await res.json();
-      // console.log("* Conversation: ", data);
-      return data;
-    } catch (err) {
-      console.error("Failed to fetch conversations:", err);
       return [];
     }
   }
@@ -108,16 +85,16 @@ const layout = ({children}: {children: React.ReactNode}) => {
 
   return (
     <>
-      {isSuccess === true && (
+      {isSuccess === true && currentUser !== null && (
         <>
         <div className={styles.container}>
           <div className={styles.mainContent}>
             <div className={styles.chatSection}>
               <ConversationsList
-                conversations={conversations}
+                currentUser={currentUser}
                 friends={friends}
-                activeConversation={activeConversation}
-                onConversationSelect={setActiveConversation}
+                // activeConversation={activeConversation}
+                // onConversationSelect={setActiveConversation}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
                 onSendMessage={sendMessage}

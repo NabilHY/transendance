@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
-import { Conversation } from "../src/pages/Chat";
+import { useEffect, useState } from "react";
+// import { Conversation } from "../src/pages/Chat";
+import { Conversation } from "@/lib/chat";
 import styles from "./ConversationsList.module.css";
 // import { Friend } from "@/app/chat/layout";
-import { Friend } from "@/lib/chat";
-
+import { Friend, getChannelName } from "@/lib/chat";
+import { useRouter } from "next/navigation";
+// import { Conversation } from "@/lib/chat";
 
 interface ConversationsListProps {
-  conversations: Conversation[];
-  activeConversation: string;
-  onConversationSelect: (id: string) => void;
+  currentUser: {id: string; name: string; avatar?: string } | null;
+  // activeConversation: string;
+  // onConversationSelect: (id: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSendMessage: (content: string, getPending: number) => Promise<void>;
@@ -18,25 +20,74 @@ interface ConversationsListProps {
 }
 
 export default function ConversationsList({
-  conversations,
-  activeConversation,
-  onConversationSelect,
+  currentUser,
   searchQuery,
   onSearchChange,
   onSendMessage,
   friends,
 }: ConversationsListProps) {
 
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [haveNames, setHaveNames] = useState(false);
+  const router = useRouter();
+
+  const getConversations = async (id: string) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/conversations/${id}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok)
+        throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      console.error("Failed to fetch conversations:", err);
+      return [];
+    }
+  }
+
   const handleConversationSelect = async (id: string) => {
-    onConversationSelect(id);
-    // await onSendMessage("", 1);
     console.log("=====> selected conversation id: ", id);
   }
 
   useEffect(() => {
+    const run = async () => {
+      setConversations(await getConversations(currentUser.id));
+    }
+
+    run();
+
+    return () => {
+      console.log("out");
+    };
+
+  }, []);
+
+  useEffect(() => {
+
+    const fetchPrivateChannelsNames = () => {
+      let counter = 0;
+      conversations.forEach(async (conv) => {
+        if(conv && conv.is_private) {
+          conv.name = await getChannelName(conv.id);
+          if(conv.name !== null)
+            counter++;
+        }
+        if(counter === conversations.length)
+          setHaveNames(true);
+      })
+    }
+
+    fetchPrivateChannelsNames();
+    console.log("should be executed once");
     console.log("conversations: ", conversations);
+
     
-  }, [conversations]);
+
+    return () => {};
+
+  }, [conversations])
 
   return (
     <div className={styles.container}>
@@ -61,11 +112,16 @@ export default function ConversationsList({
                 key={friend.id}
                 className={styles.chatUserItem}
               >
-                <img
-                  src={friend.profile_pic}
-                  alt={friend.username}
-                  className={styles.chatUserAvatar}
-                />
+
+                {friend.profile_pic ? (
+                  <img
+                    src={friend.profile_pic}
+                    alt={friend.username}
+                    className={styles.chatUserAvatar}
+                  />
+                ): (
+                  <div className={styles.placeholderAvatar}>{friend.first_name && friend.first_name[0]?.toUpperCase()}</div>
+                )}
 
                 <div className={styles.chatUserInfo}>
                   <div className={styles.chatUserName}>
@@ -82,41 +138,39 @@ export default function ConversationsList({
         )}
 
         {/* Conversations Section */}
-        {conversations.length > 0 && (
+        {conversations.length > 0 && haveNames === true && (          
           <>
             <div className={styles.sectionHeader}>Recent Conversations</div>
-            {conversations.map((conversation) => (
-              <button
-                key={conversation.id}
-                onClick={
-                  () => {
-                    handleConversationSelect(conversation.id);
-                  }
-                }
-                className={`${styles.conversationItem} ${
-                  activeConversation === conversation.id ? styles.active : ""
-                }`}
+            {conversations.map(conv => (
+              
+              <div
+                key={conv.id}
+                className={styles.chatUserItem}
+                onClick={() => {
+                  // console.log("clicked conv: ", conv);
+                  router.push(`/chat/${conv.id}`);
+                }}
               >
-                <div className={styles.avatarContainer}>
+                {conv.avatar ? (
                   <img
-                    src={conversation.avatar}
-                    alt={conversation.name}
-                    className={styles.avatar}
+                    src={conv.avatar}
+                    alt={conv.name}
+                    className={styles.chatUserAvatar}
                   />
-                  {conversation?.status === "online" && (
-                    <div className={styles.onlineIndicator}></div>
-                  )}
-                </div>
+                ): (
+                  <div className={styles.placeholderAvatar}>{conv.name && conv.name[0]?.toUpperCase()}</div>
+                )}
 
-                <div className={styles.conversationContent}>
-                  <div className={styles.conversationHeader}>
-                    <span className={styles.name}>{conversation.name}</span>
-                    <span className={styles.timestamp}>{conversation?.timestamp}</span>
+                <div className={styles.chatUserInfo}>
+                  <div className={styles.chatUserName}>
+                    {conv.name}
                   </div>
-                  <div className={styles.lastMessage}>{conversation.lastMessage}</div>
-                </div>
 
-              </button>
+                  <div className={styles.chatUserUsername}>
+                    @{conv.name}
+                  </div>
+                </div>
+              </div>
             ))}
           </>
         )}

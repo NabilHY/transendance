@@ -19,6 +19,7 @@ export interface Conversation {
   created_by: string;
   created_at: string;
   updated_at: string;
+  avatar?: string;
   last_message_id: string;
   last_message_content: string;
   last_message_sender: string;

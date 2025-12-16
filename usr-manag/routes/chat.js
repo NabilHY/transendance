@@ -247,13 +247,13 @@ module.exports = async function (fastify) {
 
             if (channel.is_private) {
                 const member = fastify.db.prepare(`
-                    SELECT u.username
+                    SELECT u.first_name, u.last_name
                     FROM channel_members cm
                     JOIN users u ON cm.user_id = u.id
                     WHERE cm.channel_id = ? AND cm.user_id != ?
                 `).get(id, userId.toString());
 
-                return reply.send({ name: member ? member.username : "Unknown" });
+                return reply.send({ name: member ? `${member.first_name} ${member.last_name}` : "Unknown" });
             } else {
                 const publicChannel = fastify.db.prepare(`
                     SELECT name FROM channels WHERE id = ?

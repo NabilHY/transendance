@@ -77,9 +77,7 @@ export default function ChatWindow({
               />
             ) : (
               <div className={styles.placeholderAvatar}>
-                {/* {conversation?.name.charAt(0).toUpperCase()} */}
                 {conversation.name.value && conversation.name.value[0]?.toUpperCase()}
-                {/* {conversation?.name[0]?.toUpperCase()} */}
               </div>
             )}
             {conversation.status === "online" && (
