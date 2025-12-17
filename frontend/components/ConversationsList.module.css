@@ -30,18 +30,18 @@
   padding: 0.75rem;
   background: linear-gradient(
     135deg,
-    rgba(0, 255, 255, 0.15),
-    rgba(138, 43, 226, 0.15)
+    rgba(0, 180, 255, 0.18),
+    rgba(30, 90, 255, 0.18)
   );
 
-  color: #eafcff;
+  color: #e6f4ff;
 
   border: 1px solid transparent;
   border-radius: 8px;
 
   box-shadow:
-    0 0 10px rgba(0, 255, 255, 0.45),
-    inset 0 0 8px rgba(0, 255, 255, 0.2);
+    0 0 10px rgba(0, 180, 255, 0.45),
+    inset 0 0 8px rgba(0, 180, 255, 0.2);
 
   transition: all 0.3s ease;
 }
@@ -49,26 +49,25 @@
 .tabButton:hover {
   color: #ffffff;
   box-shadow:
-    0 0 16px rgba(0, 255, 255, 0.7),
-    0 0 28px rgba(138, 43, 226, 0.4),
-    inset 0 0 10px rgba(0, 255, 255, 0.3);
+    0 0 16px rgba(0, 180, 255, 0.75),
+    0 0 28px rgba(30, 90, 255, 0.45),
+    inset 0 0 10px rgba(0, 180, 255, 0.35);
 }
 
 .tabButton.active {
   background: linear-gradient(
     135deg,
-    rgba(0, 255, 255, 0.35),
-    rgba(138, 43, 226, 0.35)
+    rgba(0, 180, 255, 0.35),
+    rgba(30, 90, 255, 0.35)
   );
 
   color: #ffffff;
-  border-color: rgba(0, 255, 255, 0.8);
+  border-color: rgba(0, 180, 255, 0.9);
 
   box-shadow:
-    0 0 20px rgba(0, 255, 255, 0.9),
-    0 0 32px rgba(138, 43, 226, 0.6);
+    0 0 20px rgba(0, 180, 255, 0.95),
+    0 0 32px rgba(30, 90, 255, 0.65);
 }
-
 
 /* .tabButton {
   flex: 1;
