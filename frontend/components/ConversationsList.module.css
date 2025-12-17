@@ -28,6 +28,51 @@
 .tabButton {
   flex: 1;
   padding: 0.75rem;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 255, 255, 0.15),
+    rgba(138, 43, 226, 0.15)
+  );
+
+  color: #eafcff;
+
+  border: 1px solid transparent;
+  border-radius: 8px;
+
+  box-shadow:
+    0 0 10px rgba(0, 255, 255, 0.45),
+    inset 0 0 8px rgba(0, 255, 255, 0.2);
+
+  transition: all 0.3s ease;
+}
+
+.tabButton:hover {
+  color: #ffffff;
+  box-shadow:
+    0 0 16px rgba(0, 255, 255, 0.7),
+    0 0 28px rgba(138, 43, 226, 0.4),
+    inset 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+.tabButton.active {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 255, 255, 0.35),
+    rgba(138, 43, 226, 0.35)
+  );
+
+  color: #ffffff;
+  border-color: rgba(0, 255, 255, 0.8);
+
+  box-shadow:
+    0 0 20px rgba(0, 255, 255, 0.9),
+    0 0 32px rgba(138, 43, 226, 0.6);
+}
+
+
+/* .tabButton {
+  flex: 1;
+  padding: 0.75rem;
   background: #2a2a2a;
   color: #999999;
   border: 1px solid #1765b35d;
@@ -47,7 +92,7 @@
   background: #1e90ff;
   color: #ffffff;
   border-color: #1e90ff;
-}
+} */
 
 .conversationsList {
   flex: 1;
