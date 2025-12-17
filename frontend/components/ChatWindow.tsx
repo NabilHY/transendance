@@ -33,6 +33,8 @@ export default function ChatWindow({
   const [inputValue, setInputValue] = useState("");
   // const [showGroupForm, setShowGroupForm] = useState(false);
   const [groupName, setGroupName] = useState("");
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [usernameToAdd, setUsernameToAdd] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -80,6 +82,43 @@ export default function ChatWindow({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const handleAddUserClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowAddUserForm(true);
+  };
+
+  const handleAddUserSubmit = async (e: React.FormEvent) => {
+
+    e.preventDefault();
+    if (!usernameToAdd.trim()) return;
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/${conversation.id}/add-member`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: usernameToAdd }),
+      });
+      const data = await res.json();
+      if(!res.ok) {
+        console.error("Failed to add user to group:", data.error);
+      }
+    } catch (err) {
+      console.error("Failed to add user to group:", err);
+    }
+    
+    console.log("Adding user to group:", usernameToAdd, "to channel:", conversation.id);
+    setShowAddUserForm(false);
+    setUsernameToAdd("");
+  };
+
+  const handleAddUserCancel = () => {
+    setShowAddUserForm(false);
+    setUsernameToAdd("");
+  };
+
   return (
     <div className={styles.container}>
       {/* <h1>tfooo</h1>    */}
@@ -110,7 +149,37 @@ export default function ChatWindow({
             </span>
           </div>
         </div>
+
+        {conversation.is_private === 0 && (
+          <button type="button" className={styles.addUserButton} onClick={handleAddUserClick}>
+            Add User
+          </button>
+        )}
       </div>
+
+      {showAddUserForm && (
+        <div className={styles.addUserFormOverlay}>
+          <form className={styles.addUserForm} onSubmit={handleAddUserSubmit}>
+            <h3 className={styles.formTitle}>Add User to Group</h3>
+            <input
+              className={styles.addUserInput}
+              type="text"
+              value={usernameToAdd}
+              onChange={(e) => setUsernameToAdd(e.target.value)}
+              placeholder="Enter username"
+              autoFocus
+            />
+            <div className={styles.addUserActions}>
+              <button type="submit" className={styles.addUserSubmitButton}>
+                Add
+              </button>
+              <button type="button" className={styles.addUserCancelButton} onClick={handleAddUserCancel}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <div ref={messagesEndRef} className={styles.messagesContainer}>
       

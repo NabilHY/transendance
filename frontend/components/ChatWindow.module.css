@@ -187,3 +187,105 @@
 .sendButton:hover {
   background: #1c7ed6;
 }
+
+.addUserButton {
+  background: transparent;
+  color: #1e90ff;
+  border: 1px solid #1e90ff;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.addUserButton:hover {
+  background: #1e90ff;
+  color: #ffffff;
+}
+
+.addUserFormOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.addUserForm {
+  background: #1a1a1a;
+  border: 1px solid #1e90ff;
+  border-radius: 1rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 400px;
+  box-shadow: 0 8px 32px rgba(30, 144, 255, 0.2);
+}
+
+.formTitle {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.addUserInput {
+  background: #0f0f0f;
+  border: 1px solid #2a2a2a;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.addUserInput:focus {
+  outline: none;
+  border-color: #1e90ff;
+}
+
+.addUserInput::placeholder {
+  color: #666666;
+}
+
+.addUserActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.addUserSubmitButton,
+.addUserCancelButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.addUserSubmitButton {
+  background: #1e90ff;
+  color: #ffffff;
+}
+
+.addUserSubmitButton:hover {
+  background: #1c7ed6;
+}
+
+.addUserCancelButton {
+  background: transparent;
+  color: #ffffff;
+  border-color: #2a2a2a;
+}
+
+.addUserCancelButton:hover {
+  border-color: #555555;
+}

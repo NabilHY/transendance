@@ -332,10 +332,18 @@ module.exports = async function (fastify) {
         }   
     });
 
-    fastify.post('/channel/group/:id/add-member', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+    fastify.post('/channel/:id/add-member', { preHandler: [fastify.authenticate] }, async (req, reply) => {
         const userId = req.user.id;
         const { id } = req.params;
-        const { newMemberId } = req.body;
+        const { username } = req.body;
+
+        const newMemberId = fastify.db.prepare(`
+            SELECT id FROM users WHERE username = ?
+        `).get(username)?.id;
+
+        if (!newMemberId) {
+            return reply.status(404).send({ error: "User not found" });
+        }
 
         try {
             const roleCheck = fastify.db.prepare(`
@@ -415,4 +423,31 @@ module.exports = async function (fastify) {
             return reply.status(500).send({ error: "Failed to remove member from channel" });
         }
     });
+
+    // fastify.post('/channel/:id/invite', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+    //     const userId = req.user.id;
+    //     const { id } = req.params;
+    //     const { inviteeId } = req.body;
+
+    //     try {
+    //         const roleCheck = fastify.db.prepare(`
+    //             SELECT role FROM channel_members
+    //             WHERE channel_id = ? AND user_id = ?
+    //         `).get(id, userId.toString());
+
+    //         if (!roleCheck) {
+    //             return reply.status(403).send({ error: "Only members can invite others" });
+    //         }
+
+    //         fastify.db.prepare(`
+    //             INSERT INTO channel_members (channel_id, user_id, role)
+    //             VALUES (?, ?, ?)
+    //         `).run(id, inviteeId.toString(), 'member');         
+    //         return reply.send({ success: true });
+
+    //     } catch (err) {
+    //         console.error(err);
+    //         return reply.status(500).send({ error: "Failed to invite member to channel" });
+    //     }
+    // });
 };

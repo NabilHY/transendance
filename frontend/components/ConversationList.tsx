@@ -103,7 +103,6 @@ export default function ConversationsList({
     const handleGroupSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!groupName.trim()) return;
-      // TODO: wire up group creation API once available
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/group/create`, {
           method: "POST",
