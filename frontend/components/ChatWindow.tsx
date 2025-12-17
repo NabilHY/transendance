@@ -12,15 +12,7 @@ interface ChatWindowProps {
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   currentUser: User | null;
-  ws: WebSocket | null, 
-  // onSendMessage: (
-  //   content: string, 
-  //   getPending: number, 
-  //   ws: WebSocket | null, 
-  //   Messages: React.Dispatch<React.SetStateAction<Message[]>>,
-  //   conversation: Conversation,
-  //   currentUser: { id: string; name: string; avatar?: string } | null
-  // ) => void;
+  // ws: WebSocket | null, 
 }
 
 export default function ChatWindow({
@@ -28,7 +20,7 @@ export default function ChatWindow({
   messages,
   setMessages,
   currentUser,
-  ws,
+  // ws,
 }: ChatWindowProps) {
   const [inputValue, setInputValue] = useState("");
   // const [showGroupForm, setShowGroupForm] = useState(false);
@@ -61,7 +53,8 @@ export default function ChatWindow({
     e.preventDefault();
     console.log("submitting message: ", inputValue);
     if (inputValue.trim()) {
-      sendMessage(inputValue, 0, ws, setMessages, conversation, currentUser);
+      // sendMessage(inputValue, 0, ws, setMessages, conversation, currentUser);
+      sendMessage(inputValue, 0, null, setMessages, conversation, currentUser);
       setInputValue("");
     }
   };
