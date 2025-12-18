@@ -65,7 +65,7 @@ const initializeChatSchema = (db) => {
 
                             db.run(`
                                 CREATE TABLE IF NOT EXISTS channels (
-                                    id            TEXT NOT NULL PRIMARY KEY AUTOINCREMENT,
+                                    id            TEXT NOT NULL PRIMARY KEY,
                                     name          TEXT,
                                     is_private    INTEGER NOT NULL DEFAULT 0,           
                                     description   TEXT,

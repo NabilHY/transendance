@@ -168,7 +168,7 @@ export const handleMessageClick = async (userId: string) => {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({ targetUserId: user?.id }),
+                    body: JSON.stringify({ targetUserId: userId }),
                 });
                 const conv = await createRes.json();
                 console.log("conv ID: ", conv);

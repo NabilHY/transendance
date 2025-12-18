@@ -11,13 +11,13 @@ const CurrentUserProfileNotice = ({isCurrentUser}: CurrentUserProfileNoticeProps
     {isCurrentUser && (
       <div style={{ marginTop: 24 }}>
           <div style={{ 
-              border: '1px solid #ffc107', 
+              border: '1px solid #333', 
               padding: 16, 
               borderRadius: 4,
-              background: '#fff3cd'
+              background: '#61260dff'
           }}>
-              <p style={{ margin: 0, color: '#856404' }}>
-                  This is your own profile. You can edit it from the <Link href="/profile">Profile page</Link>.
+              <p style={{ margin: 0, color: '#ffffff' }}>
+                  This is your own profile. You can edit it from the <Link href="/profile" style={{color: 'white'}}>Profile page</Link>.
               </p>
           </div>
       </div>

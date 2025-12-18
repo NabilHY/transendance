@@ -292,6 +292,7 @@ export default function UserDetailPage() {
             
             <ProfileCard 
                 profile={user} 
+                isCurrentUser={isCurrentUser}
                 onAddFriend={handleAddFriend} 
                 friendshipStatus={friendshipStatus} 
                 acceptRequest={acceptRequest}

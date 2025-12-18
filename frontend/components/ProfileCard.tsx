@@ -1,10 +1,12 @@
 import { UMUser } from '@/lib/api';
 import './ProfileCard.css'
+import CurrentUserProfileNotice from './CurrentUserProfileNotice';
 
 interface ProfileCardProps {
   profile: UMUser;
   onAddFriend: () => void;
   friendshipStatus: string | null;
+  isCurrentUser: boolean;
   acceptRequest: () => void;
   invitationReceived?: boolean;
   blockUser: () => void;
@@ -13,9 +15,9 @@ interface ProfileCardProps {
   handleUnblock?: () => void;
 }
 
-export function ProfileCard({ profile, onAddFriend, friendshipStatus, acceptRequest, invitationReceived, blockUser, rejectRequest, handleMessageBtn, handleUnblock }: ProfileCardProps) {
+export function ProfileCard({ profile, isCurrentUser, onAddFriend, friendshipStatus, acceptRequest, invitationReceived, blockUser, rejectRequest, handleMessageBtn, handleUnblock }: ProfileCardProps) {
 
-  console.log("status: ", friendshipStatus);
+  // console.log("status: ", profile,);
   
 
   return (
@@ -61,17 +63,17 @@ export function ProfileCard({ profile, onAddFriend, friendshipStatus, acceptRequ
               <span className="friend-request-message">You have a friend request</span>
               <div className="button-grid">
                 <button className="btn-accept" onClick={acceptRequest}>Accept</button>
-                <button className="btn-danger">Reject</button>
+                <button className="btn-danger" onClick={rejectRequest}>Reject</button>
               </div>
             </>
           )}
 
-        <div className={`button-grid ${friendshipStatus === "blocked" || friendshipStatus === "blocker" || friendshipStatus === "pending" ? "no-display" : null }`}>
+        <div className={`button-grid ${isCurrentUser ? "no-display" : ""} ${friendshipStatus === "blocked" || friendshipStatus === "blocker" || friendshipStatus === "pending" ? "no-display" : null }`}>
           <button className="btn-primary">Invite to Match</button>
           <button className="btn-secondary" onClick={handleMessageBtn} >Message</button>
         </div>
         {/* for blockers users */}
-        <div className={`button-grid mt-small ${friendshipStatus !== "blocker" ? "no-display" : "blocking" }`}>
+        <div className={`button-grid mt-small ${isCurrentUser ? "no-display" : ""} ${friendshipStatus !== "blocker" ? "no-display" : "blocking" }`}>
           <button className={`btn-danger`} onClick={handleUnblock}>Unblock
           </button>
         </div>
@@ -82,13 +84,13 @@ export function ProfileCard({ profile, onAddFriend, friendshipStatus, acceptRequ
         </div> */}
 
          {/* for blocked users */}
-        <div className={`button-grid mt-small ${friendshipStatus !== "blocked" ? "no-display" : "blocking" }`}>
+        <div className={`button-grid mt-small ${isCurrentUser ? "no-display" : ""} ${friendshipStatus !== "blocked" ? "no-display" : "blocking" }`}>
           <button className={`btn-danger`} onClick={onAddFriend}>You got blocked
           </button>
         </div>
 
 
-        <div className={`button-grid mt-small ${friendshipStatus === "blocked" || friendshipStatus === "blocker" ? "no-display" : null }`}>
+        <div className={`button-grid mt-small ${isCurrentUser ? "no-display" : ""} ${friendshipStatus === "blocked" || friendshipStatus === "blocker" ? "no-display" : null }`}>
           <button className={`
             ${friendshipStatus === "accepted" ? "btn-accept" : friendshipStatus === "pending" ? "btn-pending" : "btn-secondary"} 
             ${friendshipStatus !== 'Add Friend' ? 'cursor-not-allowed' : 'cursor-pointer'}`} 
