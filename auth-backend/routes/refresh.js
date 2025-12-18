@@ -108,19 +108,35 @@ module.exports = async function (fastify) {
             });
         });
 
+        // Parse JWT expiry which can be "2h", "15m", "7d", etc.
+        const parseExpiry = (timeStr) => {
+            if (!timeStr) return null;
+            const match = timeStr.match(/^(\d+)([smhd])$/);
+            if (!match) return null;
+            const value = parseInt(match[1]);
+            const unit = match[2];
+            switch(unit) {
+                case 's': return value;
+                case 'm': return value * 60;
+                case 'h': return value * 60 * 60;
+                case 'd': return value * 24 * 60 * 60;
+                default: return null;
+            }
+        };
+
         reply.setCookie('accessToken', newAccessToken, {
             httpOnly: true,
             secure: config.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: parseInt(config.JWT_ACCESS_EXPIRES_IN) || 15 * 60,
+            sameSite: 'lax',
+            maxAge: parseExpiry(config.JWT_ACCESS_EXPIRES_IN) || (15 * 60),
             path: '/'
         });
         
         reply.setCookie('refreshToken', newRefreshToken, {
             httpOnly: true,
             secure: config.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: parseInt(config.JWT_REFRESH_EXPIRES_IN) || 7 * 24 * 60 * 60,
+            sameSite: 'lax',
+            maxAge: parseExpiry(config.JWT_REFRESH_EXPIRES_IN) || (7 * 24 * 60 * 60),
             path: '/'
         });
         

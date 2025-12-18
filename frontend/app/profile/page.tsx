@@ -5,20 +5,21 @@ import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import { User, Settings, Users, Home, LogOut, RefreshCw, Circle } from 'lucide-react';
+import styles from '../login/LoginPage.module.css';
 
 export default function ProfilePage() {
     const { profile, loading, error, updateOnlineStatus, clearError } = useUser();
-    
     const { loading: authLoading, isProfileComplete } = useRequireAuth();
-    
     const { logout } = useAuth();
-    
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     
-    if (authLoading) {
+    if (authLoading || loading) {
         return (
-            <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
-                <h1>Loading...</h1>
+            <main className={styles.page}>
+                <div className={styles.container}>
+                    <div style={{ color: '#8c96b6', fontSize: '15px' }}>Loading...</div>
+                </div>
             </main>
         );
     }
@@ -33,149 +34,489 @@ export default function ProfilePage() {
         }
     };
 
+    const handleRefresh = () => {
+        window.location.reload();
+    };
+
     return (
-        <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1>My Profile</h1>
-                <nav style={{ display: 'flex', gap: 12 }}>
-                    <Link href="/">Dashboard</Link>
-                    <Link href="/users">Users</Link>
-                    <button onClick={logout} style={{ padding: 8 }}>
-                        Logout
-                    </button>
-                </nav>
-            </header>
-
-            {error && (
-                <div style={{ 
-                    background: '#fee', 
-                    border: '1px solid #fcc', 
-                    padding: 12, 
-                    marginBottom: 16,
-                    borderRadius: 4 
+        <main className={styles.page}>
+            <div className={styles.container} style={{ maxWidth: '800px' }}>
+                {/* Navigation Header */}
+                <div style={{
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '24px',
+                    padding: '16px 24px',
+                    background: '#0b111f',
+                    border: '1px solid #1b253f',
+                    borderRadius: '16px'
                 }}>
-                    <p style={{ color: 'crimson', margin: 0 }}>{error}</p>
-                    <button onClick={clearError} style={{ marginTop: 8, padding: 4 }}>
-                        Dismiss
-                    </button>
-                </div>
-            )}
-
-            {profile ? (
-                <div style={{ marginTop: 24 }}>
-                    <div style={{ 
-                        border: '1px solid #ddd', 
-                        padding: 24, 
-                        borderRadius: 8,
-                        background: '#f9f9f9'
+                    <h1 style={{
+                        margin: 0,
+                        fontSize: '24px',
+                        fontWeight: 700,
+                        color: '#e4ecff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
                     }}>
-                        <h2>Profile Information</h2>
-                        
-                        <div style={{ display: 'grid', gap: 16, marginTop: 16 }}>
-                            <div>
-                                <label style={{ fontWeight: 'bold', display: 'block' }}>User ID:</label>
-                                <span>{profile.id}</span>
+                        <User size={24} />
+                        My Profile
+                    </h1>
+                    <nav style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <Link 
+                            href="/" 
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 12px',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                borderRadius: '8px',
+                                color: '#93a0c5',
+                                textDecoration: 'none',
+                                fontSize: '14px',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                            }}
+                        >
+                            <Home size={16} />
+                            Dashboard
+                        </Link>
+                        <Link 
+                            href="/users"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 12px',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                borderRadius: '8px',
+                                color: '#93a0c5',
+                                textDecoration: 'none',
+                                fontSize: '14px',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                            }}
+                        >
+                            <Users size={16} />
+                            Users
+                        </Link>
+                        <Link 
+                            href="/settings"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 12px',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                borderRadius: '8px',
+                                color: '#93a0c5',
+                                textDecoration: 'none',
+                                fontSize: '14px',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                            }}
+                        >
+                            <Settings size={16} />
+                            Settings
+                        </Link>
+                        <button 
+                            onClick={logout}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 12px',
+                                background: 'rgba(255, 77, 77, 0.1)',
+                                border: '1px solid rgba(255, 77, 77, 0.2)',
+                                borderRadius: '8px',
+                                color: '#ff9595',
+                                fontSize: '14px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 77, 77, 0.15)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 77, 77, 0.3)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 77, 77, 0.1)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 77, 77, 0.2)';
+                            }}
+                        >
+                            <LogOut size={16} />
+                            Logout
+                        </button>
+                    </nav>
+                </div>
+
+                {error && (
+                    <div style={{
+                        width: '100%',
+                        padding: '16px',
+                        marginBottom: '24px',
+                        background: 'rgba(255, 77, 77, 0.1)',
+                        border: '1px solid rgba(255, 77, 77, 0.3)',
+                        borderRadius: '12px',
+                        color: '#ff9595',
+                        fontSize: '14px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}>
+                        <span>{error}</span>
+                        <button 
+                            onClick={clearError}
+                            style={{
+                                background: 'rgba(255, 77, 77, 0.2)',
+                                border: '1px solid rgba(255, 77, 77, 0.3)',
+                                borderRadius: '6px',
+                                padding: '4px 8px',
+                                color: '#ff9595',
+                                fontSize: '12px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                )}
+
+                {profile ? (
+                    <div className={styles.grid} style={{ width: '100%' }}>
+                        <section className={styles.card} style={{ width: '100%' }}>
+                            <div className={styles.cardHeader} style={{ textAlign: 'left', marginBottom: '24px' }}>
+                                <h2 className={styles.title} style={{ fontSize: '24px', marginBottom: '8px' }}>
+                                    Profile Information
+                                </h2>
+                                <p className={styles.subtitle} style={{ textAlign: 'left' }}>
+                                    View and manage your account details
+                                </p>
                             </div>
-                            
-                            <div>
-                                <label style={{ fontWeight: 'bold', display: 'block' }}>Username:</label>
-                                <span>{profile.username}</span>
-                            </div>
-                            
-                            <div>
-                                <label style={{ fontWeight: 'bold', display: 'block' }}>First Name:</label>
-                                <span>{profile.first_name || 'Not set'}</span>
-                            </div>
-                            
-                            <div>
-                                <label style={{ fontWeight: 'bold', display: 'block' }}>Last Name:</label>
-                                <span>{profile.last_name || 'Not set'}</span>
-                            </div>
-                            
-                            <div>
-                                <label style={{ fontWeight: 'bold', display: 'block' }}>Online Status:</label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                    <span style={{ 
-                                        color: profile.is_online ? 'green' : 'gray',
-                                        fontWeight: 'bold'
-                                    }}>
-                                        {profile.is_online ? 'Online' : 'Offline'}
+
+                            {/* Profile Picture */}
+                            {profile.profile_pic && (
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    marginBottom: '32px'
+                                }}>
+                                    <img 
+                                        src={profile.profile_pic} 
+                                        alt="Profile"
+                                        style={{
+                                            width: '120px',
+                                            height: '120px',
+                                            borderRadius: '16px',
+                                            border: '2px solid #1b253f',
+                                            objectFit: 'cover'
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            <div style={{ display: 'grid', gap: '20px' }}>
+                                <div className={styles.field}>
+                                    <span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        User ID
                                     </span>
-                                    <button 
-                                        onClick={handleStatusToggle}
-                                        disabled={isUpdatingStatus}
-                                        style={{ 
-                                            padding: '4px 8px',
-                                            background: profile.is_online ? '#ff6b6b' : '#51cf66',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: 4,
-                                            cursor: isUpdatingStatus ? 'not-allowed' : 'pointer'
+                                    <div style={{
+                                        padding: '12px 16px',
+                                        background: '#050b16',
+                                        border: '1px solid #1e2b45',
+                                        borderRadius: '12px',
+                                        color: '#e4ecff',
+                                        fontSize: '15px'
+                                    }}>
+                                        {profile.id}
+                                    </div>
+                                </div>
+
+                                <div className={styles.field}>
+                                    <span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        Username
+                                    </span>
+                                    <div style={{
+                                        padding: '12px 16px',
+                                        background: '#050b16',
+                                        border: '1px solid #1e2b45',
+                                        borderRadius: '12px',
+                                        color: '#e4ecff',
+                                        fontSize: '15px',
+                                        fontWeight: 600
+                                    }}>
+                                        @{profile.username}
+                                    </div>
+                                </div>
+
+                                <div className={styles.field}>
+                                    <span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        First Name
+                                    </span>
+                                    <div style={{
+                                        padding: '12px 16px',
+                                        background: '#050b16',
+                                        border: '1px solid #1e2b45',
+                                        borderRadius: '12px',
+                                        color: '#e4ecff',
+                                        fontSize: '15px'
+                                    }}>
+                                        {profile.first_name || <span style={{ color: '#6b7593' }}>Not set</span>}
+                                    </div>
+                                </div>
+
+                                <div className={styles.field}>
+                                    <span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        Last Name
+                                    </span>
+                                    <div style={{
+                                        padding: '12px 16px',
+                                        background: '#050b16',
+                                        border: '1px solid #1e2b45',
+                                        borderRadius: '12px',
+                                        color: '#e4ecff',
+                                        fontSize: '15px'
+                                    }}>
+                                        {profile.last_name || <span style={{ color: '#6b7593' }}>Not set</span>}
+                                    </div>
+                                </div>
+
+                                <div className={styles.field}>
+                                    <span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        Online Status
+                                    </span>
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        padding: '12px 16px',
+                                        background: '#050b16',
+                                        border: '1px solid #1e2b45',
+                                        borderRadius: '12px'
+                                    }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            flex: 1
+                                        }}>
+                                            <Circle 
+                                                size={12} 
+                                                fill={profile.is_online ? '#51cf66' : '#6b7593'}
+                                                color={profile.is_online ? '#51cf66' : '#6b7593'}
+                                            />
+                                            <span style={{
+                                                color: profile.is_online ? '#51cf66' : '#6b7593',
+                                                fontWeight: 600,
+                                                fontSize: '15px'
+                                            }}>
+                                                {profile.is_online ? 'Online' : 'Offline'}
+                                            </span>
+                                        </div>
+                                        <button 
+                                            onClick={handleStatusToggle}
+                                            disabled={isUpdatingStatus}
+                                            className={styles.submitBtn}
+                                            style={{
+                                                padding: '8px 16px',
+                                                fontSize: '13px',
+                                                background: profile.is_online 
+                                                    ? 'linear-gradient(135deg, #ff6b6b, #ff8787)' 
+                                                    : 'linear-gradient(135deg, #51cf66, #69db7c)',
+                                                opacity: isUpdatingStatus ? 0.6 : 1,
+                                                cursor: isUpdatingStatus ? 'not-allowed' : 'pointer'
+                                            }}
+                                        >
+                                            {isUpdatingStatus ? 'Updating...' : 
+                                             (profile.is_online ? 'Go Offline' : 'Go Online')}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {profile.profile_pic && (
+                                    <div className={styles.field}>
+                                        <span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                            Profile Picture URL
+                                        </span>
+                                        <div style={{
+                                            padding: '12px 16px',
+                                            background: '#050b16',
+                                            border: '1px solid #1e2b45',
+                                            borderRadius: '12px',
+                                            color: '#93a0c5',
+                                            fontSize: '13px',
+                                            wordBreak: 'break-all'
+                                        }}>
+                                            {profile.profile_pic}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className={styles.field}>
+                                    <span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        Member Since
+                                    </span>
+                                    <div style={{
+                                        padding: '12px 16px',
+                                        background: '#050b16',
+                                        border: '1px solid #1e2b45',
+                                        borderRadius: '12px',
+                                        color: '#e4ecff',
+                                        fontSize: '15px'
+                                    }}>
+                                        {new Date(profile.created_at).toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Quick Actions */}
+                            <div style={{
+                                marginTop: '32px',
+                                paddingTop: '24px',
+                                borderTop: '1px solid #1b253f'
+                            }}>
+                                <h3 style={{
+                                    margin: '0 0 16px 0',
+                                    fontSize: '16px',
+                                    fontWeight: 600,
+                                    color: '#e4ecff'
+                                }}>
+                                    Quick Actions
+                                </h3>
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '12px',
+                                    flexWrap: 'wrap'
+                                }}>
+                                    <Link 
+                                        href="/users"
+                                        className={styles.submitBtn}
+                                        style={{
+                                            textDecoration: 'none',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            padding: '12px 20px',
+                                            fontSize: '14px'
                                         }}
                                     >
-                                        {isUpdatingStatus ? 'Updating...' : 
-                                         (profile.is_online ? 'Go Offline' : 'Go Online')}
+                                        <Users size={16} />
+                                        Browse Users
+                                    </Link>
+                                    <Link 
+                                        href="/settings"
+                                        className={styles.submitBtn}
+                                        style={{
+                                            textDecoration: 'none',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            padding: '12px 20px',
+                                            fontSize: '14px'
+                                        }}
+                                    >
+                                        <Settings size={16} />
+                                        Edit Profile
+                                    </Link>
+                                    <button 
+                                        onClick={handleRefresh}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            padding: '12px 20px',
+                                            fontSize: '14px',
+                                            background: 'rgba(255, 255, 255, 0.04)',
+                                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            borderRadius: '12px',
+                                            color: '#93a0c5',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                                        }}
+                                    >
+                                        <RefreshCw size={16} />
+                                        Refresh
                                     </button>
                                 </div>
                             </div>
-                            
-                            <div>
-                                <label style={{ fontWeight: 'bold', display: 'block' }}>Profile Picture:</label>
-                                <span>{profile.profile_pic || 'Not set'}</span>
-                            </div>
-                            
-                            <div>
-                                <label style={{ fontWeight: 'bold', display: 'block' }}>Member Since:</label>
-                                <span>{new Date(profile.created_at).toLocaleDateString()}</span>
-                            </div>
-                        </div>
+                        </section>
                     </div>
-
-                    <div style={{ marginTop: 24 }}>
-                        <h3>Quick Actions</h3>
-                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                            <Link 
-                                href="/users" 
-                                style={{ 
-                                    padding: '8px 16px', 
-                                    background: '#007bff', 
-                                    color: 'white', 
-                                    textDecoration: 'none',
-                                    borderRadius: 4
-                                }}
-                            >
-                                Browse Users
-                            </Link>
-                            <button 
-                                onClick={() => window.location.reload()}
-                                style={{ 
-                                    padding: '8px 16px', 
-                                    background: '#6c757d', 
-                                    color: 'white', 
-                                    border: 'none',
-                                    borderRadius: 4,
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                Refresh Profile
-                            </button>
-                        </div>
+                ) : (
+                    <div className={styles.grid} style={{ width: '100%' }}>
+                        <section className={styles.card} style={{ width: '100%' }}>
+                            <div style={{
+                                padding: '24px',
+                                textAlign: 'center',
+                                color: '#8c96b6'
+                            }}>
+                                <h3 style={{
+                                    margin: '0 0 12px 0',
+                                    fontSize: '18px',
+                                    color: '#e4ecff'
+                                }}>
+                                    No Profile Found
+                                </h3>
+                                <p style={{
+                                    margin: '0 0 20px 0',
+                                    fontSize: '14px',
+                                    lineHeight: '1.6'
+                                }}>
+                                    A profile will be created automatically when you first interact with the user management system.
+                                </p>
+                                <Link 
+                                    href="/users"
+                                    className={styles.submitBtn}
+                                    style={{
+                                        textDecoration: 'none',
+                                        display: 'inline-block'
+                                    }}
+                                >
+                                    Visit Users Page
+                                </Link>
+                            </div>
+                        </section>
                     </div>
-                </div>
-            ) : (
-                <div style={{ 
-                    border: '1px solid #ffc107', 
-                    padding: 16, 
-                    borderRadius: 4,
-                    background: '#fff3cd'
-                }}>
-                    <h3>No Profile Found</h3>
-                    <p>A profile will be created automatically when you first interact with the user management system.</p>
-                    <Link href="/users" style={{ color: '#856404' }}>
-                        Visit Users page to create your profile
-                    </Link>
-                </div>
-            )}
+                )}
+            </div>
         </main>
     );
 }

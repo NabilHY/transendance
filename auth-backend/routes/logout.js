@@ -86,14 +86,14 @@ module.exports = async function (fastify) {
                 path: '/',
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict'
+                sameSite: 'lax'
             });
             
             reply.clearCookie('refreshToken', { 
                 path: '/',
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict'
+                sameSite: 'lax'
             });
             
             return reply.code(200).send({ message: 'Logged out successfully' });

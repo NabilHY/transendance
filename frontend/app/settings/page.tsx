@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Search, User, Mail, Key, Github, Twitter, Trash2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import './styles.css';
 import { fetchCurrentUser } from '@/lib/fetcher';
 
@@ -26,6 +26,7 @@ export interface User {
 
 const SettingsPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -86,6 +87,19 @@ const SettingsPage = () => {
   useEffect(() => {
     loadCurrentUser();
   }, []);
+
+  // Redirect OAuth callbacks to security-settings page
+  useEffect(() => {
+    const connected = searchParams?.get('connected');
+    const error = searchParams?.get('error');
+    
+    if (connected || error) {
+      const params = new URLSearchParams();
+      if (connected) params.set('connected', connected);
+      if (error) params.set('error', error);
+      router.replace(`/settings/security-settings?${params.toString()}`);
+    }
+  }, [searchParams, router]);
 
   return (
     <div className={`container`}>

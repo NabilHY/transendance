@@ -33,7 +33,18 @@ const initializeDatabase = (db) => {
                         last_name TEXT,
                         profile_pic TEXT,
                         is_online INTEGER DEFAULT 0,
-                        updated_at TEXT DEFAULT (datetime('now'))
+                        updated_at TEXT DEFAULT (datetime('now')),
+                        
+                        -- Gaming/Progression fields
+                        player_level INTEGER DEFAULT 1,
+                        experience_points INTEGER DEFAULT 0,
+                        rank_points INTEGER DEFAULT 0,
+                        rank_tier TEXT DEFAULT 'Bronze',
+                        games_played INTEGER DEFAULT 0,
+                        games_won INTEGER DEFAULT 0,
+                        games_lost INTEGER DEFAULT 0,
+                        win_rate REAL DEFAULT 0.0,
+                        current_streak INTEGER DEFAULT 0
                     )
                 `, (err) => {
                     if (err) return reject(err);
