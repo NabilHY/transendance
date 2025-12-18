@@ -23,3 +23,9 @@ export async function fetchCurrentUser() {
     return null;
   }
 }
+
+export async function getUserData(id: string) {
+
+  
+
+}

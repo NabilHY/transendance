@@ -133,6 +133,7 @@ fastify.get('/service-info', {
             'POST /users/:id/friend',
             'POST /users/:id/block',
             'GET /conversations/:id',
+            'GET /chat/direct/:targetUserId',
         ],
         dependencies: ['auth-backend']
     };
@@ -141,6 +142,7 @@ fastify.get('/service-info', {
 // Register routes
 fastify.register(require('../routes/users'), { prefix: '' });
 fastify.register(require('../routes/chat'), { prefix: '' });
+fastify.register(require('../routes/friends'), { prefix: '' });
 // fastify.register(require('../routes/profile'), { prefix: '' });
 fastify.register(require('../plugins/metrics'), { prefix: '/metrics' });
 const start = async () => {

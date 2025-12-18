@@ -143,7 +143,6 @@ services:
   #   volumes:
   #     - grafana_data:/var/lib/grafana
   #     - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-
   # node-exporter:
   #   image: prom/node-exporter:latest
   #   container_name: node-exporter
