@@ -10,9 +10,13 @@ interface ProfileCardProps {
   blockUser: () => void;
   rejectRequest?: () => void;
   handleMessageBtn: () => void;
+  handleUnblock?: () => void;
 }
 
-export function ProfileCard({ profile, onAddFriend, friendshipStatus, acceptRequest, invitationReceived, blockUser, rejectRequest, handleMessageBtn }: ProfileCardProps) {
+export function ProfileCard({ profile, onAddFriend, friendshipStatus, acceptRequest, invitationReceived, blockUser, rejectRequest, handleMessageBtn, handleUnblock }: ProfileCardProps) {
+
+  console.log("status: ", friendshipStatus);
+  
 
   return (
     <div className="profile-card">
@@ -68,14 +72,14 @@ export function ProfileCard({ profile, onAddFriend, friendshipStatus, acceptRequ
         </div>
         {/* for blockers users */}
         <div className={`button-grid mt-small ${friendshipStatus !== "blocker" ? "no-display" : "blocking" }`}>
-          <button className={`btn-danger`} onClick={onAddFriend}>Unblock
+          <button className={`btn-danger`} onClick={handleUnblock}>Unblock
           </button>
         </div>
 
-        <div className={`button-grid mt-small ${friendshipStatus !== "pending" ? "no-display" : "blocking" }`}>
+        {/* <div className={`button-grid mt-small ${friendshipStatus !== "pending" ? "no-display" : "blocking" }`}>
           <button className={`btn-secondary`} onClick={rejectRequest}>Cancel Request
           </button>
-        </div>
+        </div> */}
 
          {/* for blocked users */}
         <div className={`button-grid mt-small ${friendshipStatus !== "blocked" ? "no-display" : "blocking" }`}>
@@ -85,7 +89,11 @@ export function ProfileCard({ profile, onAddFriend, friendshipStatus, acceptRequ
 
 
         <div className={`button-grid mt-small ${friendshipStatus === "blocked" || friendshipStatus === "blocker" ? "no-display" : null }`}>
-          <button className={`${friendshipStatus === "accepted" ? "btn-accept" : friendshipStatus === "pending" ? "btn-pending" : "btn-secondary"} ${friendshipStatus !== 'Add Friend' ? 'cursor-not-allowed' : 'cursor-pointer'}`} disabled={friendshipStatus !== 'Add Friend'} onClick={onAddFriend}>{friendshipStatus === "accepted" ? "Friends" : (friendshipStatus || 'Add Friend')}</button>
+          <button className={`
+            ${friendshipStatus === "accepted" ? "btn-accept" : friendshipStatus === "pending" ? "btn-pending" : "btn-secondary"} 
+            ${friendshipStatus !== 'Add Friend' ? 'cursor-not-allowed' : 'cursor-pointer'}`} 
+            disabled={friendshipStatus !== 'Add Friend'} 
+            onClick={onAddFriend}>{friendshipStatus === "accepted" ? "Friends" : (friendshipStatus || 'Add Friend')}</button>
           <button className="btn-danger" onClick={blockUser}>Block</button>
         </div>
 

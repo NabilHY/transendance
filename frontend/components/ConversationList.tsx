@@ -6,89 +6,29 @@ import styles from "./ConversationsList.module.css";
 import { Friend, getChannelName } from "@/lib/chat";
 import { useRouter } from "next/navigation";
 import { handleMessageClick } from "@/lib/chat";
+import { useChatData } from "@/app/chat/ChatDataContext";
 
 interface ConversationsListProps {
   currentUser: {id: string; name: string; avatar?: string } | null;
-  onSendMessage: (content: string, getPending: number) => Promise<void>;
+  // onSendMessage: (content: string, getPending: number) => Promise<void>;
   friends: Friend[];
 }
 
 export default function ConversationsList({
   currentUser,
-  onSendMessage,
+  // onSendMessage,
   friends,
 }: ConversationsListProps) {
 
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  // const [conversations, setConversations] = useState<Conversation[]>([]);
   const [haveNames, setHaveNames] = useState(false);
   const [activeTab, setActiveTab] = useState<"friends" | "conversations">("conversations");
   const [showGroupForm, setShowGroupForm] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
+  const { conversations, refreshConversations } = useChatData();
 
   const router = useRouter();
-
-  const getConversations = async (id: string) => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/conversations/${id}`, {
-        method: "GET",
-        credentials: "include",
-      });
-      if (!res.ok)
-        throw new Error(`Server error: ${res.status}`);
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      console.error("Failed to fetch conversations:", err);
-      return [];
-    }
-  }
-
-  useEffect(() => {
-    const run = async () => {
-      setConversations(await getConversations(currentUser.id));
-    }
-
-    run();
-
-    return () => {
-      console.log("out");
-    };
-
-  }, []);
-
-  useEffect(() => {
-
-    const fetchPrivateChannelsNames = () => {
-      let counter = 0;
-      conversations.forEach(async (conv) => {
-        
-        if(conv && conv.is_private) {
-          conv.name = await getChannelName(conv.id);
-          console.log("name +++++ ", conv.name);
-          
-          if(conv.name !== null)
-            counter++;
-        } else if(conv && !conv.is_private) {
-          counter++;
-        }
-        if(counter === conversations.length)
-          setHaveNames(true);
-        console.log("counter: ", counter, " | length: ", conversations.length);
-        
-      })
-    }
-
-    fetchPrivateChannelsNames();
-    console.log("should be executed once");
-    console.log("conversations: ", conversations);
-
-    
-
-    return () => {};
-
-  }, [conversations])
-
   const startFriendConv = async (friendId: string) => {
     const chatURL = await handleMessageClick(friendId);
     if(chatURL)
@@ -120,7 +60,7 @@ export default function ConversationsList({
         const data = await res.json();
         router.push(`/chat/${data.conversationId}`);
         console.log("Group created successfully:", data);
-        
+        await refreshConversations();
       } catch (err) {
         console.error("Failed to create group:", err);
       }
@@ -136,13 +76,19 @@ export default function ConversationsList({
       setGroupDescription("");
     };
 
+  
+  // useEffect(() => {
+  //   console.log("Conversations updated: ", conversations);
+  // }, [conversations]);
+
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <h2 className={styles.title}>Chat</h2>
         
         <div className={styles.actionsRow}>
-          <button type="button" className={styles.createGroupButton} onClick={handleCreateGroupClick}>
+          <button type="button" className={styles.primaryBtn} onClick={handleCreateGroupClick}>
             Create channel group
           </button>
         </div>
@@ -191,7 +137,6 @@ export default function ConversationsList({
       </div>
 
       <div className={styles.conversationsList}>
-        {/* Friends Section */}
         {activeTab === "friends" && friends.length > 0 && (
           <>
             {friends.map(friend => (
@@ -225,8 +170,7 @@ export default function ConversationsList({
           </>
         )}
 
-        {/* Conversations Section */}
-        {activeTab === "conversations" && conversations.length > 0 && haveNames === true && (          
+        {activeTab === "conversations" && conversations.length > 0 && (          
           <>
             {conversations.map(conv => (
               
@@ -250,7 +194,7 @@ export default function ConversationsList({
 
                 <div className={styles.chatUserInfo}>
                   <div className={styles.chatUserName}>
-                    {conv.name}
+                    {conv.name || "Unnamed Channel"}
                   </div>
 
                   <div className={styles.chatUserUsername}>

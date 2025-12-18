@@ -388,8 +388,41 @@ module.exports = async function (fastify) {
                 WHERE channel_id = ? AND user_id = ?
             `).run(id, userId.toString());
 
-            return reply.send({ success: true });
+            const remainingMembers = fastify.db.prepare(`
+                SELECT COUNT(*) AS count FROM channel_members
+                WHERE channel_id = ?
+            `).get(id).count;
 
+            if (remainingMembers === 0) {
+                fastify.db.prepare(`
+                    DELETE FROM channels
+                    WHERE id = ?
+                `).run(id);
+            }
+
+            const adminCheck = fastify.db.prepare(`
+                SELECT COUNT(*) AS count FROM channel_members
+                WHERE channel_id = ? AND role = 'admin'
+            `).get(id).count;
+
+            if (adminCheck === 0) {
+                const newAdmin = fastify.db.prepare(`
+                    SELECT user_id FROM channel_members
+                    WHERE channel_id = ?
+                    LIMIT 1
+                `).get(id);
+
+                if (newAdmin) {
+                    fastify.db.prepare(`
+                        UPDATE channel_members
+                        SET role = 'admin'
+                        WHERE channel_id = ? AND user_id = ?
+                    `).run(id, newAdmin.user_id);
+                }
+            }
+
+            return reply.send({ success: true });
+                
         } catch (err) {
             console.error(err);
             return reply.status(500).send({ error: "Failed to leave channel" });

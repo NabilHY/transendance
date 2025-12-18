@@ -23,6 +23,7 @@
   display: flex;
   gap: 0.5rem;
   width: 100%;
+  margin-top: 5px;
 }
 
 .tabButton {
@@ -36,11 +37,11 @@
 
   color: #e6f4ff;
 
-  border: 1px solid transparent;
+  border: 1px solid rgb(30, 90, 255);
   border-radius: 8px;
 
   box-shadow:
-    0 0 10px rgba(0, 180, 255, 0.45),
+    0 0 2px rgba(0, 180, 255, 0.45),
     inset 0 0 8px rgba(0, 180, 255, 0.2);
 
   transition: all 0.3s ease;
@@ -49,24 +50,24 @@
 .tabButton:hover {
   color: #ffffff;
   box-shadow:
-    0 0 16px rgba(0, 180, 255, 0.75),
-    0 0 28px rgba(30, 90, 255, 0.45),
+    0 0 11px rgba(0, 180, 255, 0.75),
+    0 0 18px rgba(30, 90, 255, 0.45),
     inset 0 0 10px rgba(0, 180, 255, 0.35);
 }
 
 .tabButton.active {
   background: linear-gradient(
     135deg,
-    rgba(0, 180, 255, 0.35),
-    rgba(30, 90, 255, 0.35)
+    rgba(0, 180, 255, 0.8),
+    rgba(30, 90, 255, 0.8)
   );
 
   color: #ffffff;
-  border-color: rgba(0, 180, 255, 0.9);
+  border-color: rgba(0, 180, 255);
 
   box-shadow:
-    0 0 20px rgba(0, 180, 255, 0.95),
-    0 0 32px rgba(30, 90, 255, 0.65);
+    0 0 10px rgba(0, 180, 255, 0.95),
+    0 0 12px rgba(30, 90, 255, 0.65);
 }
 
 /* .tabButton {
@@ -248,20 +249,32 @@
   font-weight: bold; 
 }
 
-.createGroupButton {
-  background: transparent;
-  color: #1e90ff;
-  border: 1px solid #1e90ff;
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
+.primaryBtn {
+  padding: 0.6rem 1rem;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 180, 255, 0.35),
+    rgba(30, 90, 255, 0.35)
+  );
+  color: #ffffff;
+  border: 1px solid rgba(0, 180, 255, 0.9);
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
   margin-bottom: 15px;
+  box-shadow:
+    0 0 10px rgba(0, 180, 255, 0.75),
+    0 0 18px rgba(30, 90, 255, 0.45),
+    inset 0 0 10px rgba(0, 180, 255, 0.35);
+  transition: all 0.3s ease;
 }
 
-.createGroupButton:hover {
+.primaryBtn:hover {
   background: #1e90ff;
   color: #0f0f0f;
+  border-color: #1e90ff;
+  box-shadow:
+    0 0 10px rgba(0, 180, 255, 0.95),
+    0 0 12px rgba(30, 90, 255, 0.65);
 }
 
 .groupForm {
@@ -272,13 +285,18 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  background: #1a1a1a;
+  /* background: #1a1a1a; */
   border: 1px solid #1e90ff;
   border-radius: 1rem;
   padding: 2rem;
   z-index: 1000;
   min-width: 350px;
-  box-shadow: 0 8px 32px rgba(30, 144, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(30, 144, 255, 0.5);
+  background: linear-gradient(
+    135deg,
+    rgb(0, 0, 0),
+    rgba(7, 28, 85)
+  );
 }
 
 .groupInput {
@@ -299,6 +317,7 @@
   display: flex;
   gap: 0.5rem;
   justify-content: flex-end;
+  
 }
 
 .groupSubmitButton,
@@ -312,8 +331,24 @@
 }
 
 .groupSubmitButton {
-  background: #1e90ff;
-  color: #0f0f0f;
+  /* background: #1e90ff; */
+  /* color: #0f0f0f; */
+  background: linear-gradient(
+    135deg,
+    rgba(0, 180, 255, 0.18),
+    rgba(30, 90, 255, 0.18)
+  );
+
+  color: #e6f4ff;
+
+  border: 1px solid rgb(30, 90, 255);
+  border-radius: 8px;
+
+  box-shadow:
+    0 0 2px rgba(0, 180, 255, 0.45),
+    inset 0 0 8px rgba(0, 180, 255, 0.2);
+
+  transition: all 0.3s ease;
 }
 
 .groupSubmitButton:hover {
@@ -321,9 +356,9 @@
 }
 
 .groupCancelButton {
-  background: transparent;
+  background: black;
   color: #ffffff;
-  border-color: #2a2a2a;
+  border-color: rgb(134, 134, 134);
 }
 
 .groupCancelButton:hover {

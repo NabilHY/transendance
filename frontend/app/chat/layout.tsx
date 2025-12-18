@@ -6,6 +6,10 @@ import styles from "./styles.module.css";
 import { fetchCurrentUser } from "@/lib/fetcher";
 import { Friend } from "@/lib/chat";
 import ChatSocketContext from "./ChatSocketContext";
+import { Conversation, Message, getReceivers } from "@/lib/chat";
+import { User } from "../settings/page";
+import { getConversations, getChannelName } from "@/lib/chat";
+import ChatDataContext from "./ChatDataContext";
 
 const chatURL = process.env.NEXT_PUBLIC_CHAT_URL || "ws://localhost:8006";
 const userMgntURL = process.env.NEXT_PUBLIC_USR_MANAG_URL || "http://localhost:4000";
@@ -16,6 +20,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     useState<{ id: string; name: string; avatar?: string } | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
+  // const [updated, setUpdated] = useState<boolean>(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
   useEffect(() => {
     const init = async () => {
@@ -30,15 +36,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       );
 
       socketRef.current.onopen = () => {
-        console.log("✅ WebSocket connected");
+        console.log("CHAT: WebSocket connected");
       };
 
       socketRef.current.onmessage = (event) => {
-        console.log("📩 WS message:", event.data);
+        console.log("CHAT: 📩 WS message:", event.data);
       };
 
       socketRef.current.onclose = () => {
-        console.log("❌ WebSocket closed");
+        console.log("CHAT: ❌ WebSocket closed");
       };
 
       setIsSuccess(true);
@@ -51,6 +57,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
+  useEffect(() => {
+  if (currentUser) {
+    fetchConversations();
+  }
+}, [currentUser]);
+
   const getFriends = async () => {
     const res = await fetch(`${userMgntURL}/me/friends`, {
       credentials: "include",
@@ -58,10 +70,37 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     return res.ok ? res.json() : [];
   };
 
-  const sendMessage = (payload: any) => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(payload));
-    }
+  const sendMessage = async (message: Message) => {
+      console.log("message to send: ", message);
+      socketRef.current?.send(JSON.stringify(message));
+      // setMessages(prev => [...prev, message]);
+  };
+
+  const normalizeConversations = async (convs: Conversation[]) => {
+  return Promise.all(
+    convs.map(async (conv) => {
+      if (conv.is_private && !conv.name) {
+        const name = await getChannelName(conv.id);
+        return {
+          ...conv,
+          name: name || "Private Chat",
+        };
+      }
+      return {
+        ...conv,
+        name: conv.name || "Unnamed Channel",
+      };
+    })
+  );
+};
+
+
+  const fetchConversations = async () => {
+    if (!currentUser) return;
+
+    const data = await getConversations(currentUser.id);
+    const normalized = await normalizeConversations(data);
+    setConversations(normalized);
   };
 
   if (!isSuccess || !currentUser) return null;
@@ -73,123 +112,26 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         sendMessage,
       }}
     >
-      <div className={styles.container}>
-        <div className={styles.mainContent}>
-          <div className={styles.chatSection}>
-            <ConversationsList
-              currentUser={currentUser}
-              friends={friends}
-              onSendMessage={sendMessage}
-            />
-            <div className={styles.rightPanel}>
-              {children}
+      <ChatDataContext.Provider 
+      value={{ conversations, refreshConversations: fetchConversations, setConversations }}>
+        <div className={styles.container}>
+          <div className={styles.mainContent}>
+            <div className={styles.chatSection}>
+              <ConversationsList
+                currentUser={currentUser}
+                friends={friends}
+                // onSendMessage={sendMessage}
+              />
+              <div className={styles.rightPanel}>
+                {children}
+              </div>
             </div>
           </div>
-        </div>
       </div>
+      </ChatDataContext.Provider>
+
     </ChatSocketContext.Provider>
   );
 };
 
 export default Layout;
-
-
-// 'use client';
-
-// import { useState, useEffect, useRef } from "react";
-// import ConversationsList from "../../components/ConversationList";
-// import ChatWindow from "../../components/ChatWindow";
-// import styles from "./styles.module.css";
-// import { fetchCurrentUser } from "@/lib/fetcher";
-// import { Conversation, Message, Friend } from "@/lib/chat";
-// import Link from "next/link";
-
-
-
-// const chatPort = process.env.NEXT_PUBLIC_CHAT_URL || "ws://localhost:8006";
-// const userMgntURL = process.env.NEXT_PUBLIC_USR_MANAG_URL || "http://localhost:4000";
-
-// const layout = ({children}: {children: React.ReactNode}) => {
-
-//   const [isSuccess, setIsSuccess] = useState<boolean>(false);
-//   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar?: string } | null>(null);
-//   const [friends, setFriends] = useState<Friend[]>([]);
-
-//   useEffect(() => {
-
-//   const run = async () => {
-//       // ! * WARNING: this test just for testing, I must removed it later
-//       const res = await fetch(`${userMgntURL}/users`, {
-//         method: "GET",
-//         credentials: "include"
-//       });
-
-//       const currentUser = await fetchCurrentUser();
-
-//       setCurrentUser(currentUser);
-
-//       if (!currentUser) {
-//         console.error("No current user, cannot establish WebSocket connection.");
-//         return;
-//       }
-
-//       // setConversations(await getConversations(currentUser.id));
-//       setFriends(await getFriends(currentUser.id));
-//       const data = await res.json();
-//     };
-
-//     run();
-
-//     setIsSuccess(true);
-//   return () => {
-//     console.log("out");
-//   };
-// }, []);
-
-//   const getFriends = async (id: string) => {
-//     try {
-//       const res = await fetch(`${userMgntURL}/me/friends`, {
-//         method: "GET",
-//         credentials: "include",
-//       });
-//       if (!res.ok)
-//         throw new Error(`Server error: ${res.status}`);
-//       const data = await res.json();
-//       console.log("all friends user: ", data);
-//       return data;
-//     } catch (err) {
-//       console.error("Failed to fetch friends:", err);
-//       return [];
-//     }
-//   }
-
-//   const sendMessage = async () => {
-//     console.log("send message tfooooooooooo");
-//   }
-
-//   return (
-//     <>
-//       {isSuccess === true && currentUser !== null && (
-//         <>
-//         {/* <Link href="/chat/270d54e4-a0e2-42d9-8f48-4807054e3b25" >&larr; Back to Chats</Link> */}
-//         <div className={styles.container}>
-//           <div className={styles.mainContent}>
-//             <div className={styles.chatSection}>
-//               <ConversationsList
-//                 currentUser={currentUser}
-//                 friends={friends}
-//                 onSendMessage={sendMessage}
-//               />
-//               <div className={styles.rightPanel}>
-//                 { children }
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       </>
-//     )}
-//     </>
-//   )
-// }
-
-// export default layout

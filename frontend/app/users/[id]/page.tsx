@@ -26,25 +26,25 @@ export default function UserDetailPage() {
     const { user: currentUser, ensureCsrf } = useAuth();
 
     useEffect(() => {
-        console.log("---------------->");
-        console.log("Fetching friendship status for user id: ", user?.id);
+        // console.log("---------------->");
+        // console.log("Fetching friendship status for user id: ", user?.id);
         fetchFriendshipStatus();
         invitationsReceived();
-        console.log("Invitation received status: ", invitationReceived);        
-        console.log("current friendship status: ", friendshipStatus);
+        // console.log("Invitation received status: ", invitationReceived);        
+        // console.log("current friendship status: ", friendshipStatus);
 
     }, [currentUser, user, invitationReceived]);
 
     useEffect(() => {
         if (userId) {
-            console.log("Fetching user for userId: ", userId);
+            // console.log("Fetching user for userId: ", userId);
             fetchUser();
         }
-        console.log("userId changed: ", userId);
+        // console.log("userId changed: ", userId);
     }, [userId]);
 
     const invitationsReceived = async () => {
-        console.log("Fetching invitations received...");
+        // console.log("Fetching invitations received...");
         if(currentUser == null || user == null)
             return;
         try {
@@ -58,7 +58,7 @@ export default function UserDetailPage() {
             const data = await result.json();
             if (result.ok) {
                 setInvitationReceived(data.status === 'false' ? false : true);
-                console.log("Invitations received: ", data);
+                // console.log("Invitations received: ", data);
             } else {
                 console.warn("Failed to fetch invitations received:", data.message);
             }
@@ -70,7 +70,7 @@ export default function UserDetailPage() {
     const acceptRequest = async () => {
         if (!user) return;
 
-        console.log(currentUser?.id + " trying to accept friend request from: " + user.id);
+        // console.log(currentUser?.id + " trying to accept friend request from: " + user.id);
         try {
             const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/accept`, {
                 method: 'POST',
@@ -83,11 +83,8 @@ export default function UserDetailPage() {
             
             const data = await result.json();
             if (result.ok) {
-                alert(data.message);
                 setFriendshipStatus("Friends");
                 setInvitationReceived(false);
-            } else {
-                alert(data.message);
             }
         } catch (err) {
             console.error("Failed to accept friend request:", err);
@@ -97,7 +94,7 @@ export default function UserDetailPage() {
     const rejectRequest = async () => {
         if (!user) return;
 
-        console.log(currentUser?.id + " trying to reject friend request from: " + user.id);
+        // console.log(currentUser?.id + " trying to reject friend request from: " + user.id);
         try {
             const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/reject`, {
                 method: 'POST',
@@ -120,11 +117,11 @@ export default function UserDetailPage() {
 
     const fetchFriendshipStatus = async () => {
         // Implement fetching friendship status if needed
-        console.log("Fetching friendship status...");
+        // console.log("Fetching friendship status...");
         if(!currentUser || !user) {
-            console.log("No current user or user to fetch friendship status for.");
-            console.log("currentUser ===> " + currentUser);
-            console.log("user ===> " + user);
+            // console.log("No current user or user to fetch friendship status for.");
+            // console.log("currentUser ===> " + currentUser);
+            // console.log("user ===> " + user);
             return;
         } 
         try {
@@ -137,9 +134,9 @@ export default function UserDetailPage() {
             });
             const data = await response.json();
             if (response.ok) {
-                // console.log("* success");
+                console.log("* success");
                 setFriendshipStatus(data.status);
-                console.log("Friendship status: ", data.status);
+                // console.log("Friendship status: ", data.status);
             } else {
                 console.warn("Failed to fetch friendship status:", data.message);
             }
@@ -159,7 +156,7 @@ export default function UserDetailPage() {
             const response = await umGetUser(userId, csrfToken);
             
             if (response.ok) {
-                console.log("response data: ", response.data);
+                // console.log("response data: ", response.data);
                 
                 setUser(response.data as UMUser);
             } else {
@@ -173,22 +170,45 @@ export default function UserDetailPage() {
         }
     };
 
-    const handleAddFriend = async () => {
+    const handleUnblock = async () => {
         if (!user) return;
 
-        console.log(currentUser?.id + " trying to add friend: " + user.id);
+        // console.log(currentUser?.id + " trying to unblock user: " + user.id);
         setActionLoading(true);
         try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friend`, {
+            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/unblock`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 credentials: 'include',
-                body: JSON.stringify({ id: user.id }),
+                body: JSON.stringify({ id: user?.id }),
             });
             const data = await result.json();
-            console.log("* CLIENT ---> requested: ", data);
+            // console.log("* CLIENT ---> requested: ", data);
+            if( result.ok )
+                setFriendshipStatus("accepted");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleAddFriend = async () => {
+        if (!user) return;
+
+        // console.log(currentUser?.id + " trying to add friend: " + user.id);
+        setActionLoading(true);
+        try {
+            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/friend`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ id: user?.id }),
+            });
+            const data = await result.json();
+            // console.log("* CLIENT ---> requested: ", data);
             if( result.ok )
                 setFriendshipStatus("pending");
             
@@ -197,17 +217,6 @@ export default function UserDetailPage() {
         } finally {
             setActionLoading(false);
         }
-        // setActionLoading(true);
-        // try {
-        //     const result = await addFriend(user.id);
-        //     if (result.success) {
-        //         alert(result.message);
-        //     } else {
-        //         alert(result.message);
-        //     }
-        // } finally {
-        //     setActionLoading(false);
-        // }
     };
 
     const handleBlockUser = async () => {
@@ -219,7 +228,7 @@ export default function UserDetailPage() {
 
         setActionLoading(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/block`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/block`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -230,13 +239,8 @@ export default function UserDetailPage() {
             
             const result = await response.json();
             
-            console.log("trying to block a user: ", result);
-            if (result.success) {
-                alert(result.message);
-                // router.push('/users');
-            } else {
-                alert(result.message);
-            }
+            // console.log("trying to block a user: ", result);
+            
         } finally {
             setActionLoading(false);
         }
@@ -295,6 +299,7 @@ export default function UserDetailPage() {
                 blockUser={handleBlockUser}
                 rejectRequest={rejectRequest}
                 handleMessageBtn={() => handleMessageBtn(user.id.toString())}
+                handleUnblock={handleUnblock}
             />
 
             <CurrentUserProfileNotice isCurrentUser={isCurrentUser}/>

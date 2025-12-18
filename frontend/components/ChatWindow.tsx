@@ -4,9 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import { Conversation } from "../src/pages/Chat";
 import styles from "./ChatWindow.module.css";
 import { User } from "@/app/settings/page";
-import { sendMessage } from "@/lib/chat";
+import { getReceivers } from "@/lib/chat";
 import { useRouter } from "next/navigation";
 import { getReceiverId, Message } from "@/lib/chat";
+import { useChatSocket } from "@/app/chat/ChatSocketContext";
+import { useChatData } from "@/app/chat/ChatDataContext";
+
 interface ChatWindowProps {
   conversation: Conversation;
   messages: Message[];
@@ -27,8 +30,13 @@ export default function ChatWindow({
   const [groupName, setGroupName] = useState("");
   const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [usernameToAdd, setUsernameToAdd] = useState("");
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const { sendMessage } = useChatSocket();
+  const { refreshConversations } = useChatData();
 
   const scrollToBottom = () => {
     // messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -37,25 +45,72 @@ export default function ChatWindow({
 
   useEffect(() => {
     scrollToBottom();
-    console.log("scrolling to bottom");
+    // console.log("scrolling to bottom");
   }, [messages]);
 
   useEffect(() => {
     // scrollToBottom();
     // console.log("* NAME: ", conversation.name.value[0]?.toUpperCase());
-    console.log("conversation: ", conversation);
+    // console.log("conversation: ", conversation);
     
-    console.log("* NAME: ", conversation?.name?.charAt(0).toUpperCase());
-  }, []);
+    // console.log("* NAME: ", conversation?.name?.charAt(0).toUpperCase());
+    
+    const checkBlockStatus = async () => {
+      if (conversation.is_private === 1 && currentUser?.id) {
+        try {
+          const receiverId = await getReceiverId(conversation);
+          const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/${receiverId}`, {
+            method: "GET",
+            credentials: "include",
+          });
+          if (res.ok) {
+            const data = await res.json();
+            // console.log("checking...: ", data);
+            
+            setIsBlocked(data.status === 'blocked' || data.status === 'blocker' || false);
+          }
+        } catch (err) {
+          console.error("Failed to check blocked status:", err);
+        }
+      }
+    };
+    
+    checkBlockStatus();
+  }, [conversation, currentUser]);
 
   // ! handle blocked users
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("submitting message: ", inputValue);
-    if (inputValue.trim()) {
-      // sendMessage(inputValue, 0, ws, setMessages, conversation, currentUser);
-      sendMessage(inputValue, 0, null, setMessages, conversation, currentUser);
-      setInputValue("");
+    
+    // Check if user is blocked
+    if (isBlocked) {
+      alert("You cannot message this user because they have blocked you or you have blocked them.");
+      return;
+    }
+    
+    try {
+      let receivers: string[] = await getReceivers(conversation.id, currentUser?.id.toString() || '');
+
+      const message: Message = {
+          uuid: crypto.randomUUID(),
+          channel_id: conversation.id,
+          sender_id: currentUser != null ? currentUser.id.toString() : 'unknown',
+          sent_at: new Date().toISOString(),
+          content: inputValue,
+          sender_name: currentUser != null ? currentUser.username : "unknown",
+          receiver_id: receivers,
+          pending: 0,
+        };
+
+      // console.log("submitting message: ", inputValue);
+      if (inputValue.trim()) {
+        // console.log("message: ", messages);
+        sendMessage(message);
+        setMessages(prev => [...prev, message]);
+        setInputValue("");
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err);
     }
   };
 
@@ -65,7 +120,7 @@ export default function ChatWindow({
     if (id) {
       router.push(`/users/${id}`);
     } else {
-      console.log("No receiver id found");
+      // console.log("No receiver id found");
     }
     
   }
@@ -102,7 +157,7 @@ export default function ChatWindow({
       console.error("Failed to add user to group:", err);
     }
     
-    console.log("Adding user to group:", usernameToAdd, "to channel:", conversation.id);
+    // console.log("Adding user to group:", usernameToAdd, "to channel:", conversation.id);
     setShowAddUserForm(false);
     setUsernameToAdd("");
   };
@@ -110,6 +165,38 @@ export default function ChatWindow({
   const handleAddUserCancel = () => {
     setShowAddUserForm(false);
     setUsernameToAdd("");
+  };
+
+  const handleLeaveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowLeaveConfirm(true);
+  };
+
+  const handleLeaveConfirm = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/${conversation.id}/leave`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: conversation.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("Failed to leave group:", data.error);
+      } else {
+        router.push("/chat");
+        await refreshConversations();
+      }
+    } catch (err) {
+      console.error("Failed to leave group:", err);
+    }
+    setShowLeaveConfirm(false);
+  };
+
+  const handleLeaveCancel = () => {
+    setShowLeaveConfirm(false);
   };
 
   return (
@@ -144,16 +231,21 @@ export default function ChatWindow({
         </div>
 
         {conversation.is_private === 0 && (
-          <button type="button" className={styles.addUserButton} onClick={handleAddUserClick}>
-            Add User
-          </button>
+          <div className={styles.headerActions}>
+            <button type="button" className={styles.addUserBtn} onClick={handleAddUserClick}>
+              Add User
+            </button>
+            <button type="button" className={styles.leaveBtn} onClick={handleLeaveClick}>
+              Leave
+            </button>
+          </div>
         )}
       </div>
 
       {showAddUserForm && (
         <div className={styles.addUserFormOverlay}>
           <form className={styles.addUserForm} onSubmit={handleAddUserSubmit}>
-            <h3 className={styles.formTitle}>Add User to Group</h3>
+            <h3 className={styles.primaryBtn}>Add User to Group</h3>
             <input
               className={styles.addUserInput}
               type="text"
@@ -171,6 +263,25 @@ export default function ChatWindow({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {showLeaveConfirm && (
+        <div className={styles.leaveConfirmOverlay}>
+          <div className={styles.leaveConfirmModal}>
+            <h3 className={styles.leaveConfirmTitle}>Leave Group</h3>
+            <p className={styles.leaveConfirmMessage}>
+              Are you sure you want to leave this group? This action cannot be undone.
+            </p>
+            <div className={styles.leaveConfirmActions}>
+              <button type="button" className={styles.leaveConfirmButton} onClick={handleLeaveConfirm}>
+                Leave
+              </button>
+              <button type="button" className={styles.leaveCancelButton} onClick={handleLeaveCancel}>
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -201,10 +312,11 @@ export default function ChatWindow({
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Message Alex..."
+          placeholder={isBlocked ? "You cannot message this user" : "Message Alex..."}
           className={styles.messageInput}
+          disabled={isBlocked}
         />
-        <button type="submit" className={styles.sendButton}>
+        <button type="submit" className={styles.sendButton} disabled={isBlocked}>
           Send
         </button>
       </form>

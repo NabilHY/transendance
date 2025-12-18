@@ -16,6 +16,26 @@
   align-items: center;
 }
 
+.addUserBtn {
+  padding: 12px 30px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 180, 255, 0.18),
+    rgba(30, 90, 255, 0.18)
+  );
+
+  color: #e6f4ff;
+
+  border: 1px solid rgb(30, 90, 255);
+  border-radius: 8px;
+
+  box-shadow:
+    0 0 2px rgba(0, 180, 255, 0.45),
+    inset 0 0 8px rgba(0, 180, 255, 0.2);
+
+  transition: all 0.3s ease;
+}
+
 .actionsRow {
   margin-top: 0.75rem;
   display: flex;
@@ -172,6 +192,17 @@
   border-color: #1e90ff;
 }
 
+.messageInput:disabled {
+  background: #0f0f0f;
+  color: #666666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.messageInput:disabled::placeholder {
+  color: #555555;
+}
+
 .sendButton {
   background: #1e90ff;
   border: none;
@@ -184,8 +215,14 @@
   transition: background-color 0.2s ease;
 }
 
-.sendButton:hover {
+.sendButton:hover:not(:disabled) {
   background: #1c7ed6;
+}
+
+.sendButton:disabled {
+  background: #555555;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .addUserButton {
@@ -287,5 +324,118 @@
 }
 
 .addUserCancelButton:hover {
+  border-color: #555555;
+}
+
+.headerActions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.leaveBtn {
+  padding: 12px 30px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 80, 80, 0.18),
+    rgba(255, 20, 20, 0.18)
+  );
+
+  color: #ff6b6b;
+
+  border: 1px solid rgb(255, 80, 80);
+  border-radius: 8px;
+
+  box-shadow:
+    0 0 2px rgba(255, 80, 80, 0.45),
+    inset 0 0 8px rgba(255, 80, 80, 0.2);
+
+  transition: all 0.3s ease;
+}
+
+.leaveBtn:hover {
+  color: #ffffff;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 80, 80, 0.35),
+    rgba(255, 20, 20, 0.35)
+  );
+  border-color: rgba(255, 80, 80, 0.9);
+  box-shadow:
+    0 0 16px rgba(255, 80, 80, 0.75),
+    0 0 28px rgba(255, 20, 20, 0.45),
+    inset 0 0 10px rgba(255, 80, 80, 0.35);
+}
+
+.leaveConfirmOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.leaveConfirmModal {
+  background: #1a1a1a;
+  border: 1px solid #ff5050;
+  border-radius: 1rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 400px;
+  box-shadow: 0 8px 32px rgba(255, 80, 80, 0.2);
+}
+
+.leaveConfirmTitle {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.leaveConfirmMessage {
+  margin: 0;
+  color: #d4d4d4;
+  font-size: 1rem;
+}
+
+.leaveConfirmActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.leaveConfirmButton,
+.leaveCancelButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.leaveConfirmButton {
+  background: #ff5050;
+  color: #ffffff;
+}
+
+.leaveConfirmButton:hover {
+  background: #ff3333;
+}
+
+.leaveCancelButton {
+  background: transparent;
+  color: #ffffff;
+  border-color: #2a2a2a;
+}
+
+.leaveCancelButton:hover {
   border-color: #555555;
 }

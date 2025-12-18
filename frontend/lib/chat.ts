@@ -1,4 +1,5 @@
 import { User } from "@/app/settings/page";
+import { exitCode } from "process";
 // import { useRouter } from "next/navigation";
 
 export interface Message {
@@ -57,48 +58,36 @@ export const getReceivers = async (channelId: string, userId: string) => {
     }
   }
 
-  export const sendMessage = async (
-    content: string,
-    getPending: number, 
-    ws: WebSocket | null, 
-    setMessages: React.Dispatch<React.SetStateAction<Message[]>>,
-    // setConversation: React.Dispatch<React.SetStateAction<Conversation>>,
-    conversation: Conversation,
-    currentUser: User | null
-  ) => {
+//   export const sendMessage = async (
+//     content: string,
+//     getPending: number, 
+//     ws: WebSocket | null, 
+//     setMessages: React.Dispatch<React.SetStateAction<Message[]>>,
+//     // setConversation: React.Dispatch<React.SetStateAction<Conversation>>,
+//     conversation: Conversation,
+//     currentUser: User | null
+//   ) => {
 
-    if (!ws || (getPending == 0 && !content.trim())) return;
+//     if (!ws || (getPending == 0 && !content.trim())) return;
 
-    // const activeConv = conversations.find(conv => conv.id === activeConversation);
+//     let receivers: string[] = await getReceivers(conversation.id, currentUser?.id.toString() || '');
 
-    let receivers: string[] = await getReceivers(conversation.id, currentUser?.id.toString() || '');
+//     const message: Message = {
+//       uuid: crypto.randomUUID(),
+//       channel_id: conversation.id,
+//       sender_id: currentUser != null ? currentUser.id.toString() : 'unknown',
+//       sent_at: new Date().toISOString(),
+//       content: content,
+//       sender_name: currentUser != null ? currentUser.username : "unknown",
+//       receiver_id: receivers,
+//       pending: getPending,
+//     };
 
-    const message: Message = {
-      uuid: crypto.randomUUID(),
-      channel_id: conversation.id,
-      sender_id: currentUser != null ? currentUser.id.toString() : 'unknown',
-      sent_at: new Date().toISOString(),
-      content: content,
-      sender_name: currentUser != null ? currentUser.username : "unknown",
-      receiver_id: receivers,
-      pending: getPending,
-    };
+//     console.log("message to send: ", message);
 
-    console.log("message to send: ", message);
-
-    ws.send(JSON.stringify(message));
-    setMessages(prev => [...prev, message]);
-
-    // setConversation(prev => prev
-    //   ? {
-    //     ...prev, 
-    //     last_message_content: content, 
-    //     last_message_time: "now"
-    //   }
-    //   : prev
-    // );
-
-};
+//     ws.send(JSON.stringify(message));
+//     setMessages(prev => [...prev, message]);
+// };
 
 export const getConversation = async (id: string) => {
   try {
@@ -193,3 +182,20 @@ export const handleMessageClick = async (userId: string) => {
       console.error("Failed to open conversation", err);
   }
 }
+
+
+export const getConversations = async (id: string) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/conversations/${id}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok)
+        throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      console.error("Failed to fetch conversations:", err);
+      return [];
+    }
+  }
