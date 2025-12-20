@@ -255,6 +255,7 @@ services:
     expose:
       - "9000" # S3 API internal-only
     ports:
+      - "127.0.0.1:${MINIO_PORT:-9000}:9000" # S3 API (for browser access to presigned URLs)
       - "127.0.0.1:${MINIO_CONSOLE_PORT:-9002}:9002" # Console UI (optional)
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/live"]

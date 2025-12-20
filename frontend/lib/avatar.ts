@@ -42,19 +42,25 @@ async function fetchPresignedUrl(userId: number, isCurrentUser: boolean = false)
     // Use Next.js proxy for same-origin requests (automatic cookies, no CORS)
     const endpoint = isCurrentUser ? '/media/avatar/me' : `/media/avatar/users/${userId}`;
     
+    console.log('Fetching presigned URL from:', endpoint);
     const response = await fetch(endpoint, {
       method: 'GET',
       credentials: 'include',
     });
 
+    console.log('Avatar URL response status:', response.status);
     if (!response.ok) {
       if (response.status === 404) {
+        console.log('User has no avatar (404)');
         return null; // User has no avatar
       }
+      const errorText = await response.text();
+      console.error('Avatar URL fetch failed:', response.status, errorText);
       throw new Error(`Failed to fetch avatar URL: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('Avatar URL response data:', data);
     return data.url || null;
   } catch (error) {
     console.error('Error fetching presigned avatar URL:', error);

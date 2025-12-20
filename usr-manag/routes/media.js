@@ -60,11 +60,12 @@ module.exports = async function (fastify) {
       });
     }
 
-    // Generate unique object key: avatars/{userId}/{timestamp}-{random}.{ext}
+    // Generate unique object key: {userId}/{timestamp}-{random}.{ext}
+    // Note: Don't include bucket name in object key, bucket is already 'avatars'
     const timestamp = Date.now();
     const random = randomBytes(8).toString('hex');
     const ext = detected.ext || 'jpg';
-    const objectKey = `avatars/${userId}/${timestamp}-${random}.${ext}`;
+    const objectKey = `${userId}/${timestamp}-${random}.${ext}`;
 
     // Upload to MinIO
     try {
@@ -147,8 +148,16 @@ module.exports = async function (fastify) {
         3600 // 1 hour
       );
 
+      // Use Next.js proxy to avoid CORS issues
+      // Extract path and query from presigned URL and route through Next.js
+      const urlObj = new URL(url);
+      const pathWithQuery = urlObj.pathname + urlObj.search;
+      const publicUrl = process.env.S3_PUBLIC_ENDPOINT 
+        ? `${process.env.S3_PUBLIC_ENDPOINT}${pathWithQuery}`
+        : `/media/minio${pathWithQuery}`;
+
       return {
-        url,
+        url: publicUrl,
         objectKey: user.profile_pic,
       };
     } catch (err) {
@@ -187,7 +196,7 @@ module.exports = async function (fastify) {
     const { id } = request.params;
 
     const user = fastify.db.prepare(`
-      SELECT profile_pic FROM users WHERE id = ?
+      SELECT profile_pic, avatar_updated_at FROM users WHERE id = ?
     `).get(id);
 
     if (!user) {
@@ -206,9 +215,17 @@ module.exports = async function (fastify) {
         3600 // 1 hour
       );
 
+      // Use Next.js proxy to avoid CORS issues
+      const urlObj = new URL(url);
+      const pathWithQuery = urlObj.pathname + urlObj.search;
+      const publicUrl = process.env.S3_PUBLIC_ENDPOINT 
+        ? `${process.env.S3_PUBLIC_ENDPOINT}${pathWithQuery}`
+        : `/media/minio${pathWithQuery}`;
+
       return {
-        url,
+        url: publicUrl,
         objectKey: user.profile_pic,
+        avatarUpdatedAt: user.avatar_updated_at,
       };
     } catch (err) {
       fastify.log.error({ err, objectKey: user.profile_pic }, 'Failed to generate presigned URL');

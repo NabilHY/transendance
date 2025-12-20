@@ -408,27 +408,6 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
 
-                                {profile.profile_pic && (
-                                    <div className={styles.field}>
-                                        <span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                            Avatar Object Key
-                                        </span>
-                                        <div style={{
-                                            padding: '12px 16px',
-                                            background: '#050b16',
-                                            border: '1px solid #1e2b45',
-                                            borderRadius: '12px',
-                                            color: '#93a0c5',
-                                            fontSize: '13px',
-                                            wordBreak: 'break-all'
-                                        }}>
-                                            {profile.profile_pic}
-                                        </div>
-                                        <span style={{ fontSize: '11px', color: '#6b7593', marginTop: '4px', display: 'block' }}>
-                                            This is an object key, not a URL. Use the avatar upload feature to change it.
-                                        </span>
-                                    </div>
-                                )}
 
                                 <div className={styles.field}>
                                     <span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
