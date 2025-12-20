@@ -32,6 +32,7 @@ const initializeDatabase = (db) => {
                         first_name TEXT,
                         last_name TEXT,
                         profile_pic TEXT,
+                        avatar_updated_at INTEGER DEFAULT 0,
                         is_online INTEGER DEFAULT 0,
                         updated_at TEXT DEFAULT (datetime('now')),
                         
