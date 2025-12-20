@@ -70,6 +70,7 @@ fastify.register(require('@fastify/cors'), {
 
 fastify.register(require('../plugins/db'));
 fastify.register(require('../plugins/auth'));
+fastify.register(require('../plugins/minio'));
 fastify.register(require('../plugins/swagger'));
 
 // Health check

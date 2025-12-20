@@ -281,4 +281,4 @@ volumes:
     driver: local
   
   minio_data:
-    driver: localzz
+    driver: local
