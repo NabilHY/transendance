@@ -2,6 +2,7 @@ const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const config = require('../config');
 const { default: fastifyRateLimit } = require('@fastify/rate-limit');
+const { uploadGoogleAvatar } = require('../utils/googleAvatar');
 
 /**
     Route starts the google oauth2.0 login flow
@@ -187,6 +188,7 @@ module.exports = async function (fastify) {
                 const googleUser = {
                     googleId: payload.sub,
                     email: payload.email,
+                    picture: payload.picture, // Google profile picture URL
                 };
 
                 // 4) Make sure this Google ID is not already used by someone else
@@ -286,6 +288,48 @@ module.exports = async function (fastify) {
                     );
                 }
 
+                // Update avatar from Google if user doesn't have one (non-blocking)
+                if (googleUser.picture) {
+                    const userProfile = await new Promise((resolve, reject) => {
+                        fastify.db.get(
+                            'SELECT profile_pic FROM users WHERE id = ?',
+                            [currentUserId],
+                            (err, row) => {
+                                if (err) reject(err);
+                                else resolve(row);
+                            }
+                        );
+                    });
+
+                    // Only update if user doesn't have an avatar
+                    if (!userProfile || !userProfile.profile_pic) {
+                        uploadGoogleAvatar(googleUser.picture, currentUserId, fastify.log)
+                            .then(async (objectKey) => {
+                                if (objectKey) {
+                                    const avatarUpdatedAt = Date.now();
+                                    await new Promise((resolve, reject) => {
+                                        fastify.db.run(
+                                            'UPDATE users SET profile_pic = ?, avatar_updated_at = ? WHERE id = ?',
+                                            [objectKey, avatarUpdatedAt, currentUserId],
+                                            function(err) {
+                                                if (err) {
+                                                    fastify.log.error({ err, userId: currentUserId, objectKey }, 'Failed to update user avatar in database (connect flow)');
+                                                    reject(err);
+                                                } else {
+                                                    fastify.log.info({ userId: currentUserId, objectKey }, 'Updated user avatar from Google (connect flow)');
+                                                    resolve();
+                                                }
+                                            }
+                                        );
+                                    });
+                                }
+                            })
+                            .catch((err) => {
+                                fastify.log.error({ err, userId: currentUserId }, 'Error uploading Google avatar in connect flow (non-blocking)');
+                            });
+                    }
+                }
+
                 fastify.log.info(
                     {
                         userId: currentUserId,
@@ -355,6 +399,7 @@ module.exports = async function (fastify) {
             const googleUser = {
                 googleId: payload.sub,
                 email: payload.email,
+                picture: payload.picture,
             };
             
             const existingUserByGoogleId = await new Promise((res, rej) => {
@@ -470,6 +515,49 @@ module.exports = async function (fastify) {
                     if (result.changes === 0) {
                         return reply.redirect(`${config.FRONTEND_URL}/login?error=link_failed`);
                     }
+
+                    // Update avatar from Google if user doesn't have one (non-blocking)
+                    if (googleUser.picture) {
+                        // Check if user already has an avatar
+                        const userProfile = await new Promise((resolve, reject) => {
+                            fastify.db.get(
+                                'SELECT profile_pic FROM users WHERE id = ?',
+                                [userId],
+                                (err, row) => {
+                                    if (err) reject(err);
+                                    else resolve(row);
+                                }
+                            );
+                        });
+
+                        // Only update if user doesn't have an avatar
+                        if (!userProfile || !userProfile.profile_pic) {
+                            uploadGoogleAvatar(googleUser.picture, userId, fastify.log)
+                                .then(async (objectKey) => {
+                                    if (objectKey) {
+                                        const avatarUpdatedAt = Date.now();
+                                        await new Promise((resolve, reject) => {
+                                            fastify.db.run(
+                                                'UPDATE users SET profile_pic = ?, avatar_updated_at = ? WHERE id = ?',
+                                                [objectKey, avatarUpdatedAt, userId],
+                                                function(err) {
+                                                    if (err) {
+                                                        fastify.log.error({ err, userId, objectKey }, 'Failed to update user avatar in database');
+                                                        reject(err);
+                                                    } else {
+                                                        fastify.log.info({ userId, objectKey }, 'Updated existing user avatar from Google');
+                                                        resolve();
+                                                    }
+                                                }
+                                            );
+                                        });
+                                    }
+                                })
+                                .catch((err) => {
+                                    fastify.log.error({ err, userId }, 'Error uploading Google avatar for existing user (non-blocking)');
+                                });
+                        }
+                    }
                 }
 
                 // Continue with existing login flow...
@@ -569,6 +657,34 @@ module.exports = async function (fastify) {
                     }
                 
                     throw insertError;
+                }
+
+                // Download and upload Google profile picture to MinIO (non-blocking)
+                if (googleUser.picture) {
+                    uploadGoogleAvatar(googleUser.picture, userId, fastify.log)
+                        .then(async (objectKey) => {
+                            if (objectKey) {
+                                const avatarUpdatedAt = Date.now();
+                                await new Promise((resolve, reject) => {
+                                    fastify.db.run(
+                                        'UPDATE users SET profile_pic = ?, avatar_updated_at = ? WHERE id = ?',
+                                        [objectKey, avatarUpdatedAt, userId],
+                                        function(err) {
+                                            if (err) {
+                                                fastify.log.error({ err, userId, objectKey }, 'Failed to update user avatar in database');
+                                                reject(err);
+                                            } else {
+                                                fastify.log.info({ userId, objectKey }, 'Updated user avatar from Google');
+                                                resolve();
+                                            }
+                                        }
+                                    );
+                                });
+                            }
+                        })
+                        .catch((err) => {
+                            fastify.log.error({ err, userId }, 'Error uploading Google avatar (non-blocking)');
+                        });
                 }
                 
                 const token = fastify.jwt.sign({

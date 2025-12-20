@@ -1,13 +1,78 @@
 "use client";
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useUser } from '@/context/UserContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
 import { User, Users, Settings, Circle, ArrowRight } from 'lucide-react';
 import styles from './login/LoginPage.module.css';
+import { getAvatarUrl, getInitials, type UserWithAvatar } from '@/lib/avatar';
+
+function ProfileAvatar({ profile }: { profile: any }) {
+	const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+	const [avatarError, setAvatarError] = useState(false);
+
+	useEffect(() => {
+		if (!profile) return;
+		let cancelled = false;
+		const userData: UserWithAvatar = {
+			id: profile.id,
+			profile_pic: profile.profile_pic,
+			avatar_updated_at: profile.avatar_updated_at,
+			username: profile.username,
+			first_name: profile.first_name,
+			last_name: profile.last_name,
+		};
+		getAvatarUrl(userData, { isCurrentUser: true }).then(url => {
+			if (!cancelled) setAvatarUrl(url);
+		}).catch(() => {
+			if (!cancelled) setAvatarError(true);
+		});
+		return () => { cancelled = true; };
+	}, [profile?.id, profile?.profile_pic, profile?.avatar_updated_at]);
+
+	return (
+		<div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+			{avatarUrl && !avatarError ? (
+				<img 
+					src={avatarUrl} 
+					alt="Profile"
+					onError={() => setAvatarError(true)}
+					style={{
+						width: '100px',
+						height: '100px',
+						borderRadius: '16px',
+						border: '2px solid #1b253f',
+						objectFit: 'cover'
+					}}
+				/>
+			) : profile ? (
+				<div style={{
+					width: '100px',
+					height: '100px',
+					borderRadius: '16px',
+					border: '2px solid #1b253f',
+					background: '#1b253f',
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'center',
+					fontSize: '36px',
+					fontWeight: 'bold',
+					color: '#6b7593'
+				}}>
+					{getInitials({
+						id: profile.id,
+						username: profile.username,
+						first_name: profile.first_name,
+						last_name: profile.last_name,
+					})}
+				</div>
+			) : null}
+		</div>
+	);
+}
 
 export default function HomePage() {
 	const { isLoggedIn, user, fetchMe, logout, error, clearError, ensureCsrf, requires2FA, checkOAuth2FA } = useAuth();
@@ -106,21 +171,7 @@ export default function HomePage() {
 								</div>
 
 								<div style={{ display: 'grid', gap: '20px' }}>
-									{profile.profile_pic && (
-										<div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-											<img 
-												src={profile.profile_pic} 
-												alt="Profile"
-												style={{
-													width: '100px',
-													height: '100px',
-													borderRadius: '16px',
-													border: '2px solid #1b253f',
-													objectFit: 'cover'
-												}}
-											/>
-										</div>
-									)}
+									<ProfileAvatar profile={profile} />
 
 									<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
 										<div className={styles.field}>

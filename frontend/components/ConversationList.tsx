@@ -7,6 +7,7 @@ import { Friend, getChannelName } from "@/lib/chat";
 import { useRouter } from "next/navigation";
 import { handleMessageClick } from "@/lib/chat";
 import { useChatData } from "@/app/chat/ChatDataContext";
+import { getAvatarUrl, getInitials, type UserWithAvatar } from "@/lib/avatar";
 
 interface ConversationsListProps {
   currentUser: {id: string; name: string; avatar?: string } | null;
@@ -139,34 +140,70 @@ export default function ConversationsList({
       <div className={styles.conversationsList}>
         {activeTab === "friends" && friends.length > 0 && (
           <>
-            {friends.map(friend => (
-              <div
-                key={friend.id}
-                className={styles.chatUserItem}
-                onClick={() => startFriendConv(friend.id)}
-              >
+            {friends.map(friend => {
+              const FriendAvatar = ({ friend }: { friend: Friend }) => {
+                const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+                const [avatarError, setAvatarError] = useState(false);
 
-                {friend.profile_pic ? (
-                  <img
-                    src={friend.profile_pic}
-                    alt={friend.username}
-                    className={styles.chatUserAvatar}
-                  />
-                ): (
-                  <div className={styles.placeholderAvatar}>{friend.first_name && friend.first_name[0]?.toUpperCase()}</div>
-                )}
+                useEffect(() => {
+                  let cancelled = false;
+                  const userData: UserWithAvatar = {
+                    id: Number(friend.id),
+                    profile_pic: friend.profile_pic,
+                    avatar_updated_at: (friend as any).avatar_updated_at,
+                    username: friend.username,
+                    first_name: friend.first_name,
+                    last_name: friend.last_name,
+                  };
+                  getAvatarUrl(userData).then(url => {
+                    if (!cancelled) {
+                      setAvatarUrl(url);
+                    }
+                  }).catch(() => {
+                    if (!cancelled) {
+                      setAvatarError(true);
+                    }
+                  });
+                  return () => { cancelled = true; };
+                }, [friend.id, friend.profile_pic, (friend as any).avatar_updated_at]);
 
-                <div className={styles.chatUserInfo}>
-                  <div className={styles.chatUserName}>
-                    {friend.first_name} {friend.last_name}
+                if (avatarUrl && !avatarError) {
+                  return (
+                    <img
+                      src={avatarUrl}
+                      alt={friend.username}
+                      className={styles.chatUserAvatar}
+                      onError={() => setAvatarError(true)}
+                    />
+                  );
+                }
+                return (
+                  <div className={styles.placeholderAvatar}>
+                    {getInitials(userData)}
                   </div>
+                );
+              };
 
-                  <div className={styles.chatUserUsername}>
-                    @{friend.username}
+              return (
+                <div
+                  key={friend.id}
+                  className={styles.chatUserItem}
+                  onClick={() => startFriendConv(friend.id)}
+                >
+                  <FriendAvatar friend={friend} />
+
+                  <div className={styles.chatUserInfo}>
+                    <div className={styles.chatUserName}>
+                      {friend.first_name} {friend.last_name}
+                    </div>
+
+                    <div className={styles.chatUserUsername}>
+                      @{friend.username}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </>
         )}
 

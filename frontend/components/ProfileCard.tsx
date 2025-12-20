@@ -1,6 +1,8 @@
 import { UMUser } from '@/lib/api';
 import './ProfileCard.css'
 import CurrentUserProfileNotice from './CurrentUserProfileNotice';
+import { getAvatarUrl, getInitials } from '@/lib/avatar';
+import { useState, useEffect } from 'react';
 
 interface ProfileCardProps {
   profile: UMUser;
@@ -16,35 +18,56 @@ interface ProfileCardProps {
 }
 
 export function ProfileCard({ profile, isCurrentUser, onAddFriend, friendshipStatus, acceptRequest, invitationReceived, blockUser, rejectRequest, handleMessageBtn, handleUnblock }: ProfileCardProps) {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
 
-  // console.log("status: ", profile,);
-  
+  useEffect(() => {
+    let cancelled = false;
+    getAvatarUrl(profile, { isCurrentUser }).then(url => {
+      if (!cancelled) {
+        setAvatarUrl(url);
+      }
+    }).catch(() => {
+      if (!cancelled) {
+        setAvatarError(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [profile.id, profile.profile_pic, profile.avatar_updated_at, isCurrentUser]);
 
   return (
     <div className="profile-card">
       <div className="profile-card-inner">
         <div className="avatar-wrapper">
-
-              <div style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  background: '#ddd',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 24,
-                  fontWeight: 'bold',
-                  color: '#666'
-              }}>
-                  {profile.username.charAt(0).toUpperCase()}
-              </div>
-
-          {/* <img
-            src={profile.profile_pic}
-            alt={profile.first_name + ' ' + profile.last_name}
-            className="avatar-image"
-          /> */}
+          {avatarUrl && !avatarError ? (
+            <img
+              src={avatarUrl}
+              alt={profile.first_name + ' ' + profile.last_name}
+              className="avatar-image"
+              onError={() => setAvatarError(true)}
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: '50%',
+                objectFit: 'cover'
+              }}
+            />
+          ) : (
+            <div style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              background: '#ddd',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 24,
+              fontWeight: 'bold',
+              color: '#666'
+            }}>
+              {getInitials(profile)}
+            </div>
+          )}
           <div className={`${profile.is_online ? 'status-online' : ''}`}></div>
         </div>
 
