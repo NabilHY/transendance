@@ -12,7 +12,8 @@ const runMigrations = async (db) => {
         { name: 'games_lost', type: 'INTEGER DEFAULT 0' },
         { name: 'win_rate', type: 'REAL DEFAULT 0.0' },
         { name: 'current_streak', type: 'INTEGER DEFAULT 0' },
-        { name: 'profile_pic', type: 'TEXT' }
+        { name: 'profile_pic', type: 'TEXT' },
+        { name: 'avatar_updated_at', type: 'INTEGER DEFAULT 0' }
     ];
 
     for (const column of gamingColumns) {

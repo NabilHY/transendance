@@ -13,7 +13,6 @@ export default function CompleteProfilePage() {
     const [username, setUsername] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
-    const [profilePic, setProfilePic] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -61,12 +60,11 @@ export default function CompleteProfilePage() {
             // Get CSRF token
             const csrfToken = await getCsrfToken();
 
-            // Update profile
+            // Update profile (avatar upload is handled separately via /me/avatar endpoint)
             const result = await umUpdateProfile({
                 username: username.trim(),
                 first_name: firstName.trim(),
                 last_name: lastName.trim(),
-                profile_pic: profilePic.trim() || undefined
             }, csrfToken);
 
             if (result.ok) {
@@ -185,23 +183,6 @@ export default function CompleteProfilePage() {
                                         maxLength={50}
                                     />
                                 </div>
-                            </label>
-
-                            <label className={styles.field}>
-                                <span>Profile Picture URL</span>
-                                <div className={styles.inputWrapper}>
-                                    <input
-                                        className={styles.input}
-                                        type="url"
-                                        value={profilePic}
-                                        onChange={(e) => setProfilePic(e.target.value)}
-                                        placeholder="https://example.com/profile.jpg"
-                                        disabled={submitting}
-                                    />
-                                </div>
-                                <span className={styles.fieldHint}>
-                                    Optional. Enter a URL to your profile picture.
-                                </span>
                             </label>
 
                             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>

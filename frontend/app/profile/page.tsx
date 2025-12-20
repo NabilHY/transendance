@@ -1,18 +1,44 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
 import { User, Settings, Users, Home, LogOut, RefreshCw, Circle } from 'lucide-react';
 import styles from '../login/LoginPage.module.css';
+import { getAvatarUrl, getInitials, type UserWithAvatar } from '@/lib/avatar';
 
 export default function ProfilePage() {
     const { profile, loading, error, updateOnlineStatus, clearError } = useUser();
     const { loading: authLoading, isProfileComplete } = useRequireAuth();
     const { logout } = useAuth();
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [avatarError, setAvatarError] = useState(false);
+
+    useEffect(() => {
+        if (!profile) return;
+        let cancelled = false;
+        const userData: UserWithAvatar = {
+            id: profile.id,
+            profile_pic: profile.profile_pic,
+            avatar_updated_at: (profile as any).avatar_updated_at,
+            username: profile.username,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+        };
+        getAvatarUrl(userData, { isCurrentUser: true }).then(url => {
+            if (!cancelled) {
+                setAvatarUrl(url);
+            }
+        }).catch(() => {
+            if (!cancelled) {
+                setAvatarError(true);
+            }
+        });
+        return () => { cancelled = true; };
+    }, [profile?.id, profile?.profile_pic, (profile as any)?.avatar_updated_at]);
     
     if (authLoading || loading) {
         return (
@@ -222,15 +248,16 @@ export default function ProfilePage() {
                             </div>
 
                             {/* Profile Picture */}
-                            {profile.profile_pic && (
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    marginBottom: '32px'
-                                }}>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                marginBottom: '32px'
+                            }}>
+                                {avatarUrl && !avatarError ? (
                                     <img 
-                                        src={profile.profile_pic} 
+                                        src={avatarUrl} 
                                         alt="Profile"
+                                        onError={() => setAvatarError(true)}
                                         style={{
                                             width: '120px',
                                             height: '120px',
@@ -239,8 +266,29 @@ export default function ProfilePage() {
                                             objectFit: 'cover'
                                         }}
                                     />
-                                </div>
-                            )}
+                                ) : (
+                                    <div style={{
+                                        width: '120px',
+                                        height: '120px',
+                                        borderRadius: '16px',
+                                        border: '2px solid #1b253f',
+                                        background: '#1b253f',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '48px',
+                                        fontWeight: 'bold',
+                                        color: '#6b7593'
+                                    }}>
+                                        {profile ? getInitials({
+                                            id: profile.id,
+                                            username: profile.username,
+                                            first_name: profile.first_name,
+                                            last_name: profile.last_name,
+                                        }) : '?'}
+                                    </div>
+                                )}
+                            </div>
 
                             <div style={{ display: 'grid', gap: '20px' }}>
                                 <div className={styles.field}>
@@ -360,24 +408,6 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
 
-                                {profile.profile_pic && (
-                                    <div className={styles.field}>
-                                        <span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                            Profile Picture URL
-                                        </span>
-                                        <div style={{
-                                            padding: '12px 16px',
-                                            background: '#050b16',
-                                            border: '1px solid #1e2b45',
-                                            borderRadius: '12px',
-                                            color: '#93a0c5',
-                                            fontSize: '13px',
-                                            wordBreak: 'break-all'
-                                        }}>
-                                            {profile.profile_pic}
-                                        </div>
-                                    </div>
-                                )}
 
                                 <div className={styles.field}>
                                     <span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>

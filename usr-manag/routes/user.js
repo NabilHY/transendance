@@ -23,7 +23,8 @@ module.exports = async function (fastify) {
                         username: { type: 'string', nullable: true },
                         first_name: { type: 'string', nullable: true },
                         last_name: { type: 'string', nullable: true },
-                        profile_pic: { type: 'string', nullable: true },
+                        profile_pic: { type: 'string', nullable: true, description: 'Object key (not a URL). Use /users/:id/avatar to get presigned URL.' },
+                        avatar_updated_at: { type: 'integer', nullable: true, description: 'Unix timestamp in milliseconds when avatar was last updated' },
                         is_online: { type: 'integer', enum: [0,1] },
                         created_at: { type: 'string' }
                     }
@@ -40,7 +41,7 @@ module.exports = async function (fastify) {
         
         let sql = `
             SELECT id, username, first_name, last_name, 
-                   profile_pic, is_online, created_at
+                   profile_pic, avatar_updated_at, is_online, created_at
             FROM users
         `;
         let params = [];
@@ -75,10 +76,11 @@ module.exports = async function (fastify) {
                     username: { type: 'string', nullable: true },
                     first_name: { type: 'string', nullable: true },
                     last_name: { type: 'string', nullable: true },
-                    profile_pic: { type: 'string', nullable: true },
-                    is_online: { type: 'integer', enum: [0,1] },
-                    created_at: { type: 'string' },
-                    updated_at: { type: 'string' }
+                        profile_pic: { type: 'string', nullable: true, description: 'Object key (not a URL). Use /users/:id/avatar to get presigned URL.' },
+                        avatar_updated_at: { type: 'integer', nullable: true, description: 'Unix timestamp in milliseconds when avatar was last updated' },
+                        is_online: { type: 'integer', enum: [0,1] },
+                        created_at: { type: 'string' },
+                        updated_at: { type: 'string' }
                 }
             },
             404: { type: 'object', properties: { error: { type: 'string' } } }
@@ -88,7 +90,7 @@ module.exports = async function (fastify) {
         
         const profile = fastify.db.prepare(`
             SELECT id, username, first_name, last_name, 
-            profile_pic, is_online, created_at, updated_at
+            profile_pic, avatar_updated_at, is_online, created_at, updated_at
             FROM users 
             WHERE id = ?
         `).get(id);

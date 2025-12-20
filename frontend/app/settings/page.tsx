@@ -1,16 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Search, User, Mail, Key, Github, Twitter, Trash2 } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Shield, UserCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import './styles.css';
-import { fetchCurrentUser } from '@/lib/fetcher';
-
-interface PasswordInputProps {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
 
 export interface User {
   id: number;
@@ -28,66 +21,6 @@ const SettingsPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [newInfoCurrentUser, setNewInfoCurrentUser] = useState<User | null>(null);
-  const [confirmDeletion, setConfirmDeletion] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  const updateUserInfo = async (field: string) => {
-    if (!newInfoCurrentUser || !currentUser) return;
-
-    const newValue = newInfoCurrentUser[field];
-    const oldValue = currentUser[field];
-
-    if (newValue === oldValue) {
-      console.log("No changes detected for field:", field);
-      return;
-    }
-
-    const updatedUser = { ...currentUser, [field]: newValue };
-    setCurrentUser(updatedUser);
-
-    try {
-      const update = await fetch(
-        `${process.env.NEXT_PUBLIC_USR_MANAG_URL}/me/profile`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profile: updatedUser }),
-          credentials: "include",
-        }
-      );
-      if (!update.ok)
-        throw new Error("Server error");
-      console.log("Updated successfully!");
-    } catch (err) {
-      console.error("error ya dink", err);
-    }
-  };
-
-  const loadCurrentUser = async () => {
-    const currentUser = await fetchCurrentUser();
-    setCurrentUser(currentUser);
-    setNewInfoCurrentUser(currentUser);
-    console.log("Current User in Settings:", currentUser);
-  };
-
-  const deleteAccount = async () => {
-    // ! deletion here baliiiiiz
-  };
-
-  useEffect(() => {{
-    if(confirmDeletion)
-      deleteAccount();
-  }}, [confirmDeletion]);
-
-  useEffect(() => {
-    loadCurrentUser();
-  }, []);
-
   // Redirect OAuth callbacks to security-settings page
   useEffect(() => {
     const connected = searchParams?.get('connected');
@@ -101,79 +34,64 @@ const SettingsPage = () => {
     }
   }, [searchParams, router]);
 
+  const settingsOptions = [
+    {
+      id: 'profile',
+      title: 'Profile Settings',
+      description: 'Manage your personal information',
+      icon: <UserCircle size={24} />,
+      color: '#10b981',
+      href: '/settings/profile-settings',
+    },
+    {
+      id: 'security',
+      title: 'Security Settings',
+      description: 'Manage password, 2FA, and connected accounts',
+      icon: <Shield size={24} />,
+      color: '#1790ff',
+      href: '/settings/security-settings',
+    },
+  ] as const;
+
   return (
-    <div className={`container`}>
-
-      <div className='main-content' >
-        <div className="account-grid">
-        <div className="setting-card">
-          <h3>Display Name</h3>
-          <div className="input-group">
-            <User size={16} />
-            <input type="text" value={newInfoCurrentUser?.username || ''} onChange={(e) => setNewInfoCurrentUser(prev => prev ? { ...prev, username: e.target.value } : prev)} />
-          </div>
-          <div className="button-group">
-            <button className="btn" onClick={() => updateUserInfo('username')}>Edit</button>
-          </div>
-        </div>
-
-        <div className="setting-card">
-          <h3>First Name</h3>
-          <div className="input-group">
-            <User size={16} />
-            <input type="text" value={newInfoCurrentUser?.first_name || ''} onChange={(e) => setNewInfoCurrentUser(prev => prev ? { ...prev, first_name: e.target.value } : prev)} />
-          </div>
-          <div className="button-group">
-            <button className="btn" onClick={() => updateUserInfo('first_name')}>Edit</button>
-          </div>
-        </div>
-
-        <div className="setting-card">
-          <h3>Last Name</h3>
-          <div className="input-group">
-            <User size={16} />
-            <input type="text" value={newInfoCurrentUser?.last_name || ''} onChange={(e) => setNewInfoCurrentUser(prev => prev ? { ...prev, last_name: e.target.value } : prev)} />
-          </div>
-          <div className="button-group">
-            <button className="btn" onClick={() => updateUserInfo('last_name')}>Edit</button>
-          </div>
-        </div>
-
-        <div className={`setting-card confirm-deletion ${showDeleteConfirm ? 'visible' : ''}`}>
-          <h3>Are you sure ?</h3>
-          <span>All your data will be lost.</span>
-          <div className="checkbox-group">
-            <button className="btn" onClick={() => setConfirmDeletion(true)}>Yes</button>
-            <button className="btn" onClick={() => {setConfirmDeletion(false); setShowDeleteConfirm(false);}}>No</button>
-          </div>
-        </div>
-
-        <div className="setting-card">
-          <h3>Delete Account</h3>
-          <div style={{ padding: '16px 0' }}>
-            <p style={{ color: '#9ca8c7', fontSize: '14px', marginBottom: '12px' }}>
-              Permanently delete your account and all associated data.
+    <div className="container">
+      <div className="main-content">
+        <div className="security-settings-wrapper">
+          <div className="security-settings-header">
+            <h1 className="security-settings-title">Settings</h1>
+            <p className="security-settings-subtitle">
+              Choose a settings category
             </p>
-            <div style={{ color: '#666', fontSize: '13px' }}>
-              This feature will be available soon.
-            </div>
           </div>
-        </div>
 
-        <div className="setting-card">
-          <h3>Connected Accounts</h3>
-          <div style={{ padding: '16px 0' }}>
-            <p style={{ color: '#9ca8c7', fontSize: '14px', marginBottom: '12px' }}>
-              Manage your connected third-party accounts.
-            </p>
-            <div style={{ color: '#666', fontSize: '13px' }}>
-              This feature will be available soon.
-            </div>
+          <div className="security-options-grid">
+            {settingsOptions.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => router.push(option.href)}
+                className="security-option-card"
+                data-color={option.color}
+              >
+                <div
+                  className="security-option-icon-wrapper"
+                  style={{
+                    '--icon-bg': `${option.color}20`,
+                    '--icon-color': option.color,
+                  } as React.CSSProperties}
+                >
+                  {option.icon}
+                </div>
+                <div>
+                  <h3 className="security-option-title">{option.title}</h3>
+                  <p className="security-option-description">
+                    {option.description}
+                  </p>
+                </div>
+              </button>
+            ))}
           </div>
-        </div>
         </div>
       </div>
-
     </div>
   );
 }

@@ -1,9 +1,12 @@
+import { getApiUrls } from './api-config';
 
 export async function fetchCurrentUser() {
   // console.log("url --> ", process.env.NEXT_PUBLIC_USR_MANAG_URL);
   try {
+    // Prefer explicit NEXT_PUBLIC_USR_MANAG_URL when provided; otherwise fall back to dynamic hostname+port.
+    const base = process.env.NEXT_PUBLIC_USR_MANAG_URL ?? getApiUrls().usrManag;
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/me`, {
+    const res = await fetch(`${base}/me`, {
       method: "GET",
       credentials: "include",
     });

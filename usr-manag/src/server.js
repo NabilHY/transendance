@@ -70,6 +70,7 @@ fastify.register(require('@fastify/cors'), {
 
 fastify.register(require('../plugins/db'));
 fastify.register(require('../plugins/auth'));
+fastify.register(require('../plugins/minio'));
 fastify.register(require('../plugins/swagger'));
 
 // Health check
@@ -134,6 +135,9 @@ fastify.get('/service-info', {
             'POST /users/:id/block',
             'GET /conversations/:id',
             'GET /chat/direct/:targetUserId',
+            'POST /me/avatar',
+            'GET /me/avatar',
+            'GET /users/:id/avatar',
         ],
         dependencies: ['auth-backend']
     };
@@ -143,6 +147,7 @@ fastify.get('/service-info', {
 fastify.register(require('../routes/users'), { prefix: '' });
 fastify.register(require('../routes/chat'), { prefix: '' });
 fastify.register(require('../routes/friends'), { prefix: '' });
+fastify.register(require('../routes/media'), { prefix: '' });
 // fastify.register(require('../routes/profile'), { prefix: '' });
 fastify.register(require('../plugins/metrics'), { prefix: '/metrics' });
 const start = async () => {
