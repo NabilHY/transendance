@@ -481,7 +481,7 @@ module.exports = async function (fastify) {
         const userId = request.user.id;
 
         const friends = fastify.db.prepare(`
-            SELECT u.id, u.username, u.first_name, u.last_name, u.profile_pic, u.is_online, f.status
+            SELECT u.id, u.username, u.first_name, u.last_name, u.profile_pic, u.avatar_updated_at, u.is_online, f.status
             FROM friends f
             JOIN users u ON (
                 CASE 
