@@ -6,14 +6,14 @@ import logo from '@/public/racket.png';
 import { useAuth } from '@/context/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronDown, ChevronUp, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 const authenticatedItems = [
     { id: "home", label: "Dashboard", href: "/" },
     { id: "profile", label: "Profile", href: "/profile" },
     { id: "chat", label: "Chat", href: "/chat" },
     { id: "game", label: "Game", href: "/game" },
-    { id: "settings", label: "Settings", href: "/settings", hasDropdown: true },
+    { id: "settings", label: "Settings", href: "/settings" },
 ];
 
 
@@ -27,7 +27,6 @@ export default function NewSidebar() {
     const { isLoggedIn, logout, clearError } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
-    const [settingsDropdownOpen, setSettingsDropdownOpen] = useState(false);
 
     const items = isLoggedIn ? authenticatedItems : unauthenticatedItems;
     
@@ -39,22 +38,7 @@ export default function NewSidebar() {
         router.push(path);
     }
     
-    const handleSettingsClick = () => {
-        setSettingsDropdownOpen(!settingsDropdownOpen);
-    };
-
-    const handlePasswordSecurityClick = () => {
-        router.push('/settings/security-settings');
-        setSettingsDropdownOpen(false);
-    };
-
-    const handleProfileSettingsClick = () => {
-        router.push('/settings/profile-settings');
-        setSettingsDropdownOpen(false);
-    };
-    
     const activeItem = getActiveItem();
-    const isSettingsActive = pathname === '/settings' || pathname?.startsWith('/settings/');
 
     return (
         <aside className={styles.sidebar}>
@@ -94,14 +78,13 @@ export default function NewSidebar() {
 
             <nav className={styles.nav}>
                 {items.map((item) => {
-                    const active = item.id === activeItem?.id || (item.id === 'settings' && isSettingsActive);
-                    const isSettings = item.id === 'settings' && (item as { hasDropdown?: boolean }).hasDropdown === true;
+                    const active = item.id === activeItem?.id;
                     
                     return (
                         <div key={item.id} className={styles.navItemWrapper}>
                             <button
                                 type="button"
-                                onClick={isSettings ? handleSettingsClick : () => handleNavigation(item.href)}
+                                onClick={() => handleNavigation(item.href)}
                                 className={`${styles.navItem} ${active ? styles.active : ''}`}
                             >
                                 <div className={styles.navItemContent}>
@@ -111,51 +94,9 @@ export default function NewSidebar() {
                                     <span>{item.label}</span>
                                 </div>
                                 <div className={styles.navItemRight}>
-                                    {isSettings && (
-                                        <span className={styles.chevronIcon}>
-                                            {settingsDropdownOpen ? (
-                                                <ChevronUp size={16} />
-                                            ) : (
-                                                <ChevronDown size={16} />
-                                            )}
-                                        </span>
-                                    )}
-                                    {!isSettings && (
-                                        <span className={styles.ellipsisIcon}>⋯</span>
-                                    )}
+                                    <span className={styles.ellipsisIcon}>⋯</span>
                                 </div>
                             </button>
-                            
-                            {isSettings && (
-                                <div 
-                                    className={`${styles.dropdown} ${settingsDropdownOpen ? styles.dropdownOpen : ''}`}
-                                >
-                                    <button
-                                        type="button"
-                                        onClick={handleProfileSettingsClick}
-                                        className={`${styles.dropdownItem} ${pathname === '/settings/profile-settings' ? styles.dropdownItemActive : ''}`}
-                                    >
-                                        <span className={styles.dropdownItemContent}>
-                                            <span className={styles.dropdownRadioIcon}>
-                                                {pathname === '/settings/profile-settings' && '•'}
-                                            </span>
-                                            <span>Profile Settings</span>
-                                        </span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handlePasswordSecurityClick}
-                                        className={`${styles.dropdownItem} ${pathname === '/settings/security-settings' ? styles.dropdownItemActive : ''}`}
-                                    >
-                                        <span className={styles.dropdownItemContent}>
-                                            <span className={styles.dropdownRadioIcon}>
-                                                {pathname === '/settings/security-settings' && '•'}
-                                            </span>
-                                            <span>Password and Security</span>
-                                        </span>
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     );
                 })}

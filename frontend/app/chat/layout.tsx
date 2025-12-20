@@ -18,6 +18,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [currentUser, setCurrentUser] =
     useState<{ id: string; name: string; avatar?: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
   // const [updated, setUpdated] = useState<boolean>(false);
@@ -25,29 +27,49 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const init = async () => {
+      setLoading(true);
+      setInitError(null);
+      setIsSuccess(false);
+
       const user = await fetchCurrentUser();
-      if (!user) return;
+      if (!user) {
+        setInitError(
+          "Can't load your user session. Make sure you're logged in and the user-management API URL is configured."
+        );
+        setLoading(false);
+        return;
+      }
 
       setCurrentUser(user);
-      setFriends(await getFriends());
 
-      socketRef.current = new WebSocket(
-        `${chatURL}/ws?userId=${user.id}`
-      );
+      try {
+        setFriends(await getFriends());
 
-      socketRef.current.onopen = () => {
-        console.log("CHAT: WebSocket connected");
-      };
+        socketRef.current = new WebSocket(`${chatURL}/ws?userId=${user.id}`);
 
-      socketRef.current.onmessage = (event) => {
-        console.log("CHAT: 📩 WS message:", event.data);
-      };
+        socketRef.current.onopen = () => {
+          console.log("CHAT: WebSocket connected");
+        };
 
-      socketRef.current.onclose = () => {
-        console.log("CHAT: ❌ WebSocket closed");
-      };
+        socketRef.current.onmessage = (event) => {
+          console.log("CHAT: 📩 WS message:", event.data);
+        };
 
-      setIsSuccess(true);
+        socketRef.current.onerror = () => {
+          setInitError("Chat socket error. Is the chat backend running/reachable?");
+          setIsSuccess(false);
+        };
+
+        socketRef.current.onclose = () => {
+          console.log("CHAT: ❌ WebSocket closed");
+        };
+
+        setIsSuccess(true);
+      } catch (e: any) {
+        setInitError(e?.message || "Chat initialization failed.");
+      } finally {
+        setLoading(false);
+      }
     };
 
     init();
@@ -102,6 +124,37 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const normalized = await normalizeConversations(data);
     setConversations(normalized);
   };
+
+  if (loading) {
+    return (
+      <main style={{ height: "100dvh", display: "grid", placeItems: "center" }}>
+        <div>Loading chat…</div>
+      </main>
+    );
+  }
+
+  if (initError) {
+    return (
+      <main
+        style={{
+          height: "100dvh",
+          display: "grid",
+          placeItems: "center",
+          padding: 24,
+        }}
+      >
+        <div style={{ maxWidth: 720 }}>
+          <h2>Chat unavailable</h2>
+          <p>{initError}</p>
+          <p style={{ opacity: 0.8 }}>
+            If you see requests like <code>/undefined/me</code> in your logs, set{" "}
+            <code>NEXT_PUBLIC_USR_MANAG_URL</code> (e.g.{" "}
+            <code>http://localhost:4000</code>) and restart/rebuild the frontend.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   if (!isSuccess || !currentUser) return null;
 
