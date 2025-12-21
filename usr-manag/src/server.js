@@ -22,10 +22,14 @@ const isOriginAllowed = (origin) => {
         /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs
         /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs (HTTPS)
         /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs
-        /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/  // Private network IPs (HTTPS)
+        /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs (HTTPS)
+        /^https?:\/\/196\.119\.125\.6(:\d+)?$/,  // External public IP
+        /^https?:\/\/[\d.]+:\d+$/  // Any IP address with port (development mode)
     ];
     
-    return allowedPatterns.some(pattern => pattern.test(origin));
+    const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+    console.log(`[CORS] Origin: ${origin} - Allowed: ${isAllowed}`);
+    return isAllowed;
 };
 
 console.log('allowedOrigins ::::::', allowedOrigins);

@@ -1,12 +1,14 @@
 // Game-related TypeScript types
 
-export type GameScreen = "start" | "waiting" | "game" | "end" | "tournamentWaiting" | "tournamentMatchReady";
+export type GameScreen = "start" | "waiting" | "game" | "end" | "tournamentWaiting" | "tournamentMatchReady" | "quadWaiting";
 
-export type GameMode = "solo" | "matchmaking" | "ai" | "tournament";
+export type GameMode = "solo" | "matchmaking" | "ai" | "tournament" | "quad";
 
 export type AIDifficulty = "easy" | "medium" | "hard" | "impossible";
 
-export type PlayerRole = "player1" | "player2" | "both";
+export type PlayerRole = "player1" | "player2" | "both" | "team1Player1" | "team1Player2" | "team2Player1" | "team2Player2";
+
+export type TeamRole = "team1" | "team2";
 
 export interface GameState {
   player1: {
@@ -27,6 +29,34 @@ export interface GameState {
   winner?: string;
 }
 
+export interface QuadGameState {
+  team1Player1: {
+    x: number;
+    y: number;
+  };
+  team1Player2: {
+    x: number;
+    y: number;
+  };
+  team2Player1: {
+    x: number;
+    y: number;
+  };
+  team2Player2: {
+    x: number;
+    y: number;
+  };
+  ball: {
+    x: number;
+    y: number;
+  };
+  team1Score: number;
+  team2Score: number;
+  countdown?: number;
+  winner?: string;
+  gameActive?: boolean;
+}
+
 export interface PlayerInfo {
   role?: PlayerRole;
   roomId?: string;
@@ -44,6 +74,16 @@ export interface PlayerInfo {
   username?: string;
   tournamentId?: string;
   round?: string;
+  // Quad-specific fields
+  team?: TeamRole;
+  teammates?: Array<{
+    username: string;
+    id: number;
+  }>;
+  opponents?: Array<{
+    username: string;
+    id: number;
+  }>;
 }
 
 export interface PlayerStats {
@@ -147,3 +187,35 @@ export interface WebSocketMessage {
   [key: string]: any;
 }
 
+export interface QuadWaitingInfo {
+  queuePosition: number;
+  totalWaiting: number;
+}
+
+export interface QuadWinScreenData {
+  won: boolean;
+  team: TeamRole;
+  teammates: Array<{
+    username: string;
+    id: number;
+  }>;
+  opponents: Array<{
+    username: string;
+    id: number;
+  }>;
+  finalScore: {
+    team1: number;
+    team2: number;
+  };
+  stats?: {
+    oldRating: number;
+    newRating: number;
+    oldXp: number;
+    newXp: number;
+    oldLevel: number;
+    newLevel: number;
+    totalMatches: number;
+    wins: number;
+    losses: number;
+  };
+}

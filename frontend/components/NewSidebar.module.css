@@ -3,7 +3,7 @@
   background: #050b16;
   border-right: 1px solid #111726;
   height: 100%;
-  padding: 20px 16px;
+  padding: 20px 16px 32px 16px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -164,7 +164,7 @@
   cursor: pointer;
   transition: background 0.2s ease;
   margin-top: auto;
-  margin-bottom: 20px;
+  margin-bottom: 40px;
   width: 100%;
   display: flex;
   align-items: center;

@@ -35,6 +35,9 @@ class GameManager {
     this.waitingPlayers = []; // Players waiting to be matched
     this.nextGameId = 1;
     
+    // Track processed games globally to prevent ANY duplicates
+    this.processedGames = new Set(); // roomId of games that have been fully processed
+    
     // Initialize stats handler
     this.userAuth = userAuth;
     this.statsHandler = new GameStatsHandler(userAuth);
@@ -399,10 +402,20 @@ class GameManager {
     const gameState = new GameState('tournament');
     const gameLoop = new GameLoop(gameState);
     
+    // Determine tournament stage from tournament status
+    const tournament = this.tournamentManager.getTournament(tournamentId);
+    let tournamentStage = null;
+    if (tournament) {
+      if (tournament.status === 'quarter_finals') tournamentStage = 'quarter';
+      else if (tournament.status === 'semi_finals') tournamentStage = 'semi';
+      else if (tournament.status === 'finals') tournamentStage = 'final';
+    }
+
     const gameRoom = {
       mode: 'tournament',
       tournamentId: tournamentId,
       matchId: match.match,
+      tournamentStage: tournamentStage, // Add tournament stage
       gameState,
       gameLoop,
       players: new Set([player1ConnectionId, player2ConnectionId]),
@@ -501,6 +514,10 @@ class GameManager {
       gameLoop,
       players: new Set([player1Data.connectionId, player2Data.connectionId]),
       spectators: new Set(),
+      authenticatedPlayers: new Map([
+        [player1Data.connectionId, player1Data.user],
+        [player2Data.connectionId, player2Data.user]
+      ]),
       gameStartTime: Date.now(),
       wasActive: false,
       gameProcessed: false
@@ -508,17 +525,19 @@ class GameManager {
 
     this.games.set(roomId, gameRoom);
     
-    // Assign roles
+    // Assign roles WITH user data
     this.players.set(player1Data.connectionId, {
       roomId,
       role: 'player1',
-      connection: player1Data.connection
+      connection: player1Data.connection,
+      user: player1Data.user
     });
     
     this.players.set(player2Data.connectionId, {
       roomId,
       role: 'player2',
-      connection: player2Data.connection
+      connection: player2Data.connection,
+      user: player2Data.user
     });
 
     // Initialize game
@@ -704,6 +723,7 @@ class GameManager {
         if (gameRoom.aborted) {
           console.log(`🚫 Game ${roomId} was aborted - skipping all processing`);
           gameRoom.gameProcessed = true;
+          this.processedGames.add(roomId);
           gameRoom.gameEndTime = Date.now();
           continue;
         }
@@ -723,8 +743,7 @@ class GameManager {
           aborted: gameRoom.aborted
         });
         
-        // Mark game as processed to prevent multiple processing
-        gameRoom.gameProcessed = true;
+        // Set end time but DON'T mark as processed yet (let processGameCompletion do that)
         gameRoom.gameEndTime = Date.now();
         
         if (hadMeaningfulGameplay) {
@@ -741,6 +760,9 @@ class GameManager {
             .catch(err => console.error(`❌ Error processing game completion for ${roomId}:`, err));
         } else {
           console.log(`⚠️ Skipping stats processing - game ended without meaningful gameplay (disconnection during countdown/early game)`);
+          // Mark as processed even if we skip stats (no meaningful gameplay)
+          gameRoom.gameProcessed = true;
+          this.processedGames.add(roomId);
         }
         
         continue;
@@ -883,14 +905,13 @@ class GameManager {
       if (gameRoom) {
         const gameState = gameRoom.gameState.getState();
         const totalScore = gameState.player1.score + gameState.player2.score;
-        const gameHadMeaningfulProgress = totalScore > 0 || gameState.countdown === 0;
         
         console.log(`🔌 Player disconnection in room ${player.roomId}:`, {
           playersRemaining: gameRoom.players.size - 1,
           totalScore,
           countdown: gameState.countdown,
-          gameHadMeaningfulProgress,
-          gameActive: gameState.gameActive
+          gameActive: gameState.gameActive,
+          mode: gameRoom.mode
         });
         
         // Remove from game room
@@ -904,27 +925,9 @@ class GameManager {
         if (gameRoom.players.size === 0) {
           console.log(`Removing empty game room ${player.roomId}`);
           this.games.delete(player.roomId);
-        } else if (!gameHadMeaningfulProgress) {
-          // If game hadn't started yet (still in countdown or no scoring), just end it cleanly without stats processing
-          console.log(`🚫 Aborting game ${player.roomId} - no meaningful progress made (disconnection during countdown/early game)`);
-          gameRoom.gameProcessed = true; // Mark as processed to prevent stats processing
-          gameRoom.aborted = true; // Flag as aborted rather than completed
-          
-          // Notify remaining player
-          const remainingPlayers = Array.from(gameRoom.players);
-          for (const playerId of remainingPlayers) {
-            const otherPlayer = this.players.get(playerId);
-            if (otherPlayer && otherPlayer.connection.readyState === 1) {
-              otherPlayer.connection.send(JSON.stringify({
-                type: 'gameAborted',
-                message: 'Game was cancelled due to early disconnection. No stats affected.',
-                reason: 'early_disconnection'
-              }));
-            }
-          }
         } else {
-          // Game had meaningful progress - award win to remaining player
-          console.log(`⚡ Player disconnected mid-game in ${player.roomId} - awarding win to remaining player`);
+          // ANY disconnection after game is created = award win to remaining player
+          console.log(`⚡ Player disconnected in ${player.roomId} - awarding win to remaining player`);
           
           const remainingPlayers = Array.from(gameRoom.players);
           if (remainingPlayers.length === 1) {
@@ -978,29 +981,33 @@ class GameManager {
                 console.log(`⏹️ Stopped game loop for ${player.roomId}`);
               }
               
-              // Mark as processed to prevent duplicate processing
-              gameRoom.gameProcessed = true;
-              
               // Store disconnected player info for stats processing
               gameRoom.disconnectedPlayer = disconnectedData;
               console.log(`💾 Stored disconnected player info: ${disconnectedData.user.username} (role: ${disconnectedData.role})`);
               
               // Immediately process game completion to generate win screen
+              // (Will mark as processed inside the function)
               if (gameRoom.mode === 'tournament') {
                 console.log(`🏆 Tournament match - processing tournament result immediately`);
                 // Process tournament match immediately
                 await this.processTournamentMatch(player.roomId, gameRoom, currentState).catch(err => {
                   console.error(`❌ Error processing tournament match on disconnect:`, err);
+                  gameRoom.gameProcessed = true;
+                  this.processedGames.add(player.roomId); // Mark as processed even on error
                 });
               } else if (gameRoom.mode === 'multiplayer') {
                 console.log(`🏆 Multiplayer/Matchmaking match - processing game completion immediately`);
                 // Process regular game completion immediately (this sends win screen)
                 await this.processGameCompletion(player.roomId, gameRoom, currentState).catch(err => {
                   console.error(`❌ Error processing game completion on disconnect:`, err);
+                  gameRoom.gameProcessed = true;
+                  this.processedGames.add(player.roomId); // Mark as processed even on error
                 });
               } else {
                 // Solo/AI mode - just notify and end
                 console.log(`⚠️ Solo/AI mode disconnect - no stats update needed`);
+                gameRoom.gameProcessed = true;
+                this.processedGames.add(player.roomId);
                 if (winnerData.connection && winnerData.connection.readyState === 1) {
                   winnerData.connection.send(JSON.stringify({
                     type: 'opponentDisconnected',
@@ -1056,24 +1063,45 @@ class GameManager {
       
       console.log(`📊 Tournament match scores: P1=${scores.player1}, P2=${scores.player2}`);
       
-      // Get player IDs from connection IDs
-      const playerIds = Array.from(gameRoom.players.keys());
-      const player1Id = playerIds[0];
-      const player2Id = playerIds[1];
+      // Get user data for both players by their roles (not by array position)
+      let player1Data = null;
+      let player2Data = null;
       
-      // Get user data for both players
-      const player1Data = this.players.get(player1Id);
-      const player2Data = this.players.get(player2Id);
+      // First, try to get players who are still connected
+      // gameRoom.players is a Set of connection IDs
+      for (const connectionId of gameRoom.players) {
+        const playerData = this.players.get(connectionId);
+        if (playerData) {
+          if (playerData.role === 'player1') {
+            player1Data = playerData;
+            console.log(`📝 Found connected player1: ${playerData.user.username}`);
+          } else if (playerData.role === 'player2') {
+            player2Data = playerData;
+            console.log(`📝 Found connected player2: ${playerData.user.username}`);
+          }
+        }
+      }
+      
+      // If a player is missing, check if they disconnected and use stored data
+      if (!player1Data && gameRoom.disconnectedPlayer && gameRoom.disconnectedPlayer.role === 'player1') {
+        console.log(`📝 Using stored disconnected player data for player1: ${gameRoom.disconnectedPlayer.user.username}`);
+        player1Data = gameRoom.disconnectedPlayer;
+      }
+      if (!player2Data && gameRoom.disconnectedPlayer && gameRoom.disconnectedPlayer.role === 'player2') {
+        console.log(`📝 Using stored disconnected player data for player2: ${gameRoom.disconnectedPlayer.user.username}`);
+        player2Data = gameRoom.disconnectedPlayer;
+      }
       
       if (!player1Data || !player2Data) {
-        console.error('❌ Missing player data for tournament match');
+        console.error('❌ Missing player data for tournament match (even after checking disconnectedPlayer)');
+        console.error(`   player1Data: ${player1Data ? player1Data.user.username + ' (role: ' + player1Data.role + ')' : 'NULL'}`);
+        console.error(`   player2Data: ${player2Data ? player2Data.user.username + ' (role: ' + player2Data.role + ')' : 'NULL'}`);
+        console.error(`   disconnectedPlayer: ${gameRoom.disconnectedPlayer ? gameRoom.disconnectedPlayer.user.username + ' (role: ' + gameRoom.disconnectedPlayer.role + ')' : 'NULL'}`);
         return;
       }
 
       // Determine winner
       const player1Won = scores.player1 > scores.player2;
-      const winnerId = player1Won ? player1Id : player2Id;
-      const loserId = player1Won ? player2Id : player1Id;
       const winnerData = player1Won ? player1Data : player2Data;
       const loserData = player1Won ? player2Data : player1Data;
 
@@ -1102,7 +1130,8 @@ class GameManager {
         player1Score: scores.player1,
         player2Score: scores.player2,
         gameMode: 'tournament',
-        gameDuration: Math.floor((gameRoom.gameEndTime - gameRoom.gameStartTime) / 1000)
+        gameDuration: Math.floor((gameRoom.gameEndTime - gameRoom.gameStartTime) / 1000),
+        tournamentStage: gameRoom.tournamentStage // Add tournament stage
       };
       
       // Generate win screen data BEFORE updating database (gets before stats)
@@ -1113,6 +1142,11 @@ class GameManager {
       );
       
       console.log(`🚨🚨🚨 WIN SCREEN DATA: ${winScreenData ? 'GENERATED ✅' : 'NULL ❌'} 🚨🚨🚨`);
+      
+      // Mark as processed to prevent duplicate processing (both local and global)
+      gameRoom.gameProcessed = true;
+      this.processedGames.add(roomId);
+      console.log(`✅ Tournament game ${roomId} marked as processed in global set`);
       
       // Use matchmaking's proven database update function
       await this.statsHandler.processGameCompletion(gameResult);
@@ -1180,21 +1214,40 @@ class GameManager {
       }
       
       // Update both players' states to 'waiting'
-      this.players.set(winnerId, {
-        ...winnerData,
-        roomId: null,
-        role: 'waiting',
-        matchId: null
-        // Keep tournamentId for next round
-      });
+      // Find connection IDs for winner and loser
+      let winnerConnectionId = null;
+      let loserConnectionId = null;
       
-      this.players.set(loserId, {
-        ...loserData,
-        roomId: null,
-        role: 'waiting',
-        tournamentId: null,
-        matchId: null
-      });
+      for (const [connId, playerData] of this.players.entries()) {
+        if (playerData.user && playerData.user.id === winnerData.user.id) {
+          winnerConnectionId = connId;
+        }
+        if (playerData.user && playerData.user.id === loserData.user.id) {
+          loserConnectionId = connId;
+        }
+      }
+      
+      // Update winner's state (keep tournamentId for next round)
+      if (winnerConnectionId && this.players.has(winnerConnectionId)) {
+        this.players.set(winnerConnectionId, {
+          ...winnerData,
+          roomId: null,
+          role: 'waiting',
+          matchId: null
+          // Keep tournamentId for next round
+        });
+      }
+      
+      // Update loser's state (remove from tournament)
+      if (loserConnectionId && this.players.has(loserConnectionId)) {
+        this.players.set(loserConnectionId, {
+          ...loserData,
+          roomId: null,
+          role: 'waiting',
+          tournamentId: null,
+          matchId: null
+        });
+      }
       
       // If tournament is complete, notify winner
       if (tournamentResult.tournamentComplete && tournamentResult.tournamentWinner) {
@@ -1224,6 +1277,18 @@ class GameManager {
   async processGameCompletion(roomId, gameRoom, gameState) {
     try {
       console.log(`🎯 Processing completion for game ${roomId}`);
+      
+      // GLOBAL check - prevent ANY duplicate processing across all contexts
+      if (this.processedGames.has(roomId)) {
+        console.log(`⚠️ Game ${roomId} ALREADY IN GLOBAL PROCESSED SET, skipping duplicate processing`);
+        return;
+      }
+      
+      // Also check local flag
+      if (gameRoom.gameProcessed) {
+        console.log(`⚠️ Game ${roomId} already processed (local flag), skipping duplicate processing`);
+        return;
+      }
       
       // Check if this is a tournament match
       if (gameRoom.mode === 'tournament' && gameRoom.tournamentId && gameRoom.matchId) {
@@ -1372,6 +1437,11 @@ class GameManager {
         
         await this.statsHandler.processGameCompletion(gameResult);
         
+        // Mark as processed to prevent duplicate processing (both local and global)
+        gameRoom.gameProcessed = true;
+        this.processedGames.add(roomId);
+        console.log(`✅ Game ${roomId} marked as processed in global set`);
+        
         // Send win screen data to connected players
         if (winScreenData) {
           this.sendWinScreenData(actualPlayer1Info, actualPlayer2Info, winScreenData);
@@ -1381,12 +1451,18 @@ class GameManager {
         await this.sendUpdatedStats(actualPlayer1Info, actualPlayer2Info, gameMode);
       } else if (gameMode === 'solo' || gameMode === 'ai') {
         console.log(`⚠️ Skipping stats update for ${gameMode} mode - practice mode only`);
+        gameRoom.gameProcessed = true;
+        this.processedGames.add(roomId);
       } else {
         console.log(`⚠️ Skipping stats update - missing player IDs`);
+        gameRoom.gameProcessed = true;
+        this.processedGames.add(roomId);
       }
 
     } catch (error) {
       console.error(`❌ Error processing game completion for ${roomId}:`, error);
+      gameRoom.gameProcessed = true;
+      this.processedGames.add(roomId); // Mark as processed even on error
     }
   }
 

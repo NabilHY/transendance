@@ -1,6 +1,7 @@
 // Tournament waiting screen component
 
 import React from 'react';
+import { Trophy } from 'lucide-react';
 import styles from '../styles.module.css';
 import type { TournamentQueue } from '../types';
 
@@ -19,8 +20,8 @@ export const GameTournamentWaitingScreen: React.FC<GameTournamentWaitingScreenPr
     <div className={styles.container}>
       <div className={styles.card} style={{ textAlign: "center", maxWidth: "800px", margin: "0 auto" }}>
         <div className={styles.cardHeader}>
-          <h2 style={{ fontSize: "24px", fontWeight: 700, color: "#e4ecff", margin: 0 }}>
-            🏆 Tournament Queue
+          <h2 style={{ fontSize: "24px", fontWeight: 700, color: "#e4ecff", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+            <Trophy size={24} /> Tournament Queue
           </h2>
         </div>
         

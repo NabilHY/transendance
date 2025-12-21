@@ -64,9 +64,10 @@ class GameLoop {
     state.player1.y += state.player1.dy;
     state.player2.y += state.player2.dy;
 
-    // Clamp paddles to screen
-    state.player1.y = Math.max(0, Math.min(this.constants.CANVAS_HEIGHT - this.constants.PADDLE_HEIGHT, state.player1.y));
-    state.player2.y = Math.max(0, Math.min(this.constants.CANVAS_HEIGHT - this.constants.PADDLE_HEIGHT, state.player2.y));
+    // Clamp paddles to screen with vertical margin
+    const PADDLE_MARGIN_Y = 8; // Vertical margin to prevent touching borders
+    state.player1.y = Math.max(PADDLE_MARGIN_Y, Math.min(this.constants.CANVAS_HEIGHT - this.constants.PADDLE_HEIGHT - PADDLE_MARGIN_Y, state.player1.y));
+    state.player2.y = Math.max(PADDLE_MARGIN_Y, Math.min(this.constants.CANVAS_HEIGHT - this.constants.PADDLE_HEIGHT - PADDLE_MARGIN_Y, state.player2.y));
   }
 
   // Handle ball collisions with walls and paddles
@@ -112,13 +113,20 @@ class GameLoop {
       state.player2.score++;
       console.log(`Player 2 scored! Score: ${state.player1.score} - ${state.player2.score}`);
       
+      // Stop the ball immediately to prevent multiple scoring
+      state.gameActive = false;
+      state.ball.dx = 0;
+      state.ball.dy = 0;
+      
       if (state.player2.score >= 5) {
         state.winner = "Player 2";
-        state.gameActive = false;
         console.log("Player 2 wins!");
         console.log(`🏆 GAME WON BY PLAYER 2 - Final Scores: P1=${state.player1.score}, P2=${state.player2.score}`);
       } else {
-        this.gameState.resetBall("player1");
+        // Add 500ms delay before starting countdown
+        setTimeout(() => {
+          this.gameState.resetBall("player1");
+        }, 500);
       }
     }
     
@@ -127,13 +135,20 @@ class GameLoop {
       state.player1.score++;
       console.log(`Player 1 scored! Score: ${state.player1.score} - ${state.player2.score}`);
       
+      // Stop the ball immediately to prevent multiple scoring
+      state.gameActive = false;
+      state.ball.dx = 0;
+      state.ball.dy = 0;
+      
       if (state.player1.score >= 5) {
         state.winner = "Player 1";
-        state.gameActive = false;
         console.log("Player 1 wins!");
         console.log(`🏆 GAME WON BY PLAYER 1 - Final Scores: P1=${state.player1.score}, P2=${state.player2.score}`);
       } else {
-        this.gameState.resetBall("player2");
+        // Add 500ms delay before starting countdown
+        setTimeout(() => {
+          this.gameState.resetBall("player2");
+        }, 500);
       }
     }
   }

@@ -7,6 +7,12 @@ export default function DebugPage() {
 	const { isLoggedIn, requires2FA, loading, checkOAuth2FA } = useAuth();
 	const [cookies, setCookies] = useState<string>('');
 
+	const getApiBase = () => {
+	if (typeof window !== 'undefined') {
+		return `http://${window.location.hostname}:8005`;
+	}
+	return process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
+	};
 	useEffect(() => {
 		if (typeof document !== 'undefined') {
 			setCookies(document.cookie);
@@ -55,7 +61,7 @@ export default function DebugPage() {
 			<div style={{ marginBottom: 20, padding: 16, backgroundColor: '#f0f0f0', borderRadius: 8 }}>
 				<h3>OAuth Test</h3>
 				<a 
-					href={`${process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005'}/api/auth/google`}
+					href={`${getApiBase()}/api/auth/google`}
 					style={{ 
 						display: 'inline-block',
 						padding: '10px 20px',

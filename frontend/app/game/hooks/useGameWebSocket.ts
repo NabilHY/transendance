@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { getAuthToken } from '../utils/api';
-import type { GameState, PlayerInfo, GameMode, AIDifficulty, GameScreen as GameScreenType, WebSocketMessage } from '../types';
+import type { GameState, QuadGameState, PlayerInfo, GameMode, AIDifficulty, GameScreen as GameScreenType, WebSocketMessage, QuadWaitingInfo, QuadWinScreenData } from '../types';
 
 interface UseGameWebSocketReturn {
   wsRef: React.MutableRefObject<WebSocket | null>;
@@ -22,12 +22,26 @@ export const useGameWebSocket = (
   setTournamentQueue: (queue: any) => void,
   setTournamentBracket: (bracket: any) => void,
   setMatchReadyInfo: (info: any) => void,
-  tournamentWaitingTimeoutRef: React.MutableRefObject<any>
+  tournamentWaitingTimeoutRef: React.MutableRefObject<any>,
+  matchReadyCountdownRef: React.MutableRefObject<any>,
+  setQuadGameState: (state: QuadGameState | null) => void,
+  setQuadWaitingInfo: (info: QuadWaitingInfo | null) => void,
+  setQuadWinScreenData: (data: QuadWinScreenData | null) => void
 ): UseGameWebSocketReturn => {
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   const disconnect = useCallback(() => {
+    // Clear any pending timeouts
+    if (matchReadyCountdownRef.current) {
+      clearTimeout(matchReadyCountdownRef.current);
+      matchReadyCountdownRef.current = null;
+    }
+    if (tournamentWaitingTimeoutRef.current) {
+      clearTimeout(tournamentWaitingTimeoutRef.current);
+      tournamentWaitingTimeoutRef.current = null;
+    }
+    
     if (wsRef.current) {
       if (wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.close();
@@ -46,6 +60,10 @@ export const useGameWebSocket = (
   const connect = useCallback(async (gameMode: GameMode, aiDifficulty?: AIDifficulty) => {
     // Close existing connection if any
     disconnect();
+
+    // Clear any previous game data
+    setWinScreenData(null);
+    setQuadWinScreenData(null);
 
     // Get authentication token
     const token = await getAuthToken();
@@ -146,7 +164,14 @@ export const useGameWebSocket = (
           matchData: message.matchData
         }));
         
-        setTimeout(() => {
+        // Clear any existing countdown timeout
+        if (matchReadyCountdownRef.current) {
+          clearTimeout(matchReadyCountdownRef.current);
+        }
+        
+        // Store the countdown timeout so it can be cleared if opponent disconnects
+        matchReadyCountdownRef.current = setTimeout(() => {
+          matchReadyCountdownRef.current = null;
           setScreen("game");
           setPlayerInfo({
             role: message.playerRole,
@@ -160,6 +185,14 @@ export const useGameWebSocket = (
           setGameState(message.gameState);
         }, 3000);
       } else if (message.type === 'tournamentMatchResult') {
+        // Clear any pending match ready countdown if we get a result early
+        // (e.g., due to opponent disconnection during countdown)
+        if (matchReadyCountdownRef.current) {
+          clearTimeout(matchReadyCountdownRef.current);
+          matchReadyCountdownRef.current = null;
+          console.log('⏱️ Cleared match ready countdown due to early match result (opponent disconnected)');
+        }
+        
         setWinScreenData({
           playerData: {
             won: message.won,
@@ -191,10 +224,10 @@ export const useGameWebSocket = (
         setPlayerInfo(null);
         setGameState(null);
       } else if (message.type === 'playerLeft') {
-        alert(message.message);
-        setScreen("start");
-        setPlayerInfo(null);
-        setGameState(null);
+        // For quad games, just show a console message, don't reset the screen
+        // The game will continue or end with proper win screens
+        console.log('Player left:', message.message);
+        // Don't show alert or reset screen - let the game handle it naturally
       } else if (message.type === 'matchCancelled') {
         setScreen("start");
         setPlayerInfo(null);
@@ -211,9 +244,61 @@ export const useGameWebSocket = (
         setPlayerInfo(null);
         setGameState(null);
         setWinScreenData(null);
+      } else if (message.type === 'quadWaiting') {
+        console.log('[QUAD] Added to waiting queue:', message);
+        setScreen("quadWaiting");
+        setQuadWaitingInfo({
+          queuePosition: message.queuePosition,
+          totalWaiting: message.totalWaiting
+        });
+      } else if (message.type === 'quadGameJoined') {
+        console.log('[QUAD] Game joined:', message);
+        setScreen("game");
+        setPlayerInfo({
+          role: message.playerRole,
+          team: message.team,
+          roomId: message.roomId,
+          gameType: 'quad',
+          teammates: message.teammates,
+          opponents: message.opponents,
+          user: message.user
+        });
+        setQuadGameState(message.gameState);
+      } else if (message.type === 'quadGameResult') {
+        console.log('[QUAD] Game result:', message);
+        setQuadWinScreenData(message as unknown as QuadWinScreenData);
+        setScreen("end");
+      } else if (message.type === 'quadGameAborted') {
+        console.log('[QUAD] Game aborted:', message.message);
+        alert(message.message || 'Quad match was cancelled');
+        setScreen("start");
+        setPlayerInfo(null);
+        setQuadGameState(null);
+        setQuadWaitingInfo(null);
       } else if (message.type === 'gameResult') {
+        console.log('[MATCHMAKING] Game result received:', message);
+        
+        // Transform backend data structure to frontend expected structure
+        const playerData = {
+          ...message.data,
+          won: message.data.result === 'victory',
+          stats: message.data.progression ? {
+            oldRating: message.data.progression.before.rankPoints,
+            newRating: message.data.progression.after.rankPoints,
+            oldXp: message.data.progression.before.experience,
+            newXp: message.data.progression.after.experience,
+            oldLevel: message.data.progression.before.level,
+            newLevel: message.data.progression.after.level,
+            totalMatches: message.data.progression.after.gamesPlayed,
+            wins: message.data.progression.after.gamesWon,
+            losses: message.data.progression.after.gamesLost
+          } : undefined
+        };
+        
+        console.log('[MATCHMAKING] Transformed playerData:', playerData);
+        
         setWinScreenData({
-          playerData: message.data,
+          playerData: playerData,
           matchData: message.matchData
         });
         setScreen("end");
@@ -226,18 +311,32 @@ export const useGameWebSocket = (
           if (state.winner) {
             setScreen("end");
           }
+        } else if (message.ball && message.team1Player1 && message.team2Player1) {
+          // Quad game state update
+          const quadState = message as unknown as QuadGameState;
+          setQuadGameState(quadState);
+          
+          // Don't set screen to "end" here - wait for quadGameResult message with stats
         }
       } else {
         // Regular game state update
-        const state = message as GameState;
-        setGameState(state);
-        
-        if (state.winner) {
-          setScreen("end");
+        if (message.ball && message.player1 && message.player2) {
+          const state = message as unknown as GameState;
+          setGameState(state);
+          
+          if (state.winner) {
+            setScreen("end");
+          }
+        } else if (message.ball && message.team1Player1 && message.team2Player1) {
+          // Quad game state update
+          const quadState = message as unknown as QuadGameState;
+          setQuadGameState(quadState);
+          
+          // Don't set screen to "end" here - wait for quadGameResult message with stats
         }
       }
     };
-  }, [disconnect, setGameState, setScreen, setPlayerInfo, setAuthError, setIsAuthenticated, setWinScreenData, setTournamentQueue, setTournamentBracket, setMatchReadyInfo, tournamentWaitingTimeoutRef]);
+  }, [disconnect, setGameState, setScreen, setPlayerInfo, setAuthError, setIsAuthenticated, setWinScreenData, setTournamentQueue, setTournamentBracket, setMatchReadyInfo, tournamentWaitingTimeoutRef, matchReadyCountdownRef, setQuadGameState, setQuadWaitingInfo, setQuadWinScreenData]);
 
   return {
     wsRef,

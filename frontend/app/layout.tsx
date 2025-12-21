@@ -9,14 +9,14 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en">
-			<body style={{margin: 0, overflow: 'hidden'}} >
+		<html lang="en" style={{ height: '100%' }}>
+			<body style={{ margin: 0, padding: 0, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
 				<Suspense fallback={null}>
 					<Providers>
 
 					<main style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 						<Sidebar />
-						<div style={{width: '100%', height: '100%', overflow: 'hidden' }}>
+						<div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
 							{children}
 						</div>
 					</main>
