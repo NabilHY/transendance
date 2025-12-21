@@ -3,6 +3,7 @@ import { Profile, ProfileCard } from '@/components/ProfileCard';
 import { fetchCurrentUser, getUserData } from '@/lib/fetcher';
 // import { profile } from 'console';
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 const profile: Profile = {
   id: '1',
@@ -16,11 +17,14 @@ const profile: Profile = {
   win_rate: 70.8,
 };
 
-const testPage = ({id: string}) => {
+export default function TestPage() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
 
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   // const
   useEffect(() => {
+    if (!id) return;
     
     // const userProfile = await fetchCurrentUser();
     // setCurrentUser(userProfile);
@@ -30,11 +34,10 @@ const testPage = ({id: string}) => {
       setCurrentUser(profileData);
     }
     userProfile();
-  }, []);
+  }, [id]);
 
   return <div style={{ backgroundColor: '#222', padding: '20px', minHeight: '100dvh' }}>
     <ProfileCard profile={profile} />
   </div>
 }
 
-export default testPage;

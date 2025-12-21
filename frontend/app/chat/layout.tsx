@@ -10,9 +10,7 @@ import { Conversation, Message, getReceivers } from "@/lib/chat";
 import { User } from "../settings/page";
 import { getConversations, getChannelName } from "@/lib/chat";
 import ChatDataContext from "./ChatDataContext";
-
-const chatURL = process.env.NEXT_PUBLIC_CHAT_URL || "ws://localhost:8006";
-const userMgntURL = process.env.NEXT_PUBLIC_USR_MANAG_URL || "http://localhost:4000";
+import { getChatWsUrl, getUserMgmtBase } from "@/lib/api-config";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isSuccess, setIsSuccess] = useState(false);
@@ -45,7 +43,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       try {
         setFriends(await getFriends());
 
-        socketRef.current = new WebSocket(`${chatURL}/ws?userId=${user.id}`);
+        const wsUrl = getChatWsUrl(user.id);
+        console.log("CHAT: Connecting to WebSocket:", wsUrl);
+        socketRef.current = new WebSocket(wsUrl);
 
         socketRef.current.onopen = () => {
           console.log("CHAT: WebSocket connected");
@@ -86,7 +86,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 }, [currentUser]);
 
   const getFriends = async () => {
-    const res = await fetch(`${userMgntURL}/me/friends`, {
+    const baseUrl = getUserMgmtBase();
+    const res = await fetch(`${baseUrl}/me/friends`, {
       credentials: "include",
     });
     return res.ok ? res.json() : [];

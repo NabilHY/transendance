@@ -40,13 +40,20 @@ export const getApiUrls = () => {
 
   // Fallback for dev – build from current hostname
   const hostname = getHostname();
+  const protocol = typeof window !== 'undefined' ? window.location.protocol.replace(':', '') : 'http';
   return {
-    authBackend: `http://${hostname}:${PORTS.AUTH_BACKEND}`,
-    usrManag: `http://${hostname}:${PORTS.USR_MANAG}`,
-    chat: `http://${hostname}:${PORTS.CHAT}`,
-    frontend: `http://${hostname}:${PORTS.FRONTEND}`,
-    gameBackend: `http://${hostname}:${PORTS.GAME_BACKEND}`,
+    authBackend: `${protocol}://${hostname}:${PORTS.AUTH_BACKEND}`,
+    usrManag: `${protocol}://${hostname}:${PORTS.USR_MANAG}`,
+    chat: `${protocol}://${hostname}:${PORTS.CHAT}`,
+    frontend: `${protocol}://${hostname}:${PORTS.FRONTEND}`,
+    gameBackend: `${protocol}://${hostname}:${PORTS.GAME_BACKEND}`,
   };
+};
+
+// Helper to get user management API base URL
+export const getUserMgmtBase = (): string => {
+  const urls = getApiUrls();
+  return urls.usrManag;
 };
 
 // WebSocket URL builder
@@ -61,6 +68,19 @@ export const getWsUrl = (port: string, path: string = '/ws'): string => {
 
 // Helper to get chat WebSocket URL
 export const getChatWsUrl = (userId: string | number): string => {
+  // Production: Use NEXT_PUBLIC_WS_URL or NEXT_PUBLIC_BASE_URL (behind nginx)
+  if (WS_ORIGIN) {
+    return `${WS_ORIGIN}/api/chat/ws?userId=${userId}`;
+  }
+  
+  // Check if NEXT_PUBLIC_BASE_URL is set (production behind nginx)
+  if (API_ORIGIN) {
+    // Use HTTPS base URL, convert to WSS
+    const baseUrl = API_ORIGIN.replace(/^http/, 'ws');
+    return `${baseUrl}/api/chat/ws?userId=${userId}`;
+  }
+
+  // Development: Connect directly to chat backend
   return getWsUrl(PORTS.CHAT, `/ws?userId=${userId}`);
 };
 

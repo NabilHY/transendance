@@ -1,5 +1,6 @@
 import { User } from "@/app/settings/page";
 import { exitCode } from "process";
+import { getUserMgmtBase } from "./api-config";
 // import { useRouter } from "next/navigation";
 
 export interface Message {
@@ -39,8 +40,9 @@ export interface Friend {
 }
 
 export const getReceivers = async (channelId: string, userId: string) => {
-    try {    
-      const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/${channelId}/members`, {
+    try {
+      const baseUrl = getUserMgmtBase();
+      const res = await fetch(`${baseUrl}/channel/${channelId}/members`, {
         method: "GET",
         credentials: "include",
       });
@@ -91,7 +93,8 @@ export const getReceivers = async (channelId: string, userId: string) => {
 
 export const getConversation = async (id: string) => {
   try {
-    const conversation = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/${id}`, {
+    const baseUrl = getUserMgmtBase();
+    const conversation = await fetch(`${baseUrl}/channel/${id}`, {
       method: "GET",
       credentials: "include",
     });
@@ -111,7 +114,8 @@ export const getConversation = async (id: string) => {
 
 export const getChannelName = async (channelId: string) => {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/${channelId}/name`, {
+    const baseUrl = getUserMgmtBase();
+    const res = await fetch(`${baseUrl}/channel/${channelId}/name`, {
       method: "GET",
       credentials: "include",
     });
@@ -130,7 +134,8 @@ export const getReceiverId = async (conversation: Conversation) => {
   console.log("clicked on user info of conversation: ", conversation);
   if(conversation.is_private) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/${conversation.id}/receiverId`, {
+      const baseUrl = getUserMgmtBase();
+      const res = await fetch(`${baseUrl}/channel/${conversation.id}/receiverId`, {
         method: "GET",
         credentials: "include",
       });
@@ -149,7 +154,8 @@ export const getReceiverId = async (conversation: Conversation) => {
 
 export const handleMessageClick = async (userId: string) => {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/chat/direct/${userId}`, {
+    const baseUrl = getUserMgmtBase();
+    const res = await fetch(`${baseUrl}/chat/direct/${userId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -164,7 +170,8 @@ export const handleMessageClick = async (userId: string) => {
         } else {
             console.log("conversation found not found: ", data.conversationId);
             try {
-                const createRes = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/chat/direct`, {
+                const baseUrl = getUserMgmtBase();
+                const createRes = await fetch(`${baseUrl}/chat/direct`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
@@ -186,7 +193,8 @@ export const handleMessageClick = async (userId: string) => {
 
 export const getConversations = async (id: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/conversations/${id}`, {
+      const baseUrl = getUserMgmtBase();
+      const res = await fetch(`${baseUrl}/conversations/${id}`, {
         method: "GET",
         credentials: "include",
       });

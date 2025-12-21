@@ -15,7 +15,23 @@ export default function RegisterPage() {
 	
 	const getApiBase = () => {
 	if (typeof window !== 'undefined') {
-		return `http://${window.location.hostname}:8005`;
+		// Use explicit base URL if configured (production)
+		if (process.env.NEXT_PUBLIC_BASE_URL) {
+			return process.env.NEXT_PUBLIC_BASE_URL;
+		}
+		// Production: Use current page origin (HTTPS, no port) when behind nginx/ngrok
+		// Dev: Use direct port connection
+		const protocol = window.location.protocol;
+		const hostname = window.location.hostname;
+		const port = window.location.port;
+		
+		// If no port or standard HTTPS port (443), use origin without port (production/ngrok)
+		if (!port || port === '443' || port === '') {
+			// Force HTTPS for production OAuth
+			return `https://${hostname}`;
+		}
+		// Dev: use direct port connection
+		return `${protocol === 'https:' ? 'https' : 'http'}://${hostname}:8005`;
 	}
 	return process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
 };

@@ -7,6 +7,7 @@ import ChatWindow from '@/components/ChatWindow';
 import { fetchCurrentUser } from '@/lib/fetcher';
 import { User } from '@/app/settings/page';
 import { useChatSocket } from '../ChatSocketContext';
+import { getUserMgmtBase } from '@/lib/api-config';
 
 const Page = () => {
   const { id } = useParams() as { id: string };
@@ -23,8 +24,9 @@ const Page = () => {
   }, [id]);
 
   const fetchMessages = async (id: string) => {
+    const baseUrl = getUserMgmtBase();
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_USR_MANAG_URL}/chat/${id}/messages`,
+      `${baseUrl}/chat/${id}/messages`,
       { credentials: "include" }
     );
 
