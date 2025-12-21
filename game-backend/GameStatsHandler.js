@@ -4,6 +4,20 @@ class GameStatsHandler {
     constructor(userAuth) {
         this.userAuth = userAuth;
         this.progression = new PlayerProgression();
+        // Track processed games to prevent duplicates at the stats handler level
+        this.processedGames = new Set();
+    }
+    
+    /**
+     * Generate a unique game key for duplicate detection
+     * @param {object} gameResult - Game result data
+     * @returns {string} Unique key for this game
+     */
+    generateGameKey(gameResult) {
+        const { player1Id, player2Id, player1Score, player2Score, gameMode, gameDuration } = gameResult;
+        // Create a unique key based on players, scores, mode, and duration
+        // This ensures we can identify the exact same game being processed multiple times
+        return `${gameMode}_${player1Id}_${player2Id}_${player1Score}_${player2Score}_${gameDuration}`;
     }
 
     /**
@@ -16,6 +30,7 @@ class GameStatsHandler {
      * @param {string} gameResult.gameMode - Game mode (matchmaking, ai, solo)
      * @param {string} gameResult.aiDifficulty - AI difficulty if applicable
      * @param {number} gameResult.gameDuration - Game duration in seconds
+     * @param {string} gameResult.tournamentStage - Tournament stage if applicable
      */
     async processGameCompletion(gameResult) {
         const { 
@@ -25,15 +40,30 @@ class GameStatsHandler {
             player2Score, 
             gameMode = 'matchmaking',
             aiDifficulty = null,
-            gameDuration = 0 
+            gameDuration = 0,
+            tournamentStage = null
         } = gameResult;
 
-        console.log(`🏆 Processing game completion: P1(${player1Id}): ${player1Score} vs P2(${player2Id}): ${player2Score}`);
+        // ============================================
+        // DUPLICATE PREVENTION - CHECK FIRST!
+        // ============================================
+        const gameKey = this.generateGameKey(gameResult);
+        
+        if (this.processedGames.has(gameKey)) {
+            console.log(`⚠️ [STATS HANDLER] Game already processed: ${gameKey} - SKIPPING DUPLICATE`);
+            return; // Exit early - this exact game was already processed
+        }
+        
+        console.log(`🏆 Processing game completion: P1(${player1Id}): ${player1Score} vs P2(${player2Id}): ${player2Score} [Key: ${gameKey}]`);
 
         try {
-            // Get current player stats
-            const player1Stats = await this.getUserStats(player1Id);
-            const player2Stats = player2Id ? await this.getUserStats(player2Id) : null;
+            // Mark as processing IMMEDIATELY to prevent race conditions
+            this.processedGames.add(gameKey);
+            console.log(`🔒 [STATS HANDLER] Game marked as processing: ${gameKey}`);
+            
+            // Get current player stats BEFORE any updates
+            const player1StatsBefore = await this.getUserStats(player1Id);
+            const player2StatsBefore = player2Id ? await this.getUserStats(player2Id) : null;
 
             // Determine winner - no draws, someone must win
             let player1Won = player1Score > player2Score;
@@ -47,25 +77,39 @@ class GameStatsHandler {
 
             console.log(`🎯 Game result: P1 won: ${player1Won}, P2 won: ${player2Won}`);
 
+            // Calculate rewards BEFORE updating (for match history)
+            const player1Rewards = this.progression.calculateGameRewards(
+                player1Won, 
+                true, // isRanked 
+                player1StatsBefore.current_streak || 0
+            );
+            
+            const player2Rewards = player2StatsBefore ? this.progression.calculateGameRewards(
+                player2Won, 
+                true, // isRanked 
+                player2StatsBefore.current_streak || 0
+            ) : null;
+
             // Update Player 1
-            await this.updatePlayerStats(
+            const player1Result = await this.updatePlayerStats(
                 player1Id, 
-                player1Stats, 
+                player1StatsBefore, 
                 player1Won, 
                 gameMode
             );
 
             // Update Player 2 (if not AI/solo)
-            if (player2Id && player2Stats) {
-                await this.updatePlayerStats(
+            let player2Result = null;
+            if (player2Id && player2StatsBefore) {
+                player2Result = await this.updatePlayerStats(
                     player2Id, 
-                    player2Stats, 
+                    player2StatsBefore, 
                     player2Won, 
                     gameMode
                 );
             }
 
-            // Log game to history (optional - could be implemented later)
+            // Log game to history with the before/after stats we already calculated
             await this.logGameHistory({
                 player1Id,
                 player2Id,
@@ -74,13 +118,23 @@ class GameStatsHandler {
                 gameMode,
                 aiDifficulty,
                 gameDuration,
-                winner: player1Won ? player1Id : player2Id
+                tournamentStage,
+                winner: player1Won ? player1Id : player2Id,
+                // Pass the stats we already have
+                player1RankBefore: player1StatsBefore.rank_points || 0,
+                player1RankAfter: player1Result.newStats.rankPoints,
+                player1PointsChange: player1Rewards.rankPoints,
+                player2RankBefore: player2StatsBefore ? (player2StatsBefore.rank_points || 0) : null,
+                player2RankAfter: player2Result ? player2Result.newStats.rankPoints : null,
+                player2PointsChange: player2Rewards ? player2Rewards.rankPoints : null
             });
 
-            console.log(`✅ Game stats updated successfully`);
+            console.log(`✅ Game stats updated successfully for ${gameKey}`);
 
         } catch (error) {
-            console.error('❌ Error processing game completion:', error);
+            console.error(`❌ Error processing game completion for ${gameKey}:`, error);
+            // Remove from processed set on error so it can be retried
+            this.processedGames.delete(gameKey);
             throw error;
         }
     }
@@ -231,18 +285,116 @@ class GameStatsHandler {
     }
 
     /**
-     * Log completed game to history (placeholder for future implementation)
-     * @param {object} gameData - Game completion data
+     * Log completed game to history
+     * @param {object} gameData - Game completion data with pre-calculated stats
      */
     async logGameHistory(gameData) {
-        // This could be implemented later to track game history
-        // For now, just log it
-        console.log(`🗃️ Game logged:`, {
-            players: `${gameData.player1Id} vs ${gameData.player2Id}`,
-            score: `${gameData.player1Score}-${gameData.player2Score}`,
-            mode: gameData.gameMode,
-            winner: gameData.winner
-        });
+        try {
+            const {
+                player1Id,
+                player2Id,
+                player3Id = null,
+                player4Id = null,
+                player1Score,
+                player2Score,
+                gameMode,
+                gameDuration = 0,
+                winner,
+                tournamentStage = null,
+                // Pre-calculated stats passed from processGameCompletion
+                player1RankBefore = 0,
+                player1RankAfter = 0,
+                player1PointsChange = 0,
+                player2RankBefore = null,
+                player2RankAfter = null,
+                player2PointsChange = null,
+                player3RankBefore = null,
+                player3RankAfter = null,
+                player3PointsChange = null,
+                player4RankBefore = null,
+                player4RankAfter = null,
+                player4PointsChange = null
+            } = gameData;
+
+            const db = this.userAuth.getDb();
+
+            const query = `
+                INSERT INTO match_history (
+                    game_type,
+                    player1_id,
+                    player2_id,
+                    player3_id,
+                    player4_id,
+                    winner_id,
+                    score_player1,
+                    score_player2,
+                    game_duration,
+                    tournament_stage,
+                    player1_rank_before,
+                    player1_rank_after,
+                    player1_points_change,
+                    player2_rank_before,
+                    player2_rank_after,
+                    player2_points_change,
+                    player3_rank_before,
+                    player3_rank_after,
+                    player3_points_change,
+                    player4_rank_before,
+                    player4_rank_after,
+                    player4_points_change
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+
+            await new Promise((resolve, reject) => {
+                db.run(
+                    query,
+                    [
+                        gameMode, 
+                        player1Id, 
+                        player2Id, 
+                        player3Id, 
+                        player4Id, 
+                        winner, 
+                        player1Score, 
+                        player2Score, 
+                        gameDuration, 
+                        tournamentStage, 
+                        player1RankBefore, 
+                        player1RankAfter, 
+                        player1PointsChange,
+                        player2RankBefore,
+                        player2RankAfter,
+                        player2PointsChange,
+                        player3RankBefore,
+                        player3RankAfter,
+                        player3PointsChange,
+                        player4RankBefore,
+                        player4RankAfter,
+                        player4PointsChange
+                    ],
+                    function(err) {
+                        if (err) return reject(err);
+                        resolve(this.lastID);
+                    }
+                );
+            });
+
+            console.log(`🗃️ Game logged to match_history:`, {
+                players: player3Id && player4Id ? 
+                    `${player1Id},${player2Id} vs ${player3Id},${player4Id}` : 
+                    `${player1Id} vs ${player2Id}`,
+                score: `${player1Score}-${player2Score}`,
+                mode: gameMode,
+                winner: winner,
+                stage: tournamentStage || 'N/A',
+                rankChanges: {
+                    player1: `${player1RankBefore} → ${player1RankAfter} (${player1PointsChange >= 0 ? '+' : ''}${player1PointsChange})`,
+                    player2: player2Id ? `${player2RankBefore} → ${player2RankAfter} (${player2PointsChange >= 0 ? '+' : ''}${player2PointsChange})` : 'N/A'
+                }
+            });
+        } catch (err) {
+            console.error('❌ Error logging game history:', err);
+        }
     }
 
     /**

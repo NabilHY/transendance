@@ -1,6 +1,7 @@
 // Tournament match ready screen component
 
 import React from 'react';
+import { Gamepad2, Clock } from 'lucide-react';
 import styles from '../styles.module.css';
 import type { MatchReadyInfo, PlayerInfo } from '../types';
 
@@ -25,8 +26,8 @@ export const GameTournamentMatchReadyScreen: React.FC<GameTournamentMatchReadySc
         padding: "48px"
       }}>
         <div className={styles.cardHeader}>
-          <h2 style={{ fontSize: "32px", fontWeight: 700, color: "#7ab8ff", margin: 0 }}>
-            🎮 Match Ready!
+          <h2 style={{ fontSize: "32px", fontWeight: 700, color: "#7ab8ff", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
+            <Gamepad2 size={32} /> Match Ready!
           </h2>
           <p style={{ fontSize: "18px", color: "#8c96b6", margin: "8px 0 0 0" }}>
             {roundName}
@@ -82,9 +83,13 @@ export const GameTournamentMatchReadyScreen: React.FC<GameTournamentMatchReadySc
           padding: "16px",
           background: "rgba(47, 140, 255, 0.1)",
           borderRadius: "12px",
-          border: "1px solid rgba(47, 140, 255, 0.2)"
+          border: "1px solid rgba(47, 140, 255, 0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "10px"
         }}>
-          ⏳ Game starting in 3 seconds...
+          <Clock size={18} /> Game starting in 3 seconds...
         </div>
       </div>
     </div>

@@ -14,6 +14,7 @@ import { GameTournamentWaitingScreen } from './components/GameTournamentWaitingS
 import { GameTournamentMatchReadyScreen } from './components/GameTournamentMatchReadyScreen';
 import { GameQuadWaitingScreen } from './components/GameQuadWaitingScreen';
 import { GameLoadingScreen } from './components/GameLoadingScreen';
+import { MatchHistoryPanel } from './components/MatchHistoryPanel';
 import styles from './styles.module.css';
 import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, QuadGameState, PlayerInfo, PlayerStats, WinScreenData, TournamentQueue, MatchReadyInfo, QuadWaitingInfo, QuadWinScreenData } from './types';
 
@@ -39,6 +40,7 @@ export default function GamePage() {
   const [matchReadyInfo, setMatchReadyInfo] = useState<MatchReadyInfo | null>(null);
   const [quadWaitingInfo, setQuadWaitingInfo] = useState<QuadWaitingInfo | null>(null);
   const [quadWinScreenData, setQuadWinScreenData] = useState<QuadWinScreenData | null>(null);
+  const [matchHistoryRefresh, setMatchHistoryRefresh] = useState<number>(0);
 
   // WebSocket connection
   const {
@@ -149,6 +151,14 @@ export default function GamePage() {
     };
   }, [disconnectWebSocket, wsRef]);
 
+  // Refresh match history when game ends (win screen appears)
+  useEffect(() => {
+    if (screen === "win" || screen === "quadWin") {
+      console.log('📊 Game ended - refreshing match history');
+      setMatchHistoryRefresh(prev => prev + 1);
+    }
+  }, [screen]);
+
   // Game mode handlers
   const handleStartSolo = async () => {
     console.log("🎮 Starting solo game...");
@@ -238,18 +248,27 @@ export default function GamePage() {
   return (
     <div className={styles.page}>
         {screen === "start" && (
-          <GameStartScreen
-            isAuthenticated={isAuthenticated}
-            playerStats={playerStats}
-            playerInfo={playerInfo}
-            gameMode={gameMode}
-            aiDifficulty={aiDifficulty}
-            authError={authError}
-            onGameModeChange={setGameMode}
-            onAiDifficultyChange={setAiDifficulty}
-            onStartGame={handleStartGame}
-            onRefreshStats={refreshPlayerStats}
-          />
+          <>
+            <GameStartScreen
+              isAuthenticated={isAuthenticated}
+              playerStats={playerStats}
+              playerInfo={playerInfo}
+              gameMode={gameMode}
+              aiDifficulty={aiDifficulty}
+              authError={authError}
+              onGameModeChange={setGameMode}
+              onAiDifficultyChange={setAiDifficulty}
+              onStartGame={handleStartGame}
+              onRefreshStats={refreshPlayerStats}
+            />
+            {user && (
+              <MatchHistoryPanel 
+                userId={typeof user.id === 'number' ? user.id : parseInt(user.id)} 
+                isVisible={true}
+                refreshTrigger={matchHistoryRefresh}
+              />
+            )}
+          </>
         )}
 
         {screen === "waiting" && (

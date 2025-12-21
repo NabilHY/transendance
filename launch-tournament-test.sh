@@ -23,7 +23,7 @@ TEMP_DIR=$(mktemp -d -t firefox-tournament-XXXXXXXX)
 echo "📁 Created temporary profile directory: $TEMP_DIR"
 
 # Launch 8 Firefox instances with auto-created temporary profiles
-for i in {1..8}; do
+for i in {1..4}; do
     PROFILE_DIR="$TEMP_DIR/profile_$i"
     mkdir -p "$PROFILE_DIR"
     echo "Launching Firefox instance $i with profile at $PROFILE_DIR..."

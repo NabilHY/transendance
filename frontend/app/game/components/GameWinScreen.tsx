@@ -1,6 +1,7 @@
 // Win screen component - shows game results and stats
 
 import React, { useEffect } from 'react';
+import { Trophy, Gamepad2, Home, BarChart3 } from 'lucide-react';
 import { useGameSounds } from '../hooks/useGameSounds';
 import styles from '../styles.module.css';
 import type { WinScreenData, QuadWinScreenData, GameState } from '../types';
@@ -157,9 +158,13 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
                 marginTop: 0, 
                 marginBottom: "20px",
                 fontSize: "18px",
-                fontWeight: 600
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px"
               }}>
-                📊 Your Stats Update
+                <BarChart3 size={20} /> Your Stats Update
               </h3>
               
               <div style={{
@@ -249,7 +254,7 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
             justifyContent: "center"
           }}>
             <button onClick={onMainMenu} className={styles.button}>
-              🏠 Main Menu
+              <Home size={20} /> Main Menu
             </button>
           </div>
         </div>
@@ -300,9 +305,13 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
                 marginTop: 0, 
                 marginBottom: "20px",
                 fontSize: "18px",
-                fontWeight: 600
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px"
               }}>
-                📊 Stats Update
+                <BarChart3 size={20} /> Stats Update
               </h3>
               
               <div style={{
@@ -394,8 +403,8 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
               border: "2px solid rgba(255, 193, 7, 0.3)",
               textAlign: "center"
             }}>
-              <p style={{ fontSize: "20px", color: "#ffc107", fontWeight: 700, margin: 0 }}>
-                🏆 You are the Tournament Champion! 🏆
+              <p style={{ fontSize: "20px", color: "#ffc107", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
+                <Trophy size={24} /> You are the Tournament Champion! <Trophy size={24} />
               </p>
             </div>
           )}
@@ -417,18 +426,20 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
           
           <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: "32px" }}>
             {isWinner && waitingForNext ? (
-              <button
-                onClick={onMainMenu}
-                className={styles.buttonSuccess}
-              >
-                ➡️ Continue
-              </button>
+              <div style={{
+                textAlign: "center",
+                padding: "20px"
+              }}>
+                <p style={{ fontSize: "18px", color: "var(--neon-blue)", fontWeight: 600, margin: 0 }}>
+                  🎮 Waiting for other matches to complete...
+                </p>
+              </div>
             ) : (
               <button
                 onClick={onMainMenu}
                 className={styles.button}
               >
-                🏠 Return to Main Menu
+                <Home size={20} /> Return to Main Menu
               </button>
             )}
           </div>
@@ -464,13 +475,13 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
               onClick={onRestart}
               className={styles.buttonSuccess}
             >
-              🎮 Play Again
+              <Gamepad2 size={20} /> Play Again
             </button>
             <button
               onClick={onMainMenu}
               className={styles.buttonSecondary}
             >
-              🏠 Main Menu
+              <Home size={20} /> Main Menu
             </button>
           </div>
         </div>
@@ -522,9 +533,13 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
               marginTop: 0, 
               marginBottom: "20px",
               fontSize: "18px",
-              fontWeight: 600
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px"
             }}>
-              📊 Stats Update
+              <BarChart3 size={20} /> Stats Update
             </h3>
             
             <div style={{
@@ -637,7 +652,7 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
             onClick={onMainMenu}
             className={styles.button}
           >
-            🏠 Main Menu
+            <Home size={20} /> Main Menu
           </button>
         </div>
       </div>

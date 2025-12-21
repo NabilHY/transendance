@@ -23,6 +23,7 @@ const isOriginAllowed = (origin) => {
         /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs (HTTPS)
         /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs
         /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs (HTTPS)
+        /^https?:\/\/196\.119\.125\.6(:\d+)?$/,  // External public IP
         /^https?:\/\/[\d.]+:\d+$/  // Any IP address with port (development mode)
     ];
     

@@ -322,17 +322,23 @@ class QuadPongManager {
     const statsBeforeMap = gameRoom.statsBeforeMap || new Map();
     console.log(`📊 [QUAD] Using stats captured at game start for ${statsBeforeMap.size} players`);
 
+    // Map to store "after" stats for all players
+    const statsAfterMap = new Map();
+
     // Process stats for ALL team 1 players (winners or losers)
     for (const userId of team1UserIds) {
       try {
         const currentStats = statsBeforeMap.get(userId);
         if (currentStats) {
-          await this.statsHandler.updatePlayerStats(
+          const result = await this.statsHandler.updatePlayerStats(
             userId,
             currentStats,
             team1Won,
             'quad'
           );
+          if (result && result.newStats) {
+            statsAfterMap.set(userId, result.newStats);
+          }
           console.log(`✅ [QUAD] Updated stats for team1 user ${userId} (won: ${team1Won})`);
         }
       } catch (err) {
@@ -345,12 +351,15 @@ class QuadPongManager {
       try {
         const currentStats = statsBeforeMap.get(userId);
         if (currentStats) {
-          await this.statsHandler.updatePlayerStats(
+          const result = await this.statsHandler.updatePlayerStats(
             userId,
             currentStats,
             !team1Won,
             'quad'
           );
+          if (result && result.newStats) {
+            statsAfterMap.set(userId, result.newStats);
+          }
           console.log(`✅ [QUAD] Updated stats for team2 user ${userId} (won: ${!team1Won})`);
         }
       } catch (err) {
@@ -358,16 +367,61 @@ class QuadPongManager {
       }
     }
 
-    // Log game to history (one entry for the whole match)
+    // Calculate rank changes for all 4 players
+    const player1Before = statsBeforeMap.get(team1UserIds[0]);
+    const player1After = statsAfterMap.get(team1UserIds[0]);
+    const player2Before = statsBeforeMap.get(team1UserIds[1]);
+    const player2After = statsAfterMap.get(team1UserIds[1]);
+    const player3Before = statsBeforeMap.get(team2UserIds[0]);
+    const player3After = statsAfterMap.get(team2UserIds[0]);
+    const player4Before = statsBeforeMap.get(team2UserIds[1]);
+    const player4After = statsAfterMap.get(team2UserIds[1]);
+
+    // Get rank points (before uses snake_case from DB, after uses camelCase from updatePlayerStats)
+    const p1RankBefore = player1Before?.rank_points || 0;
+    const p1RankAfter = player1After?.rankPoints || 0;
+    const p2RankBefore = player2Before?.rank_points || 0;
+    const p2RankAfter = player2After?.rankPoints || 0;
+    const p3RankBefore = player3Before?.rank_points || 0;
+    const p3RankAfter = player3After?.rankPoints || 0;
+    const p4RankBefore = player4Before?.rank_points || 0;
+    const p4RankAfter = player4After?.rankPoints || 0;
+
+    // Debug logging for rank data
+    console.log(`🔍 [QUAD] Rank data for match:`);
+    console.log(`  Player1 (${team1UserIds[0]}): ${p1RankBefore} → ${p1RankAfter} (${p1RankAfter - p1RankBefore})`);
+    console.log(`  Player2 (${team1UserIds[1]}): ${p2RankBefore} → ${p2RankAfter} (${p2RankAfter - p2RankBefore})`);
+    console.log(`  Player3 (${team2UserIds[0]}): ${p3RankBefore} → ${p3RankAfter} (${p3RankAfter - p3RankBefore})`);
+    console.log(`  Player4 (${team2UserIds[1]}): ${p4RankBefore} → ${p4RankAfter} (${p4RankAfter - p4RankBefore})`);
+
+    // Log game to history (one entry for the whole match with all 4 players)
     const gameDuration = Math.floor((gameRoom.gameEndTime - gameRoom.gameStartTime) / 1000);
     await this.statsHandler.logGameHistory({
       player1Id: team1UserIds[0],
-      player2Id: team2UserIds[0],
+      player2Id: team1UserIds[1],
+      player3Id: team2UserIds[0],
+      player4Id: team2UserIds[1],
       player1Score: scores.team1,
       player2Score: scores.team2,
       gameMode: 'quad',
       gameDuration,
-      winner: team1Won ? team1UserIds[0] : team2UserIds[0]
+      winner: team1Won ? team1UserIds[0] : team2UserIds[0],
+      // Player 1 rank data
+      player1RankBefore: p1RankBefore,
+      player1RankAfter: p1RankAfter,
+      player1PointsChange: p1RankAfter - p1RankBefore,
+      // Player 2 rank data
+      player2RankBefore: p2RankBefore,
+      player2RankAfter: p2RankAfter,
+      player2PointsChange: p2RankAfter - p2RankBefore,
+      // Player 3 rank data
+      player3RankBefore: p3RankBefore,
+      player3RankAfter: p3RankAfter,
+      player3PointsChange: p3RankAfter - p3RankBefore,
+      // Player 4 rank data
+      player4RankBefore: p4RankBefore,
+      player4RankAfter: p4RankAfter,
+      player4PointsChange: p4RankAfter - p4RankBefore
     });
 
     console.log(`✅ [QUAD] Stats updated for all players`);

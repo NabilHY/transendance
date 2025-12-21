@@ -27,6 +27,7 @@ fastify.addHook('preHandler', async (request, reply) => {
       /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs (HTTPS)
       /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs
       /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs (HTTPS)
+      /^https?:\/\/196\.119\.125\.6(:\d+)?$/,  // External public IP
       /^https?:\/\/[\d.]+:\d+$/  // Any IP address with port (development mode)
     ];
     
@@ -148,6 +149,81 @@ fastify.get('/api/player-stats', async (request, reply) => {
     };
   } catch (error) {
     console.error('❌ Player stats API error:', error);
+    return reply.status(500).send({ error: 'Internal server error' });
+  }
+});
+
+// Match history API endpoint
+fastify.get('/api/match-history/:userId', async (request, reply) => {
+  try {
+    const { userId } = request.params;
+    const { limit = 50, offset = 0 } = request.query;
+
+    const db = wsHandler.gameManager.userAuth.getDb();
+    
+    const query = `
+      SELECT 
+        mh.*,
+        u1.username as player1_username,
+        u2.username as player2_username,
+        u3.username as player3_username,
+        u4.username as player4_username,
+        winner.username as winner_username
+      FROM match_history mh
+      LEFT JOIN users u1 ON mh.player1_id = u1.id
+      LEFT JOIN users u2 ON mh.player2_id = u2.id
+      LEFT JOIN users u3 ON mh.player3_id = u3.id
+      LEFT JOIN users u4 ON mh.player4_id = u4.id
+      LEFT JOIN users winner ON mh.winner_id = winner.id
+      WHERE 
+        mh.player1_id = ? OR 
+        mh.player2_id = ? OR 
+        mh.player3_id = ? OR 
+        mh.player4_id = ?
+      ORDER BY mh.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const matches = await new Promise((resolve, reject) => {
+      db.all(
+        query,
+        [userId, userId, userId, userId, parseInt(limit), parseInt(offset)],
+        (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows || []);
+        }
+      );
+    });
+
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM match_history
+      WHERE 
+        player1_id = ? OR 
+        player2_id = ? OR 
+        player3_id = ? OR 
+        player4_id = ?
+    `;
+
+    const totalCount = await new Promise((resolve, reject) => {
+      db.get(countQuery, [userId, userId, userId, userId], (err, row) => {
+        if (err) return reject(err);
+        resolve(row?.total || 0);
+      });
+    });
+
+    return {
+      success: true,
+      matches: matches,
+      pagination: {
+        total: totalCount,
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      }
+    };
+  } catch (error) {
+    console.error('❌ Match history API error:', error);
     return reply.status(500).send({ error: 'Internal server error' });
   }
 });

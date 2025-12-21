@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Gamepad2, Bot, Users, Trophy, Grid3x3, Zap, Scale } from 'lucide-react';
 import { getRankInfo } from '../utils/rank';
 import { getGameBackendUrl, getAuthToken } from '../utils/api';
 import styles from '../styles.module.css';
@@ -158,12 +159,20 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
 
             <div className={styles.statCard}>
               <div className={styles.statLabel}>Record</div>
-              <div style={{ fontSize: "16px", fontWeight: 600, marginBottom: "4px" }}>
-                <span style={{ color: "#34ce57" }}>{playerStats.games_won}W</span>
+              <div style={{ fontSize: "18px", fontWeight: 600, marginBottom: "6px" }}>
+                <span style={{ color: "var(--neon-green)" }}>{playerStats.games_won}W</span>
                 <span style={{ color: "#6b7593" }}> - </span>
-                <span style={{ color: "#ff9595" }}>{playerStats.games_lost || 0}L</span>
+                <span style={{ color: "var(--neon-pink)" }}>{playerStats.games_lost || 0}L</span>
               </div>
-              <div className={styles.statSubtext}>
+              <div style={{ 
+                fontSize: "24px", 
+                fontWeight: 700, 
+                fontFamily: "'Orbitron', sans-serif",
+                background: "linear-gradient(135deg, var(--neon-blue), var(--neon-purple))",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text"
+              }}>
                 {playerStats.win_rate?.toFixed(1) || 0}% WR
               </div>
             </div>
@@ -234,9 +243,9 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
             <button
               onClick={() => onGameModeChange("matchmaking")}
               className={`${styles.modeButton} ${gameMode === "matchmaking" ? styles.modeButtonActive : ''}`}
-              style={{ width: "100%", marginBottom: "8px" }}
+              style={{ width: "100%", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
             >
-              🎮 Find Opponent
+              <Gamepad2 size={18} /> Find Opponent
             </button>
             <small style={{ color: "#8c96b6", fontSize: "12px" }}>
               Play online vs another player
@@ -246,9 +255,9 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
             <button
               onClick={() => onGameModeChange("ai")}
               className={`${styles.modeButton} ${gameMode === "ai" ? styles.modeButtonActive : ''}`}
-              style={{ width: "100%", marginBottom: "8px" }}
+              style={{ width: "100%", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
             >
-              🤖 vs AI
+              <Bot size={18} /> vs AI
             </button>
             <small style={{ color: "#8c96b6", fontSize: "12px" }}>
               Play against computer
@@ -258,9 +267,9 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
             <button
               onClick={() => onGameModeChange("solo")}
               className={`${styles.modeButton} ${gameMode === "solo" ? styles.modeButtonActive : ''}`}
-              style={{ width: "100%", marginBottom: "8px" }}
+              style={{ width: "100%", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
             >
-              👥 Coop Mode
+              <Users size={18} /> Coop Mode
             </button>
             <small style={{ color: "#8c96b6", fontSize: "12px" }}>
               Local 2-player game
@@ -270,9 +279,9 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
             <button
               onClick={() => onGameModeChange("tournament")}
               className={`${styles.modeButton} ${gameMode === "tournament" ? styles.modeButtonActive : ''}`}
-              style={{ width: "100%", marginBottom: "8px" }}
+              style={{ width: "100%", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
             >
-              🏆 Tournament
+              <Trophy size={18} /> Tournament
             </button>
             <small style={{ color: "#8c96b6", fontSize: "12px" }}>
               8-player bracket
@@ -282,9 +291,9 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
             <button
               onClick={() => onGameModeChange("quad")}
               className={`${styles.modeButton} ${gameMode === "quad" ? styles.modeButtonActive : ''}`}
-              style={{ width: "100%", marginBottom: "8px" }}
+              style={{ width: "100%", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
             >
-              🎯 Quadra Pong
+              <Grid3x3 size={18} /> Quadra Pong
             </button>
             <small style={{ color: "#8c96b6", fontSize: "12px" }}>
               4-player team battle (2v2)
@@ -312,10 +321,11 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
                     key={difficulty}
                     onClick={() => onAiDifficultyChange(difficulty)}
                     className={`${styles.difficultyButton} ${aiDifficulty === difficulty ? styles.difficultyButtonActive : ''}`}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
                   >
-                    {difficulty === "impossible" ? "🔥 Impossible" : 
-                     difficulty === "hard" ? "💪 Hard" :
-                     difficulty === "medium" ? "⚖️ Medium" : "😊 Easy"}
+                    {difficulty === "impossible" ? <><Zap size={14} /> Impossible</> : 
+                     difficulty === "hard" ? <><Zap size={14} /> Hard</> :
+                     difficulty === "medium" ? <><Scale size={14} /> Medium</> : <><Zap size={14} /> Easy</>}
                   </button>
                 ))}
               </div>
@@ -329,11 +339,11 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
             className={styles.button}
             style={{ minWidth: "200px" }}
           >
-            {gameMode === "matchmaking" ? "🎮 Find Opponent" : 
-             gameMode === "ai" ? `🤖 Fight ${aiDifficulty.toUpperCase()} AI` : 
-             gameMode === "tournament" ? "🏆 Join Tournament" :
-             gameMode === "quad" ? "🎯 Find Team Match" :
-             "👥 Start Coop"}
+            {gameMode === "matchmaking" ? <><Gamepad2 size={20} /> Find Opponent</> : 
+             gameMode === "ai" ? <><Bot size={20} /> Fight {aiDifficulty.toUpperCase()} AI</> : 
+             gameMode === "tournament" ? <><Trophy size={20} /> Join Tournament</> :
+             gameMode === "quad" ? <><Grid3x3 size={20} /> Find Team Match</> :
+             <><Users size={20} /> Start Coop</>}
           </button>
         </div>
       </div>
