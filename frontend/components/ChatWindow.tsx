@@ -225,7 +225,7 @@ export default function ChatWindow({
           <div className={styles.userDetails}>
             <h3 className={styles.userName}>{conversation.name}</h3>
             <span className={styles.userStatus}>
-              {conversation.status === "online" ? "Online" : "Offline"}
+              {"Offline"}
             </span>
           </div>
         </div>

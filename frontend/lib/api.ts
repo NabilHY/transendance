@@ -1,10 +1,16 @@
-// Dynamic API base URL - uses current hostname for flexibility
+// Dynamic API base URL:
+// - Dev: talk directly to auth-backend on :8005
+// - Prod (behind nginx TLS): talk to the public origin (no port) and let nginx route /api/auth/*
 const getApiBase = () => {
-	// In browser, use current hostname
+	// In browser, prefer nginx public origin when provided
+	if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
+		return process.env.NEXT_PUBLIC_BASE_URL;
+	}
+	// Dev fallback: direct to auth-backend port
 	if (typeof window !== 'undefined') {
 		return `http://${window.location.hostname}:8005`;
 	}
-	// Server-side: use env variable or localhost
+	// Server-side: env variable or localhost
 	return process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
 };
 
@@ -321,13 +327,15 @@ export function isProfileComplete(profile: UMUser): boolean {
 }
 
 // User-management endpoints (usr-manag microservice)
-// Dynamic URL - uses current hostname for flexibility
+// - Dev: talk directly to :4000
+// - Prod: go through nginx /api/users/*
 const getUserMgmtBase = () => {
-	// In browser, use current hostname
+	if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
+		return `${process.env.NEXT_PUBLIC_BASE_URL}/api/users`;
+	}
 	if (typeof window !== 'undefined') {
 		return `http://${window.location.hostname}:4000`;
 	}
-	// Server-side: use env variable or localhost
 	return process.env.NEXT_PUBLIC_USER_MGMT_API_BASE ?? 'http://localhost:4000';
 };
 

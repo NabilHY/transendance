@@ -10,6 +10,9 @@ import 'react-toastify/dist/ReactToastify.css';
 
 // Dynamic API base URL - uses current hostname for flexibility
 const getApiBase = () => {
+	if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
+		return process.env.NEXT_PUBLIC_BASE_URL;
+	}
 	if (typeof window !== 'undefined') {
 		return `http://${window.location.hostname}:8005`;
 	}

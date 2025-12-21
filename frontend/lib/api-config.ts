@@ -4,6 +4,10 @@
  * This allows the app to work with localhost, 127.0.0.1, or any IP address
  */
 
+// Base origins supplied via env for prod HTTPS
+export const API_ORIGIN = process.env.NEXT_PUBLIC_BASE_URL || '';
+export const WS_ORIGIN = process.env.NEXT_PUBLIC_WS_URL || '';
+
 // Get the current hostname (works in browser only)
 export const getHostname = (): string => {
   if (typeof window !== 'undefined') {
@@ -23,8 +27,19 @@ export const PORTS = {
 
 // API URL builders for client-side requests
 export const getApiUrls = () => {
+  // In production (NEXT_PUBLIC_BASE_URL defined), construct URLs from it
+  if (API_ORIGIN) {
+    return {
+      authBackend: `${API_ORIGIN}/api/auth`,
+      usrManag: `${API_ORIGIN}/api/users`,
+      chat: `${API_ORIGIN}/api/chat`,
+      frontend: `${API_ORIGIN}`,
+      gameBackend: `${API_ORIGIN}/api/game`,
+    };
+  }
+
+  // Fallback for dev – build from current hostname
   const hostname = getHostname();
-  
   return {
     authBackend: `http://${hostname}:${PORTS.AUTH_BACKEND}`,
     usrManag: `http://${hostname}:${PORTS.USR_MANAG}`,
@@ -36,8 +51,12 @@ export const getApiUrls = () => {
 
 // WebSocket URL builder
 export const getWsUrl = (port: string, path: string = '/ws'): string => {
+  if (WS_ORIGIN) {
+    return `${WS_ORIGIN}${path}`;
+  }
   const hostname = getHostname();
-  return `ws://${hostname}:${port}${path}`;
+  const scheme = window?.location?.protocol === 'https:' ? 'wss' : 'ws';
+  return `${scheme}://${hostname}:${port}${path}`;
 };
 
 // Helper to get chat WebSocket URL

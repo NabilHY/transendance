@@ -33,7 +33,7 @@ const SettingsPage = () => {
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null);
   const usrManagBase = useMemo(() => process.env.NEXT_PUBLIC_USR_MANAG_URL ?? getApiUrls().usrManag, []);
 
-  const updateUserInfo = async (field: string) => {
+  const updateUserInfo = async (field: keyof User) => {
     if (!newInfoCurrentUser || !currentUser) return;
 
     const newValue = (newInfoCurrentUser as any)[field];

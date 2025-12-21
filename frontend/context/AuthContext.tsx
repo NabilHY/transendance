@@ -6,8 +6,13 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 import { UMUser, isProfileComplete, umGetMe, umProfileComplete } from '@/lib/api';
 
-// Dynamic API base URL - uses current hostname for flexibility
+// Dynamic API base URL:
+// - Dev: talk directly to auth-backend on :8005
+// - Prod (behind nginx TLS): talk to public origin and let nginx route /api/auth/*
 const getApiBase = () => {
+	if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
+		return process.env.NEXT_PUBLIC_BASE_URL;
+	}
 	if (typeof window !== 'undefined') {
 		return `http://${window.location.hostname}:8005`;
 	}

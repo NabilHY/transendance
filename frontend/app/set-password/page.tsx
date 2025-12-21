@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from '../login/LoginPage.module.css';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
+const API_BASE =
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_BASE ||
+  'http://localhost:8005';
 
 export default function SetPasswordPage() {
     const [password, setPassword] = useState('');

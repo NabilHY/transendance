@@ -267,7 +267,6 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
     const isWinner = playerData.won;
     const isChampion = matchData.isTournamentWinner;
     const waitingForNext = matchData.waitingForNextRound;
-    const stats = playerData.stats;
     
     const winRate = stats && stats.totalMatches > 0 ? ((stats.wins / stats.totalMatches) * 100).toFixed(1) : '0.0';
     
