@@ -73,9 +73,10 @@ export default function CompleteProfilePage() {
                 // Refresh profile in auth context
                 await fetchMe();
 
-                // Redirect to home or profile page
+                // Redirect to home or profile page and force reload
                 setTimeout(() => {
-                    router.push('/profile');
+                    // Use window.location.href to force a full page reload with the new data
+                    window.location.href = '/profile';
                 }, 1500);
             } else {
                 const errorMsg = (result.data as any)?.error || 'Failed to update profile';
