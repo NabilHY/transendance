@@ -22,18 +22,36 @@ module.exports = async function (fastify) {
     
     // Helper function to build redirect URI from request headers
     function buildRedirectUri(req) {
+        // In development mode, prefer the configured redirect URI
+        // This ensures it matches exactly what's registered in Google Cloud Console
+        if (config.GOOGLE_REDIRECT_URI) {
+            console.log('🔍 [OAuth] Using configured GOOGLE_REDIRECT_URI:', config.GOOGLE_REDIRECT_URI);
+            return config.GOOGLE_REDIRECT_URI;
+        }
+        
+        // Fallback to dynamic construction for production/ngrok scenarios
         // Determine protocol from X-Forwarded-Proto header (set by nginx) or request protocol
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-        const secureProtocol = protocol === 'https' ? 'https' : 'https'; // Always use HTTPS for OAuth
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+        
+        // In development, use HTTP; in production, use HTTPS
+        const secureProtocol = (config.NODE_ENV === 'production' || protocol === 'https') ? 'https' : 'http';
         
         // Get host from X-Forwarded-Host (preferred) or Host header
         let host = req.headers['x-forwarded-host'] || req.headers.host || '';
         
-        // Remove port number if present (ngrok URLs should not have port in redirect URI)
+        // In development with localhost, keep the port; in production/ngrok, remove it
+        if (config.NODE_ENV !== 'production' && host.includes('localhost')) {
+            // Keep port for localhost in dev mode (e.g., localhost:8005)
+            // Don't remove the port
+        } else {
+            // Remove port number for production/ngrok URLs
         host = host.split(':')[0];
+        }
         
-        // Construct redirect URI without port
+        // Construct redirect URI
         const redirectUri = `${secureProtocol}://${host}/api/auth/google/callback`;
+        
+        console.log('🔍 [OAuth] Built redirect URI dynamically:', redirectUri);
         
         return redirectUri;
     }

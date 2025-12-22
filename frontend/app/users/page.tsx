@@ -5,6 +5,57 @@ import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import { Users, Home, Settings, LogOut, Search, X, UserPlus, UserX, User as UserIcon, Circle } from 'lucide-react';
+import baseStyles from '../login/LoginPage.module.css';
+import styles from './UsersPage.module.css';
+import { getAvatarUrl, getInitials, type UserWithAvatar } from '@/lib/avatar';
+
+function UserAvatar({ user }: { user: any }) {
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [avatarError, setAvatarError] = useState(false);
+
+    useEffect(() => {
+        if (!user) return;
+        let cancelled = false;
+        const userData: UserWithAvatar = {
+            id: user.id,
+            profile_pic: user.profile_pic,
+            avatar_updated_at: user.avatar_updated_at,
+            username: user.username,
+            first_name: user.first_name,
+            last_name: user.last_name,
+        };
+        getAvatarUrl(userData, { isCurrentUser: false }).then(url => {
+            if (!cancelled) setAvatarUrl(url);
+        }).catch(() => {
+            if (!cancelled) setAvatarError(true);
+        });
+        return () => { cancelled = true; };
+    }, [user?.id, user?.profile_pic, user?.avatar_updated_at]);
+
+    return (
+        <div className={styles.avatarContainer}>
+            {avatarUrl && !avatarError ? (
+                <img 
+                    src={avatarUrl} 
+                    alt={user.username}
+                    onError={() => setAvatarError(true)}
+                    className={styles.avatarImage}
+                />
+            ) : (
+                <div className={styles.avatarPlaceholder}>
+                    {getInitials({
+                        id: user.id,
+                        username: user.username,
+                        first_name: user.first_name,
+                        last_name: user.last_name,
+                    })}
+                </div>
+            )}
+            <div className={`${styles.statusIndicator} ${user.is_online ? styles.statusIndicatorOnline : styles.statusIndicatorOffline}`} />
+        </div>
+    );
+}
 
 export default function UsersPage() {
     const { 
@@ -20,7 +71,8 @@ export default function UsersPage() {
         clearError 
     } = useUser();
 
-    const { loading: authLoading} = useRequireAuth();
+    const { user: currentUser, logout } = useAuth();
+    const { loading: authLoading } = useRequireAuth();
     const [actionLoading, setActionLoading] = useState<number | null>(null);
 
     useEffect(() => {
@@ -28,6 +80,53 @@ export default function UsersPage() {
             fetchUsers();
         }
     }, [authLoading, fetchUsers]);
+
+    // Poll for online status updates every 5 seconds
+    useEffect(() => {
+        if (authLoading) return;
+
+        // Only poll if we have users and we're not currently loading
+        if (users.length === 0) return;
+
+        const pollInterval = setInterval(() => {
+            // Only poll if not currently performing an operation
+            if (usersLoading) return;
+
+            // Refresh users list to get updated online status
+            // If there's a search query, re-run the search to preserve results
+            if (searchQuery.trim()) {
+                searchUsers(searchQuery);
+            } else {
+                fetchUsers();
+            }
+        }, 5000); // Poll every 5 seconds
+
+        // Cleanup interval on unmount or when dependencies change
+        return () => clearInterval(pollInterval);
+    }, [authLoading, users.length, usersLoading, searchQuery, fetchUsers, searchUsers]);
+
+    // Also poll when page becomes visible (user switches back to tab)
+    useEffect(() => {
+        if (authLoading || usersLoading) return;
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                // Page became visible, refresh users immediately
+                // Preserve search query if it exists
+                if (searchQuery.trim()) {
+                    searchUsers(searchQuery);
+                } else {
+                    fetchUsers();
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [authLoading, usersLoading, searchQuery, fetchUsers, searchUsers]);
 
     const handleSearch = async (query: string) => {
         if (query.trim()) {
@@ -61,7 +160,6 @@ export default function UsersPage() {
             const result = await blockUser(userId);
             if (result.success) {
                 alert(result.message);
-                // Refresh the users list
                 await fetchUsers();
             } else {
                 alert(result.message);
@@ -73,43 +171,66 @@ export default function UsersPage() {
     
     if (authLoading) {
         return (
-            <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
-                <h1>Loading...</h1>
+            <main className={baseStyles.page}>
+                <div className={baseStyles.container}>
+                    <div className={styles.loadingText}>Loading...</div>
+                </div>
             </main>
         );
     }
 
-
     return (
-        <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1>Users</h1>
-                <nav style={{ display: 'flex', gap: 12 }}>
-                    <Link href="/">Dashboard</Link>
-                    <Link href="/profile">Profile</Link>
-                    <Link href="/users">Users</Link>
+        <main className={`${baseStyles.page} ${styles.page}`}>
+            <div className={`${baseStyles.container} ${styles.container}`}>
+                {/* Navigation Header */}
+                <div className={styles.navHeader}>
+                    <h1 className={styles.navTitle}>
+                        <Users size={24} />
+                        Browse Users
+                    </h1>
+                    <nav className={styles.nav}>
+                        <Link href="/" className={styles.navLink}>
+                            <Home size={16} />
+                            Dashboard
+                        </Link>
+                        <Link href="/profile" className={styles.navLink}>
+                            <UserIcon size={16} />
+                            Profile
+                        </Link>
+                        <Link href="/settings" className={styles.navLink}>
+                            <Settings size={16} />
+                            Settings
+                        </Link>
+                        <button onClick={logout} className={styles.logoutBtn}>
+                            <LogOut size={16} />
+                            Logout
+                        </button>
                 </nav>
-            </header>
+                </div>
 
             {error && (
-                <div style={{ 
-                    background: '#fee', 
-                    border: '1px solid #fcc', 
-                    padding: 12, 
-                    marginBottom: 16,
-                    borderRadius: 4 
-                }}>
-                    <p style={{ color: 'crimson', margin: 0 }}>{error}</p>
-                    <button onClick={clearError} style={{ marginTop: 8, padding: 4 }}>
+                    <div className={styles.errorContainer}>
+                        <span>{error}</span>
+                        <button onClick={clearError} className={styles.errorDismissBtn}>
                         Dismiss
                     </button>
                 </div>
             )}
 
-            <div style={{ marginTop: 24 }}>
-                <div style={{ marginBottom: 24 }}>
-                    <h2>Search Users</h2>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                {/* Search Section */}
+                <section className={baseStyles.card} style={{ width: '100%' }}>
+                    <div className={baseStyles.cardHeader} style={{ textAlign: 'left', marginBottom: '24px' }}>
+                        <h2 className={baseStyles.title} style={{ fontSize: '24px', marginBottom: '8px' }}>
+                            Search Users
+                        </h2>
+                        <p className={baseStyles.subtitle} style={{ textAlign: 'left' }}>
+                            Find users by username, first name, or last name
+                        </p>
+                    </div>
+
+                    <div className={styles.searchContainer}>
+                        <div className={styles.searchInputWrapper}>
+                            <Search size={20} className={styles.searchIcon} />
                         <input
                             type="text"
                             placeholder="Search by username, first name, or last name..."
@@ -120,27 +241,15 @@ export default function UsersPage() {
                                     handleSearch(searchQuery);
                                 }
                             }}
-                            style={{
-                                flex: 1,
-                                padding: 12,
-                                border: '1px solid #ddd',
-                                borderRadius: 4,
-                                fontSize: 16
-                            }}
+                                className={`${baseStyles.input} ${styles.searchInput}`}
                         />
+                        </div>
                         <button
                             onClick={() => handleSearch(searchQuery)}
                             disabled={usersLoading}
-                            style={{
-                                padding: '12px 24px',
-                                background: '#007bff',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: 4,
-                                cursor: usersLoading ? 'not-allowed' : 'pointer',
-                                fontSize: 16
-                            }}
+                            className={`${baseStyles.submitBtn} ${styles.searchBtn}`}
                         >
+                            <Search size={16} />
                             {usersLoading ? 'Searching...' : 'Search'}
                         </button>
                         {searchQuery && (
@@ -149,155 +258,129 @@ export default function UsersPage() {
                                     setSearchQuery('');
                                     fetchUsers();
                                 }}
-                                style={{
-                                    padding: '12px 16px',
-                                    background: '#6c757d',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: 4,
-                                    cursor: 'pointer'
-                                }}
+                                className={styles.clearBtn}
                             >
+                                <X size={16} />
                                 Clear
                             </button>
                         )}
                     </div>
-                </div>
+                </section>
 
+                {/* Users List Section */}
+                <div className={baseStyles.card} style={{ width: '100%' }}>
+                    <div className={styles.usersListHeader}>
                 <div>
-                    <h2>
+                            <h2 className={baseStyles.title} style={{ fontSize: '24px', marginBottom: '8px' }}>
                         {searchQuery ? `Search Results for "${searchQuery}"` : 'All Users'}
-                        <span style={{ fontSize: 14, fontWeight: 'normal', color: '#666', marginLeft: 12 }}>
-                            ({users.length} user{users.length !== 1 ? 's' : ''})
-                        </span>
                     </h2>
+                            <p className={baseStyles.subtitle} style={{ textAlign: 'left' }}>
+                                {users.length} user{users.length !== 1 ? 's' : ''} found
+                            </p>
+                        </div>
+                    </div>
 
                     {usersLoading ? (
-                        <div style={{ textAlign: 'center', padding: 40 }}>
-                            <p>Loading users...</p>
+                        <div className={styles.loadingContainer}>
+                            <div className={styles.spinner} />
+                            <p className={styles.loadingText}>Loading users...</p>
                         </div>
                     ) : users.length === 0 ? (
-                        <div style={{ 
-                            textAlign: 'center', 
-                            padding: 40,
-                            border: '1px solid #ddd',
-                            borderRadius: 4,
-                            background: '#f9f9f9'
-                        }}>
-                            <p>No users found.</p>
+                        <div className={styles.emptyState}>
+                            <Users size={48} className={styles.emptyStateIcon} />
+                            <h3 className={styles.emptyStateTitle}>
+                                No users found
+                            </h3>
+                            <p className={styles.emptyStateText}>
+                                {searchQuery 
+                                    ? `No users match your search for "${searchQuery}"`
+                                    : 'No users available at the moment'}
+                            </p>
                             {searchQuery && (
                                 <button
                                     onClick={() => {
                                         setSearchQuery('');
                                         fetchUsers();
                                     }}
-                                    style={{
-                                        marginTop: 12,
-                                        padding: '8px 16px',
-                                        background: '#007bff',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: 4,
-                                        cursor: 'pointer'
-                                    }}
+                                    className={`${baseStyles.submitBtn} ${styles.clearSearchBtn}`}
                                 >
-                                    Show All Users
+                                    <X size={16} />
+                                    Clear Search
                                 </button>
                             )}
                         </div>
                     ) : (
-                        <div style={{ display: 'grid', gap: 16 }}>
-                            {users.map((user) => (
-                                <div
-                                    key={user.id}
-                                    style={{
-                                        border: '1px solid #ddd',
-                                        padding: 16,
-                                        borderRadius: 8,
-                                        background: 'white',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center'
-                                    }}
-                                >
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                                            <h3 style={{ margin: 0, fontSize: 18 }}>
+                        <div className={styles.usersGrid}>
+                            {users.map((user) => {
+                                const isCurrentUser = currentUser && Number(currentUser.id) === user.id;
+                                return (
+                                    <div key={user.id} className={styles.userCard}>
+                                        <UserAvatar user={user} />
+                                        
+                                        <div className={styles.userInfo}>
+                                            <div className={styles.userHeader}>
+                                                <h3 className={styles.userName}>
                                                 {user.first_name && user.last_name 
                                                     ? `${user.first_name} ${user.last_name}` 
                                                     : user.username}
                                             </h3>
-                                            <span style={{ 
-                                                fontSize: 12,
-                                                padding: '2px 8px',
-                                                borderRadius: 12,
-                                                background: user.is_online ? '#d4edda' : '#f8d7da',
-                                                color: user.is_online ? '#155724' : '#721c24'
-                                            }}>
+                                                <div className={`${styles.statusBadge} ${user.is_online ? styles.statusBadgeOnline : styles.statusBadgeOffline}`}>
+                                                    <Circle 
+                                                        size={8} 
+                                                        fill={user.is_online ? '#51cf66' : '#6b7593'}
+                                                        color={user.is_online ? '#51cf66' : '#6b7593'}
+                                                    />
+                                                    <span className={`${styles.statusText} ${user.is_online ? styles.statusTextOnline : styles.statusTextOffline}`}>
                                                 {user.is_online ? 'Online' : 'Offline'}
                                             </span>
                                         </div>
-                                        <p style={{ margin: 0, color: '#666', fontSize: 14 }}>
+                                            </div>
+                                            <p className={styles.username}>
                                             @{user.username}
                                         </p>
-                                        <p style={{ margin: 0, color: '#999', fontSize: 12 }}>
-                                            Joined {new Date(user.created_at).toLocaleDateString()}
+                                            <p className={styles.joinDate}>
+                                                Joined {new Date(user.created_at).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                })}
                                         </p>
                                     </div>
                                     
-                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <div className={styles.userActions}>
                                         <Link
                                             href={`/users/${user.id}`}
-                                            style={{
-                                                padding: '8px 16px',
-                                                background: '#17a2b8',
-                                                color: 'white',
-                                                textDecoration: 'none',
-                                                borderRadius: 4,
-                                                fontSize: 14
-                                            }}
-                                        >
-                                            View Profile
+                                                className={styles.viewBtn}
+                                            >
+                                                <UserIcon size={14} />
+                                                View
                                         </Link>
                                         
-                                        {user.id !== user.id && (
+                                            {!isCurrentUser && (
                                             <>
                                                 <button
                                                     onClick={() => handleAddFriend(user.id)}
                                                     disabled={actionLoading === user.id}
-                                                    style={{
-                                                        padding: '8px 16px',
-                                                        background: '#28a745',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        borderRadius: 4,
-                                                        cursor: actionLoading === user.id ? 'not-allowed' : 'pointer',
-                                                        fontSize: 14
-                                                    }}
-                                                >
+                                                        className={styles.addFriendBtn}
+                                                    >
+                                                        <UserPlus size={14} />
                                                     {actionLoading === user.id ? 'Sending...' : 'Add Friend'}
                                                 </button>
                                                 
                                                 <button
                                                     onClick={() => handleBlockUser(user.id)}
                                                     disabled={actionLoading === user.id}
-                                                    style={{
-                                                        padding: '8px 16px',
-                                                        background: '#dc3545',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        borderRadius: 4,
-                                                        cursor: actionLoading === user.id ? 'not-allowed' : 'pointer',
-                                                        fontSize: 14
-                                                    }}
-                                                >
+                                                        className={styles.blockBtn}
+                                                    >
+                                                        <UserX size={14} />
                                                     {actionLoading === user.id ? 'Blocking...' : 'Block'}
                                                 </button>
                                             </>
                                         )}
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>

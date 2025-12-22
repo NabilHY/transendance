@@ -34,26 +34,40 @@ function ProfileAvatar({ profile }: { profile: any }) {
 	}, [profile?.id, profile?.profile_pic, profile?.avatar_updated_at]);
 
 	return (
-		<div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+		<div style={{ 
+			width: '100%', 
+			height: '100%', 
+			display: 'flex', 
+			justifyContent: 'center', 
+			alignItems: 'center' 
+		}}>
 			{avatarUrl && !avatarError ? (
 				<img 
 					src={avatarUrl} 
 					alt="Profile"
 					onError={() => setAvatarError(true)}
 					style={{
-						width: '100px',
-						height: '100px',
+						// width: '30%',
+						// height: '30%',
+						minWidth: '120px',
+						minHeight: '120px',
+						maxWidth: '150px',
+						maxHeight: '150px',
 						borderRadius: '16px',
-						border: '2px solid #1b253f',
+						border: '2px solid rgb(27, 37, 63)',
 						objectFit: 'cover'
 					}}
 				/>
 			) : profile ? (
 				<div style={{
-					width: '100px',
-					height: '100px',
+					// width: '30%',
+					// height: '30%',
+					minWidth: '120px',
+					minHeight: '120px',
+					maxWidth: '150px',
+					maxHeight: '150px',
 					borderRadius: '16px',
-					border: '2px solid #1b253f',
+					border: '2px solid rgb(27, 37, 63)',
 					background: '#1b253f',
 					display: 'flex',
 					alignItems: 'center',
@@ -170,10 +184,18 @@ export default function HomePage() {
 									</p>
 								</div>
 
-								<div style={{ display: 'grid', gap: '20px' }}>
-									<ProfileAvatar profile={profile} />
+								<div style={{ display: 'flex', gap: '24px'}}>
+									<div style={{ 
+										width: '50%',
+										display: 'flex', 
+										justifyContent: 'center', 
+										alignItems: 'center',
+										alignSelf: 'stretch'
+									}}>
+										<ProfileAvatar profile={profile} />
+									</div>
 
-									<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+									<div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 										<div className={styles.field}>
 											<span style={{ fontSize: '12px', color: '#6b7593', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
 												Username
@@ -237,6 +259,7 @@ export default function HomePage() {
 											</div>
 										)}
 									</div>
+									</div>
 
 									<div style={{
 										marginTop: '8px',
@@ -288,7 +311,6 @@ export default function HomePage() {
 											<Users size={16} />
 											Browse Users
 										</Link>
-									</div>
 								</div>
 							</section>
 						)}
