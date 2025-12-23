@@ -179,7 +179,7 @@ export default function ConversationsList({
                 }
                 return (
                   <div className={styles.placeholderAvatar}>
-                    {getInitials(userData)}
+                    {/* {getInitials(userData)} */}
                   </div>
                 );
               };

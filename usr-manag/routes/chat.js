@@ -97,8 +97,6 @@ module.exports = async function (fastify) {
         const userId = req.user.id;
         const { targetUserId } = req.body;
 
-        
-
         if (!targetUserId)
             return reply.status(400).send({ error: "Missing targetUserId" });
 

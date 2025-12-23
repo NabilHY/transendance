@@ -122,7 +122,24 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     if (!currentUser) return;
 
     const data = await getConversations(currentUser.id);
-    const normalized = await normalizeConversations(data);
+    const normalized = await normalizeConversations(data).then((res) => {
+      console.log("normal ===> ", res);
+      // send meeage
+      res.forEach((conv) => {
+        const message: Message = {
+          uuid: crypto.randomUUID(),
+          channel_id: conv.id,
+          sender_id: currentUser != null ? currentUser.id.toString() : 'unknown',
+          sent_at: new Date().toISOString(),
+          content: "",
+          sender_name: "",
+          receiver_id: undefined,
+          pending: 1,
+          };
+        sendMessage(message);
+      });
+      return res;
+    });
     setConversations(normalized);
   };
 
