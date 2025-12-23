@@ -51,7 +51,7 @@ const Page = () => {
   if (!currentUser || !conversation) return null;
 
   return (
-    <main style={{ height: 'calc(100dvh - 60px)' }}>
+    <main style={{ height: '100dvh' }}>
       <ChatWindow
         messages={messages}
         setMessages={setMessages}

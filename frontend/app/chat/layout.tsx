@@ -96,7 +96,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const getFriends = async () => {
     const baseUrl = getUserMgmtBase();
-    const res = await fetch(`${baseUrl}/me/friends`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/me/friends`, {
+    // const res = await fetch(`${baseUrl}/me/friends`, {
       credentials: "include",
     });
     return res.ok ? res.json() : [];

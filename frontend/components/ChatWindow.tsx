@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Conversation } from "../src/pages/Chat";
+import { Conversation } from "@/lib/chat";
 import styles from "./ChatWindow.module.css";
+import listStyles from "./ConversationsList.module.css";
 import { User } from "@/app/settings/page";
 import { getReceivers } from "@/lib/chat";
 import { useRouter } from "next/navigation";
@@ -32,6 +33,7 @@ export default function ChatWindow({
   const [usernameToAdd, setUsernameToAdd] = useState("");
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const processedInvitesRef = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -52,9 +54,8 @@ export default function ChatWindow({
     // scrollToBottom();
     // console.log("* NAME: ", conversation.name.value[0]?.toUpperCase());
     // console.log("conversation: ", conversation);
-    
     // console.log("* NAME: ", conversation?.name?.charAt(0).toUpperCase());
-    
+
     const checkBlockStatus = async () => {
       if (conversation.is_private === 1 && currentUser?.id) {
         try {
@@ -74,14 +75,13 @@ export default function ChatWindow({
         }
       }
     };
-    
+
     checkBlockStatus();
   }, [conversation, currentUser]);
 
   // ! handle blocked users
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     // Check if user is blocked
     if (isBlocked) {
       alert("You cannot message this user because they have blocked you or you have blocked them.");
@@ -167,6 +167,114 @@ export default function ChatWindow({
     setUsernameToAdd("");
   };
 
+  const handleInviteToGame = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUser || isBlocked) return;
+    try {
+      const receiverId = await getReceiverId(conversation);
+      if (!receiverId) return;
+
+      const inviteId = crypto.randomUUID();
+      const content = JSON.stringify({
+        type: "game_invite",
+        inviteId,
+        inviterId: currentUser.id.toString(),
+        receiverId: receiverId.toString(),
+      });
+
+      const message: Message = {
+        uuid: crypto.randomUUID(),
+        channel_id: conversation.id,
+        sender_id: currentUser.id.toString(),
+        sent_at: new Date().toISOString(),
+        content,
+        sender_name: currentUser.username,
+        receiver_id: [receiverId.toString()],
+        pending: 0,
+      };
+
+      sendMessage(message);
+      setMessages(prev => [...prev, message]);
+    } catch (err) {
+      console.error("Failed to send game invite:", err);
+    }
+  };
+
+  const parseInvite = (content: string): any | null => {
+    try {
+      const data = JSON.parse(content);
+      return data && typeof data === 'object' ? data : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleAcceptInvite = (inviteId: string, inviterId: string, receiverId: string) => {
+    if (!currentUser) return;
+    const response = JSON.stringify({
+      type: "game_invite_response",
+      inviteId,
+      inviterId,
+      receiverId,
+      response: "accepted",
+    });
+    const message: Message = {
+      uuid: crypto.randomUUID(),
+      channel_id: conversation.id,
+      sender_id: currentUser.id.toString(),
+      sent_at: new Date().toISOString(),
+      content: response,
+      sender_name: currentUser.username,
+      receiver_id: [inviterId],
+      pending: 0,
+    };
+    sendMessage(message);
+    setMessages(prev => [...prev, message]);
+    // router.push(`/game?invite=${inviterId}`);
+  };
+
+  const handleDeclineInvite = (inviteId: string, inviterId: string, receiverId: string) => {
+    if (!currentUser) return;
+    const response = JSON.stringify({
+      type: "game_invite_response",
+      inviteId,
+      inviterId,
+      receiverId,
+      response: "declined",
+    });
+    const message: Message = {
+      uuid: crypto.randomUUID(),
+      channel_id: conversation.id,
+      sender_id: currentUser.id.toString(),
+      sent_at: new Date().toISOString(),
+      content: response,
+      sender_name: currentUser.username,
+      receiver_id: [inviterId],
+      pending: 0,
+    };
+    sendMessage(message);
+    setMessages(prev => [...prev, message]);
+    // No navigation on decline
+  };
+
+  // Navigate inviter when an invite is accepted
+  useEffect(() => {
+    if (!currentUser) return;
+    for (const msg of messages) {
+      const data = parseInvite(msg.content);
+      if (!data) continue;
+      if (data.type === "game_invite_response" && data.response === "accepted") {
+        const { inviteId, inviterId, receiverId } = data;
+        if (processedInvitesRef.current.has(inviteId)) continue;
+        if (currentUser.id.toString() === inviterId) {
+          processedInvitesRef.current.add(inviteId);
+          // router.push(`/game?invite=${receiverId}`);
+          break;
+        }
+      }
+    }
+  }, [messages, currentUser, router]);
+
   const handleLeaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowLeaveConfirm(true);
@@ -216,7 +324,7 @@ export default function ChatWindow({
                 {conversation.name && conversation.name.charAt(0).toUpperCase()}
               </div>
             )}
-            {conversation.status === "online" && (
+            {(conversation as any)?.status === "online" && (
               <div className={styles.onlineIndicator}></div>
             )}
           </div>
@@ -237,6 +345,19 @@ export default function ChatWindow({
             </button>
             <button type="button" className={styles.leaveBtn} onClick={handleLeaveClick}>
               Leave
+            </button>
+          </div>
+        )}
+
+        {conversation.is_private === 1 && (
+          <div className={styles.headerActions}>
+            <button
+              type="button"
+              className={listStyles.primaryBtn}
+              onClick={handleInviteToGame}
+              disabled={isBlocked}
+            >
+              Invite to Match
             </button>
           </div>
         )}
@@ -296,7 +417,41 @@ export default function ChatWindow({
           >
             <div className={styles.message}>
               <div className={styles.messageContent}>
-                {message.content}
+                {(() => {
+                  const data = parseInvite(message.content);
+                  if (data?.type === 'game_invite') {
+                    const inviterId = data.inviterId;
+                    const receiverId = data.receiverId;
+                    const isReceiver = currentUser?.id.toString() === receiverId;
+                    return (
+                      <div>
+                        <div>
+                          {isReceiver ? '/You have been invited to a match.' : '/You invited the user to a match.'}
+                        </div>
+                        {isReceiver && (
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button
+                              type="button"
+                              className={listStyles.primaryBtn}
+                              onClick={() => handleAcceptInvite(data.inviteId, inviterId, receiverId)}
+                              disabled={isBlocked}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.leaveBtn}
+                              onClick={() => handleDeclineInvite(data.inviteId, inviterId, receiverId)}
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return message.content;
+                })()}
               </div>
               <div className={styles.messageTime}>
                 {message.sender_name} • {formatTime(message.sent_at)}
