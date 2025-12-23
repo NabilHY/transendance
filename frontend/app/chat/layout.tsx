@@ -20,6 +20,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const [initError, setInitError] = useState<string | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
+  const pendingMessagesRef = useRef<Message[]>([]);
   // const [updated, setUpdated] = useState<boolean>(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
@@ -49,6 +50,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
         socketRef.current.onopen = () => {
           console.log("CHAT: WebSocket connected");
+          // Flush any messages queued while the socket was still connecting.
+          const socket = socketRef.current;
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            pendingMessagesRef.current.forEach((msg) =>
+              socket.send(JSON.stringify(msg))
+            );
+            pendingMessagesRef.current = [];
+          }
+          setIsSuccess(true);
         };
 
         socketRef.current.onmessage = (event) => {
@@ -64,7 +74,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           console.log("CHAT: ❌ WebSocket closed");
         };
 
-        setIsSuccess(true);
       } catch (e: any) {
         setInitError(e?.message || "Chat initialization failed.");
       } finally {
@@ -95,7 +104,27 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const sendMessage = async (message: Message) => {
       console.log("message to send: ", message);
-      socketRef.current?.send(JSON.stringify(message));
+      const socket = socketRef.current;
+
+      if (!socket) {
+        console.warn("CHAT: No socket available to send message");
+        return;
+      }
+
+      const payload = JSON.stringify(message);
+
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(payload);
+        return;
+      }
+
+      if (socket.readyState === WebSocket.CONNECTING) {
+        // Queue the message and let the onopen handler flush.
+        pendingMessagesRef.current.push(message);
+        return;
+      }
+
+      console.warn("CHAT: Socket not open; readyState:", socket.readyState);
       // setMessages(prev => [...prev, message]);
   };
 
