@@ -10,13 +10,13 @@ import { useRouter } from "next/navigation";
 import { getReceiverId, Message } from "@/lib/chat";
 import { useChatSocket } from "@/app/chat/ChatSocketContext";
 import { useChatData } from "@/app/chat/ChatDataContext";
+import { useNotifications } from "@/context/NotificationContext";
 
 interface ChatWindowProps {
   conversation: Conversation;
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   currentUser: User | null;
-  // ws: WebSocket | null, 
 }
 
 export default function ChatWindow({
@@ -24,10 +24,8 @@ export default function ChatWindow({
   messages,
   setMessages,
   currentUser,
-  // ws,
 }: ChatWindowProps) {
   const [inputValue, setInputValue] = useState("");
-  // const [showGroupForm, setShowGroupForm] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [usernameToAdd, setUsernameToAdd] = useState("");
@@ -36,9 +34,14 @@ export default function ChatWindow({
   const processedInvitesRef = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-
+  const { addInvite, setSendMessageHandler } = useNotifications();
   const { sendMessage } = useChatSocket();
   const { refreshConversations } = useChatData();
+
+  // Register the send message handler with notifications context
+  useEffect(() => {
+    setSendMessageHandler(sendMessage);
+  }, [sendMessage, setSendMessageHandler]);
 
   const scrollToBottom = () => {
     // messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -77,12 +80,30 @@ export default function ChatWindow({
     };
 
     checkBlockStatus();
+    console.log("ChatWindow: ", conversation);
   }, [conversation, currentUser]);
+
+  // Track incoming invite messages for sidebar notification
+  useEffect(() => {
+    if (!currentUser) return;
+    messages.forEach((msg) => {
+      const data = parseInvite(msg.content);
+      if (!data) return;
+      if (data.type === "game_invite" && data.receiverId === currentUser.id.toString()) {
+        addInvite({
+          inviteId: data.inviteId,
+          inviterId: data.inviterId,
+          inviterName: msg.sender_name,
+          receiverId: data.receiverId,
+          channelId: conversation.id,
+        });
+      }
+    });
+  }, [messages, currentUser, addInvite, conversation.id]);
 
   // ! handle blocked users
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Check if user is blocked
     if (isBlocked) {
       alert("You cannot message this user because they have blocked you or you have blocked them.");
       return;
@@ -230,7 +251,6 @@ export default function ChatWindow({
     };
     sendMessage(message);
     setMessages(prev => [...prev, message]);
-    // router.push(`/game?invite=${inviterId}`);
   };
 
   const handleDeclineInvite = (inviteId: string, inviterId: string, receiverId: string) => {
@@ -254,7 +274,6 @@ export default function ChatWindow({
     };
     sendMessage(message);
     setMessages(prev => [...prev, message]);
-    // No navigation on decline
   };
 
   // Navigate inviter when an invite is accepted
@@ -324,7 +343,7 @@ export default function ChatWindow({
                 {conversation.name && conversation.name.charAt(0).toUpperCase()}
               </div>
             )}
-            {(conversation as any)?.status === "online" && (
+            {conversation?.is_online && (
               <div className={styles.onlineIndicator}></div>
             )}
           </div>
@@ -333,7 +352,7 @@ export default function ChatWindow({
           <div className={styles.userDetails}>
             <h3 className={styles.userName}>{conversation.name}</h3>
             <span className={styles.userStatus}>
-              {"Offline"}
+              {conversation?.is_online ? "Online" : "Offline"}
             </span>
           </div>
         </div>
@@ -420,35 +439,15 @@ export default function ChatWindow({
                 {(() => {
                   const data = parseInvite(message.content);
                   if (data?.type === 'game_invite') {
-                    const inviterId = data.inviterId;
-                    const receiverId = data.receiverId;
-                    const isReceiver = currentUser?.id.toString() === receiverId;
+                    const isReceiver = currentUser?.id.toString() === data.receiverId;
                     return (
                       <div>
-                        <div>
-                          {isReceiver ? '/You have been invited to a match.' : '/You invited the user to a match.'}
-                        </div>
-                        {isReceiver && (
-                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                            <button
-                              type="button"
-                              className={listStyles.primaryBtn}
-                              onClick={() => handleAcceptInvite(data.inviteId, inviterId, receiverId)}
-                              disabled={isBlocked}
-                            >
-                              Accept
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.leaveBtn}
-                              onClick={() => handleDeclineInvite(data.inviteId, inviterId, receiverId)}
-                            >
-                              Decline
-                            </button>
-                          </div>
-                        )}
+                        {isReceiver ? '/You have been invited to a match.' : '/You invited the user to a match.'}
                       </div>
                     );
+                  }
+                  if (data?.type === 'game_invite_response') {
+                    return <div>/Invitation was {data.response === 'accepted' ? 'accepted ✓' : 'declined ✗'}</div>;
                   }
                   return message.content;
                 })()}
@@ -467,7 +466,7 @@ export default function ChatWindow({
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder={isBlocked ? "You cannot message this user" : "Message Alex..."}
+          placeholder={isBlocked ? "You cannot message this user" : `Message ${currentUser?.username}...`}
           className={styles.messageInput}
           disabled={isBlocked}
         />

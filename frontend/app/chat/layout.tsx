@@ -6,12 +6,12 @@ import styles from "./styles.module.css";
 import { fetchCurrentUser } from "@/lib/fetcher";
 import { Friend } from "@/lib/chat";
 import ChatSocketContext from "./ChatSocketContext";
-import { Conversation, Message, getReceivers } from "@/lib/chat";
+import { Conversation, Message, getReceiverStatus, getConversations, getChannelName } from "@/lib/chat";
 import { User } from "../settings/page";
-import { getConversations, getChannelName } from "@/lib/chat";
+// import { getConversations, getChannelName } from "@/lib/chat";
 import ChatDataContext from "./ChatDataContext";
 import { getChatWsUrl, getUserMgmtBase } from "@/lib/api-config";
-
+// import { getReceiverStatus } from "@/lib/chat";
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [currentUser, setCurrentUser] =
@@ -42,7 +42,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       setCurrentUser(user);
 
       try {
-        setFriends(await getFriends());
+        await getFriends().then((friends) => {
+          setFriends(friends);
+          console.log("friends loaded: ", friends);
+        });
+        // setFriends(friends).then(() => {
+        //   console.log("friends loaded: ", friends);
+        // });
 
         const wsUrl = getChatWsUrl(user.id);
         console.log("CHAT: Connecting to WebSocket:", wsUrl);
@@ -96,8 +102,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const getFriends = async () => {
     const baseUrl = getUserMgmtBase();
-    const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/me/friends`, {
-    // const res = await fetch(`${baseUrl}/me/friends`, {
+    // const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/me/friends`, {
+    const res = await fetch(`${baseUrl}/me/friends`, {
       credentials: "include",
     });
     return res.ok ? res.json() : [];
@@ -134,9 +140,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     convs.map(async (conv) => {
       if (conv.is_private && !conv.name) {
         const name = await getChannelName(conv.id);
+        const status = await getReceiverStatus(conv.id);
+        console.log("receiver status ===> ", status);
         return {
           ...conv,
           name: name || "Private Chat",
+          is_online: status.status === "online" ? true : false,
         };
       }
       return {
@@ -146,6 +155,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     })
   );
 };
+
 
 
   const fetchConversations = async () => {

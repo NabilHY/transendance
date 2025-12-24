@@ -19,7 +19,11 @@ const Page = () => {
 
   useEffect(() => {
     fetchCurrentUser().then(setCurrentUser);
-    getConversation(id).then(setConversation);
+    getConversation(id).then(setConversation).then(() => {
+      // fetchMessages(id);
+      console.log("fetched: ", conversation);
+      
+    });
     fetchMessages(id);
   }, [id]);
 

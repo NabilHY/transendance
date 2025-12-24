@@ -27,6 +27,7 @@ export interface Conversation {
   last_message_content: string;
   last_message_sender: string;
   last_message_time: string;
+  is_online?: boolean;
 }
 
 export interface Friend {
@@ -103,7 +104,8 @@ export const getConversation = async (id: string) => {
     const data = await conversation.json();
     if(data.is_private) {
       data.name = await getChannelName(data.id);
-      console.log("* DATA: ", data);
+      data.is_online = (await getReceiverStatus(data.id)).status === "online" ? true : false;
+      console.log("* DATA FETCHED: ", data);
     }
     return data;
   } catch (err) {
@@ -201,9 +203,29 @@ export const getConversations = async (id: string) => {
       if (!res.ok)
         throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
+      console.log("all chats ===> ", data);
+      
       return data;
     } catch (err) {
       console.error("Failed to fetch conversations:", err);
       return [];
     }
   }
+
+    export const getReceiverStatus = async (channelId: string) => {
+      try {
+        const baseUrl = getUserMgmtBase();
+        const res = await fetch(`${baseUrl}/channel/${channelId}/status`, {
+          method: "GET",
+          credentials: "include",
+        });
+        if (!res.ok)
+          throw new Error(`Server error: ${res.status}`);
+        const data = await res.json();
+        console.log("receiver status data ===> ", data);
+        return data;
+      } catch (err) {
+        console.error("Failed to fetch receiver status:", err);
+        return [];
+      }
+    };

@@ -160,6 +160,7 @@ module.exports = async function (fastify) {
         console.log("id ===> ", id);
 
         try {
+            // if channel is private 
             const channel = fastify.db.prepare(`
                 SELECT *
                 FROM channels
@@ -258,6 +259,38 @@ module.exports = async function (fastify) {
             return reply.status(500).send({ error: "Failed to fetch channel name" });
         }
     }); 
+
+    fastify.get('/channel/:id/status', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+        const userId = req.user.id;
+        const { id } = req.params;
+        try {
+            console.log("* is USER ONLINE");
+            
+            const channel = fastify.db.prepare(`
+                SELECT is_private FROM channels WHERE id = ?
+            `).get(id);
+
+            if (!channel) {
+                return reply.status(404).send({ error: "Channel not found" });
+            }
+
+            if (channel.is_private) {
+                const member = fastify.db.prepare(`
+                    SELECT u.is_online
+                    FROM channel_members cm
+                    JOIN users u ON cm.user_id = u.id
+                    WHERE cm.channel_id = ? AND cm.user_id != ?
+                `).get(id, userId.toString());
+                console.log("member status ===> ", member);
+                return reply.send({ status: member ? member.is_online == 1 ? "online" : "offline" : "offline" });
+            } else {
+                return reply.send({ status: "public_channel" });
+            }
+        } catch (err) {
+            console.error(err);
+            return reply.status(500).send({ error: "Failed to fetch channel status" });
+        }
+    });
     
     fastify.get('/channel/:id/receiverId', { preHandler: [fastify.authenticate] }, async (req, reply) => {
         const userId = req.user.id;

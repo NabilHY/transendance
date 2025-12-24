@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PanelLeftOpen, PanelLeftClose } from "lucide-react";
 import { Conversation } from "@/lib/chat";
 import styles from "./ConversationsList.module.css";
 import { Friend, getChannelName } from "@/lib/chat";
@@ -27,6 +28,7 @@ export default function ConversationsList({
   const [showGroupForm, setShowGroupForm] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
   const { conversations, refreshConversations } = useChatData();
 
   const router = useRouter();
@@ -78,13 +80,25 @@ export default function ConversationsList({
     };
 
   
-  // useEffect(() => {
-  //   console.log("Conversations updated: ", conversations);
-  // }, [conversations]);
+  useEffect(() => {
+    console.log("Conversations updated: ", conversations);
+  }, [conversations]);
 
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${collapsed ? styles.containerCollapsed : ""}`}>
+      <div className={styles.collapseHandle}>
+        <button
+          type="button"
+          className={styles.collapseBtn}
+          onClick={() => setCollapsed((v) => !v)}
+          aria-pressed={collapsed}
+          aria-label={collapsed ? "Show conversations" : "Hide conversations"}
+        >
+          {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+        </button>
+      </div>
+
       <div className={styles.header}>
         <h2 className={styles.title}>Chat</h2>
         
@@ -172,13 +186,13 @@ export default function ConversationsList({
                     <img
                       src={avatarUrl}
                       alt={friend.username}
-                      className={styles.chatUserAvatar}
+                      className={`${styles.chatUserAvatar} ${friend.is_online ? styles.online : styles.offline}`}
                       onError={() => setAvatarError(true)}
                     />
                   );
                 }
                 return (
-                  <div className={styles.placeholderAvatar}>
+                  <div className={`${styles.placeholderAvatar} ${friend.is_online ? styles.online : styles.offline}`}>
                     {/* {getInitials(userData)} */}
                   </div>
                 );
@@ -213,7 +227,8 @@ export default function ConversationsList({
               
               <div
                 key={conv.id}
-                className={styles.chatUserItem}
+                // className={styles.chatUserItem}
+                className={`${styles.chatUserItem}`}
                 onClick={() => {
                   // console.log("clicked conv: ", conv);
                   router.push(`/chat/${conv.id}`);
@@ -223,10 +238,10 @@ export default function ConversationsList({
                   <img
                     src={conv.avatar}
                     alt={conv.name}
-                    className={styles.chatUserAvatar}
+                    className={`${styles.chatUserAvatar} ${conv.is_online ? styles.online : styles.offline}`}
                   />
                 ): (
-                  <div className={styles.placeholderAvatar}>{conv.name && conv.name[0]?.toUpperCase()}</div>
+                  <div className={`${styles.placeholderAvatar} ${conv.is_online ? styles.online : styles.offline}`}>{conv.name && conv.name[0]?.toUpperCase()}</div>
                 )}
 
                 <div className={styles.chatUserInfo}>
