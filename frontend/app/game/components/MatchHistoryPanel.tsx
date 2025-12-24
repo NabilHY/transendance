@@ -41,9 +41,10 @@ interface MatchHistoryPanelProps {
   userId: number;
   isVisible: boolean;
   refreshTrigger?: number; // Add a refresh trigger
+  isGamePage?: boolean;
 }
 
-export const MatchHistoryPanel: React.FC<MatchHistoryPanelProps> = ({ userId, isVisible, refreshTrigger }) => {
+export const MatchHistoryPanel: React.FC<MatchHistoryPanelProps> = ({ userId, isVisible, refreshTrigger, isGamePage }) => {
   const [matches, setMatches] = useState<MatchHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +127,7 @@ export const MatchHistoryPanel: React.FC<MatchHistoryPanelProps> = ({ userId, is
   };
 
   return (
-    <div className={styles.matchHistoryPanel}>
+    <div className={`${styles.matchHistoryPanel} ${isGamePage ? styles.forGamePage : styles.forProfilePage}`}>
       <h2 className={styles.matchHistoryTitle}>📜 Match History</h2>
       
       {loading && <div className={styles.loading}>Loading match history...</div>}

@@ -266,6 +266,7 @@ export default function GamePage() {
                 userId={typeof user.id === 'number' ? user.id : parseInt(user.id)} 
                 isVisible={true}
                 refreshTrigger={matchHistoryRefresh}
+                isGamePage={true}
               />
             )}
           </>

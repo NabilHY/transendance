@@ -11,6 +11,7 @@ import { ProfileCard } from '@/components/ProfileCard';
 import { headers } from 'next/dist/client/components/headers';
 import CurrentUserProfileNotice from '@/components/CurrentUserProfileNotice';
 import { handleMessageClick } from '@/lib/chat';
+import { MatchHistoryPanel } from '@/app/game/components/MatchHistoryPanel';
 
 export default function UserDetailPage() {
     const params = useParams();
@@ -290,19 +291,28 @@ export default function UserDetailPage() {
         //   background: radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912;
         <main style={{ padding: 24, fontFamily: 'sans-serif', margin: '0 auto', background: 'radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912', minHeight: '100dvh' }}>
             
-            <ProfileCard 
-                profile={user} 
-                isCurrentUser={isCurrentUser}
-                onAddFriend={handleAddFriend} 
-                friendshipStatus={friendshipStatus} 
-                acceptRequest={acceptRequest}
-                invitationReceived={invitationReceived}
-                blockUser={handleBlockUser}
-                rejectRequest={rejectRequest}
-                handleMessageBtn={() => handleMessageBtn(user.id.toString())}
-                handleUnblock={handleUnblock}
-            />
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 24}}>
+                <ProfileCard 
+                    profile={user} 
+                    isCurrentUser={isCurrentUser}
+                    onAddFriend={handleAddFriend} 
+                    friendshipStatus={friendshipStatus} 
+                    acceptRequest={acceptRequest}
+                    invitationReceived={invitationReceived}
+                    blockUser={handleBlockUser}
+                    rejectRequest={rejectRequest}
+                    handleMessageBtn={() => handleMessageBtn(user.id.toString())}
+                    handleUnblock={handleUnblock}
+                />
 
+                <MatchHistoryPanel
+                    userId={typeof user.id === 'number' ? user.id : parseInt(user.id)}
+                    isVisible={true}
+                    isGamePage={false}
+                />
+
+            </div>
+            
             <CurrentUserProfileNotice isCurrentUser={isCurrentUser}/>
 
         </main>

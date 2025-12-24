@@ -561,14 +561,26 @@
   background: var(--card-bg);
   border: 1px solid rgba(0, 240, 255, 0.2);
   border-radius: 16px;
-  padding: 28px;
-  margin: 24px auto 0 auto;
+  /* padding: 28px;
+  margin: 24px auto 0 auto; */
   max-width: 1400px;
   box-shadow: 
     0 0 30px rgba(0, 240, 255, 0.1),
     inset 0 0 30px rgba(0, 240, 255, 0.03);
   backdrop-filter: blur(20px);
 }
+
+.matchHistoryPanel.forGamePage {
+  padding: 28px;
+  margin: 24px auto 0 auto;
+}
+
+.matchHistoryPanel.forProfilePage {
+  padding: 0;
+  margin: 0 20px;
+  width: 100%;
+}
+
 
 .matchHistoryTitle {
   margin: 0 0 24px 0;
