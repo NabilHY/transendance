@@ -12,6 +12,7 @@ import { headers } from 'next/dist/client/components/headers';
 import CurrentUserProfileNotice from '@/components/CurrentUserProfileNotice';
 import { handleMessageClick } from '@/lib/chat';
 import { MatchHistoryPanel } from '@/app/game/components/MatchHistoryPanel';
+import '../../game/styles.module.css';
 
 export default function UserDetailPage() {
     const params = useParams();
@@ -289,7 +290,23 @@ export default function UserDetailPage() {
 
     return (
         //   background: radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912;
-        <main style={{ padding: 24, fontFamily: 'sans-serif', margin: '0 auto', background: 'radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912', minHeight: '100dvh' }}>
+        <main
+            style={{
+                padding: 24,
+                fontFamily: 'sans-serif',
+                margin: '0 auto',
+                background: 'radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912',
+                minHeight: '100dvh',
+                // Provide the neon theme variables expected by MatchHistoryPanel styles
+                '--neon-blue': '#00f0ff',
+                '--neon-purple': '#b744ff',
+                '--neon-pink': '#ff006e',
+                '--neon-green': '#00ff88',
+                '--dark-bg': '#0a0e1a',
+                '--darker-bg': '#050811',
+                '--card-bg': 'rgba(15, 20, 35, 0.85)',
+            }}
+        >
             
             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 24}}>
                 <ProfileCard 
