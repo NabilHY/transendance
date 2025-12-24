@@ -293,9 +293,9 @@ export default function UserDetailPage() {
             
             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 24}}>
                 <ProfileCard 
-                    profile={user} 
+                    profile={user}
                     isCurrentUser={isCurrentUser}
-                    onAddFriend={handleAddFriend} 
+                    onAddFriend={handleAddFriend}
                     friendshipStatus={friendshipStatus} 
                     acceptRequest={acceptRequest}
                     invitationReceived={invitationReceived}
