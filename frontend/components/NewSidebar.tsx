@@ -8,6 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LogOut, X } from 'lucide-react';
 import { useNotifications } from '@/context/NotificationContext';
+import { NotificationCenter } from './NotificationCenter';
 
 const authenticatedItems = [
     { id: "home", label: "Dashboard", href: "/" },
@@ -25,10 +26,15 @@ const unauthenticatedItems = [
 ];
 
 export default function NewSidebar() {
-    const { isLoggedIn, logout, clearError } = useAuth();
+    const { isLoggedIn, logout, clearError, user } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
     const { gameInvites, pendingInvites, acceptInvite, declineInvite } = useNotifications();
+    // console.log("games invites: ", gameInvites);
+    // console.log("pending invites: ", pendingInvites);
+    // console.log("acceptInvite: ", acceptInvite);
+    // console.log("declineInvite: ", declineInvite);
+    
     const [showInvitePanel, setShowInvitePanel] = useState(false);
 
     const items = isLoggedIn ? authenticatedItems : unauthenticatedItems;
@@ -62,6 +68,7 @@ export default function NewSidebar() {
                     </div>
                 </div>
                 <div className={styles.headerControls}>
+                    <NotificationCenter userId={user?.id || 0} />
                     <button
                         type="button"
                         className={styles.controlBtn}

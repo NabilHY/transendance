@@ -51,6 +51,7 @@ const nextConfig = {
     const minioUrl = process.env.MINIO_SERVICE_URL || 'http://minio:9000';
 
     return [
+      // Media endpoints
       {
         source: '/media/avatar/me',
         destination: `${usrManagBase}/me/avatar`,

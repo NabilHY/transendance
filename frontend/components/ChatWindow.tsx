@@ -195,6 +195,28 @@ export default function ChatWindow({
       const receiverId = await getReceiverId(conversation);
       if (!receiverId) return;
 
+      // Send notification via API
+      const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/match-invite`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipientId: typeof receiverId === 'string' ? parseInt(receiverId) : receiverId,
+          senderId: currentUser.id,
+          matchType: 'matchmaking',
+          gameData: {
+            channelId: conversation.id,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send match invite notification');
+      }
+
+      // Also send the chat message for conversation context
       const inviteId = crypto.randomUUID();
       const content = JSON.stringify({
         type: "game_invite",

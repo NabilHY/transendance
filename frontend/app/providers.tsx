@@ -83,7 +83,7 @@ function FetchInterceptor({ children }: { children?: React.ReactNode }) {
 function OAuthCallbackHandler({ children }: { children?: React.ReactNode }) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
-    const { checkOAuth2FA, checkProfileAndRedirect, isLoggedIn } = useAuth();
+  const { checkOAuth2FA, checkProfileAndRedirect, isLoggedIn } = useAuth();
 
 	useEffect(() => {
 		// Handle OAuth callback parameters

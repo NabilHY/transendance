@@ -9,8 +9,8 @@
   gap: 20px;
   color: #f4f6fb;
   font-family: Inter, system-ui, sans-serif;
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* overflow-y: auto; */
+  /* overflow-x: hidden; */
 }
 
 .header {

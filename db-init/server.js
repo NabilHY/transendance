@@ -4,9 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const { initializeDatabase } = require('./utils/schema');
 const { initializeChatSchema } = require('./utils/chatSchema');
+const { initializeNotifications } = require('./utils/notificationsSchema');
 const { runMigrations } = require('./utils/migrations');
 const config = require('./config');
-
 
 // Simple config
 const PORT = config.PORT;
@@ -33,6 +33,7 @@ const initDatabase = async () => {
         // Initialize schema
         await initializeDatabase(db);
         await initializeChatSchema(db);
+        await initializeNotifications(db);
 
         // Run migrations
         await runMigrations(db);

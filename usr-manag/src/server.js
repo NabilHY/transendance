@@ -153,6 +153,8 @@ fastify.register(require('../routes/chat'), { prefix: '' });
 fastify.register(require('../routes/friends'), { prefix: '' });
 fastify.register(require('../routes/media'), { prefix: '' });
 // fastify.register(require('../routes/profile'), { prefix: '' });
+fastify.register(require('../routes/notifications'), { prefix: '' });
+// fastify.register(require('../routes/profile'), { prefix: '' });
 fastify.register(require('../plugins/metrics'), { prefix: '/metrics' });
 const start = async () => {
     try {
