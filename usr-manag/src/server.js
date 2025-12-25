@@ -1,5 +1,6 @@
 const fastify = require('fastify')({ logger: true });
 const config = require('../config');
+const notificationHandler = require('../routes/notificationHandler');
 // Define allowed origins - support localhost, 127.0.0.1, and local network IPs
 
 const allowedOrigins = config.FRONTEND_URL;
@@ -60,6 +61,7 @@ fastify.setErrorHandler(function (err, req, reply) {
 fastify.register(require('@fastify/cookie'));
 
 // Register plugins
+fastify.register(require('@fastify/websocket'));
 fastify.register(require('@fastify/cors'), {
     origin: (origin, cb) => {
         const allowed = isOriginAllowed(origin);
@@ -156,6 +158,30 @@ fastify.register(require('../routes/media'), { prefix: '' });
 fastify.register(require('../routes/notifications'), { prefix: '' });
 // fastify.register(require('../routes/profile'), { prefix: '' });
 fastify.register(require('../plugins/metrics'), { prefix: '/metrics' });
+
+// WebSocket endpoint for real-time notifications
+fastify.register(async function (fastify) {
+    fastify.get('/notifications/ws', { websocket: true }, (connection, req) => {
+        const userId = req.user?.id;
+        
+        if (!userId) {
+            connection.socket.close(1008, 'Unauthorized');
+            return;
+        }
+
+        notificationHandler.registerNotificationConnection(userId, connection.socket);
+        
+        connection.socket.on('close', () => {
+            notificationHandler.unregisterNotificationConnection(userId, connection.socket);
+        });
+        
+        connection.socket.on('error', (err) => {
+            console.error(`WebSocket error for user ${userId}:`, err);
+            notificationHandler.unregisterNotificationConnection(userId, connection.socket);
+        });
+    });
+});
+
 const start = async () => {
     try {
         await fastify.listen({ port: `${config.USR_MANAG_PORT}`, host: '0.0.0.0' });

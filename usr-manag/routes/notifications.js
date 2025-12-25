@@ -3,6 +3,8 @@
  * Handles getting, creating, and managing notifications
  */
 
+const notificationHandler = require('./notificationHandler');
+
 module.exports = async function (fastify) {
     const db = fastify.db;
 
@@ -134,7 +136,7 @@ module.exports = async function (fastify) {
                     recipient_id, sender_id, type, title, message, data, expires_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
             `);
-            insertStmt.run(
+            const result = insertStmt.run(
                 recipientId,
                 senderId,
                 'match_invite',
@@ -148,6 +150,31 @@ module.exports = async function (fastify) {
                 }),
                 expiresAt
             );
+
+            // Broadcast notification via WebSocket if user is connected
+            const notification = {
+                id: result.lastInsertRowid,
+                recipient_id: recipientId,
+                sender_id: senderId,
+                type: 'match_invite',
+                title: 'Match Invite',
+                message: `${sender.first_name} ${sender.last_name} invited you to a match`,
+                data: {
+                    senderUsername: sender.username,
+                    senderName: `${sender.first_name} ${sender.last_name}`,
+                    matchType: matchType || 'matchmaking',
+                    gameData: gameData || {}
+                },
+                is_read: 0,
+                is_dismissed: 0,
+                created_at: now,
+                expires_at: expiresAt,
+                first_name: sender.first_name,
+                last_name: sender.last_name,
+                username: sender.username
+            };
+            
+            notificationHandler.sendNotificationToUser(recipientId, notification);
 
             return reply.code(201).send({ success: true, message: 'Notification created' });
         } catch (err) {
@@ -183,7 +210,7 @@ module.exports = async function (fastify) {
                     recipient_id, sender_id, type, title, message, data, expires_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
             `);
-            insertStmt.run(
+            const result = insertStmt.run(
                 recipientId,
                 senderId,
                 'friend_request',
@@ -195,6 +222,29 @@ module.exports = async function (fastify) {
                 }),
                 expiresAt
             );
+
+            // Broadcast notification via WebSocket
+            const notification = {
+                id: result.lastInsertRowid,
+                recipient_id: recipientId,
+                sender_id: senderId,
+                type: 'friend_request',
+                title: 'Friend Request',
+                message: `${sender.first_name} ${sender.last_name} sent you a friend request`,
+                data: {
+                    senderUsername: sender.username,
+                    senderName: `${sender.first_name} ${sender.last_name}`
+                },
+                is_read: 0,
+                is_dismissed: 0,
+                created_at: now,
+                expires_at: expiresAt,
+                first_name: sender.first_name,
+                last_name: sender.last_name,
+                username: sender.username
+            };
+            
+            notificationHandler.sendNotificationToUser(recipientId, notification);
 
             return reply.code(201).send({ success: true, message: 'Notification created' });
         } catch (err) {
