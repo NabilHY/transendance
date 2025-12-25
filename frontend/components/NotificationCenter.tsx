@@ -89,7 +89,6 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
         }
     };
 
-    // Mark all as read
     const markAllAsRead = async () => {
         try {
             await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/mark-all-read`, {
