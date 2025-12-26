@@ -211,8 +211,22 @@ export default function UserDetailPage() {
             });
             const data = await result.json();
             // console.log("* CLIENT ---> requested: ", data);
-            if( result.ok )
+            if( result.ok ) {
                 setFriendshipStatus("pending");
+                
+                // Send friend request notification
+                await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/friend-request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ 
+                        recipientId: user.id,
+                        senderId: currentUser?.id 
+                    }),
+                });
+            }
             
         } catch (err) {
             console.error("Failed to add friend:", err);

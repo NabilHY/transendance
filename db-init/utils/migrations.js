@@ -110,6 +110,67 @@ const runMigrations = async (db) => {
             });
         });
     }
+
+    await new Promise((resolve, reject) => {
+        db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='notifications'", (err, row) => {
+            if (err) return reject(err);
+
+            const ddl = row?.sql || '';
+            if (ddl.includes("'message'")) {
+                console.log('✅ Notifications table already supports message type');
+                return resolve();
+            }
+
+            console.log("🔄 Updating notifications table to allow 'message' type");
+
+            const steps = [
+                "PRAGMA foreign_keys=off",
+                "BEGIN TRANSACTION",
+                "ALTER TABLE notifications RENAME TO notifications_old",
+                `CREATE TABLE notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    recipient_id INTEGER NOT NULL,
+                    sender_id INTEGER,
+                    type TEXT NOT NULL CHECK(type IN ('match_invite', 'friend_request', 'friend_accept', 'tournament_invite', 'system', 'message')) DEFAULT 'system',
+                    title TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    data JSON,
+                    is_read INTEGER DEFAULT 0,
+                    is_dismissed INTEGER DEFAULT 0,
+                    read_at INTEGER,
+                    dismissed_at INTEGER,
+                    created_at INTEGER DEFAULT (strftime('%s', 'now')),
+                    expires_at INTEGER,
+                    FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL
+                )`,
+                `INSERT INTO notifications (
+                    id, recipient_id, sender_id, type, title, message, data, is_read, is_dismissed, read_at, dismissed_at, created_at, expires_at
+                )
+                SELECT
+                    id, recipient_id, sender_id,
+                    CASE
+                        WHEN type IN ('match_invite', 'friend_request', 'friend_accept', 'tournament_invite', 'system', 'message') THEN type
+                        ELSE 'system'
+                    END AS type,
+                    title, message, data, is_read, is_dismissed, read_at, dismissed_at, created_at, expires_at
+                FROM notifications_old`,
+                "DROP TABLE notifications_old",
+                "COMMIT",
+                "PRAGMA foreign_keys=on"
+            ];
+
+            const runNext = (index = 0) => {
+                if (index >= steps.length) return resolve();
+                db.run(steps[index], (stepErr) => {
+                    if (stepErr) return reject(stepErr);
+                    runNext(index + 1);
+                });
+            };
+
+            runNext();
+        });
+    });
     
     console.log('✅ Migrations complete');
 };

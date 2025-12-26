@@ -129,7 +129,8 @@ module.exports = async function (fastify) {
             }
 
             const now = Math.floor(Date.now() / 1000);
-            const expiresAt = now + (3600 * 24); // 24 hour expiry
+            // const expiresAt = now + (3600 * 24); // 24 hour expiry
+            const expiresAt = now + 60; // 1 min expiry
 
             const insertStmt = db.prepare(`
                 INSERT INTO notifications (
@@ -242,6 +243,79 @@ module.exports = async function (fastify) {
                 first_name: sender.first_name,
                 last_name: sender.last_name,
                 username: sender.username
+            };
+            
+            notificationHandler.sendNotificationToUser(recipientId, notification);
+
+            return reply.code(201).send({ success: true, message: 'Notification created' });
+        } catch (err) {
+            fastify.log.error(err);
+            return reply.code(500).send({ message: 'Failed to create notification' });
+        }
+    });
+
+    // Create a message notification
+    fastify.post('/notifications/message', {preHandler: fastify.authenticate} , async (request, reply) => {
+        try {
+            const { recipientId, senderId, messagePreview } = request.body;
+
+            if (!recipientId || !senderId) {
+                return reply.code(400).send({ message: 'recipientId and senderId required' });
+            }
+
+            // Get sender info
+            const senderStmt = db.prepare(`
+                SELECT id, first_name, last_name, username, avatar_url FROM users WHERE id = ?
+            `);
+            const sender = senderStmt.get(senderId);
+
+            if (!sender) {
+                return reply.code(404).send({ message: 'Sender not found' });
+            }
+
+            const now = Math.floor(Date.now() / 1000);
+            const expiresAt = now + (3600 * 24 * 7); // 7 day expiry
+
+            const insertStmt = db.prepare(`
+                INSERT INTO notifications (
+                    recipient_id, sender_id, type, title, message, data, expires_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `);
+            const result = insertStmt.run(
+                recipientId,
+                senderId,
+                'message',
+                'New Message',
+                `${sender.first_name} ${sender.last_name} sent you a message`,
+                JSON.stringify({
+                    senderUsername: sender.username,
+                    senderName: `${sender.first_name} ${sender.last_name}`,
+                    messagePreview: messagePreview || ''
+                }),
+                expiresAt
+            );
+
+            // Broadcast notification via WebSocket
+            const notification = {
+                id: result.lastInsertRowid,
+                recipient_id: recipientId,
+                sender_id: senderId,
+                type: 'message',
+                title: 'New Message',
+                message: `${sender.first_name} ${sender.last_name} sent you a message`,
+                data: {
+                    senderUsername: sender.username,
+                    senderName: `${sender.first_name} ${sender.last_name}`,
+                    messagePreview: messagePreview || ''
+                },
+                is_read: 0,
+                is_dismissed: 0,
+                created_at: now,
+                expires_at: expiresAt,
+                first_name: sender.first_name,
+                last_name: sender.last_name,
+                username: sender.username,
+                avatar_url: sender.avatar_url
             };
             
             notificationHandler.sendNotificationToUser(recipientId, notification);

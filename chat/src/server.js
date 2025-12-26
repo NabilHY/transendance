@@ -2,6 +2,7 @@
 import Fastify from "fastify";
 import Websocket from "@fastify/websocket";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import metricsPlugin from "../plugins/metrics/index.js";
 import dbPlugin from "../plugins/db.js";
 import config from "../config.js";
@@ -78,6 +79,35 @@ function getChannelMembers(channel_id, db) {
     return [];
   }
   return members.map(member => member.user_id);
+}
+
+async function sendMessageNotification(senderId, receiverId, messagePreview) {
+  try {
+    // Generate a service token for authentication
+    const serviceToken = jwt.sign(
+      { sub: senderId, type: 'access', service: 'chat' },
+      config.JWT_SECRET,
+      { expiresIn: '5m' }
+    );
+
+    const response = await fetch(`${config.USR_MANAG_URL}/notifications/message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${serviceToken}`
+      },
+      body: JSON.stringify({
+        recipientId: receiverId,
+        senderId: senderId,
+        messagePreview: messagePreview.substring(0, 50)
+      })
+    });
+    if (!response.ok) {
+      console.error('Failed to send message notification:', await response.text());
+    }
+  } catch (err) {
+    console.error('Error sending message notification:', err);
+  }
 }
 
 function sendToReceiver(message, db, isChannel) {
@@ -198,8 +228,11 @@ fastify.get("/ws", { websocket: true }, (socket, req) => {
           console.log("not blocked user");
           msg.receiver_id = msg.receiver_id[0];
           console.log("updated recv ===> ", msg);
-          
+
           sendToReceiver(msg, fastify.db, 0);
+
+          // Send notification for private message
+          sendMessageNotification(msg.sender_id, msg.receiver_id, msg.content);
         } else if (msg.receiver_id && !not_blocked(msg.sender_id, msg.receiver_id, fastify.db)) {
           console.log("* PRIVATE CHANNEL: user_id  ", msg.receiver_id, "blocked the user ", msg.sender_id);
           socket.send(JSON.stringify({ error: "You are blocked by the user." })); 

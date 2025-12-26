@@ -129,6 +129,9 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                 wsRef.current.onmessage = (event) => {
                     try {
                         const message = JSON.parse(event.data);
+
+                        console.log("new message: ", message);
+                        
                         
                         if (message.type === 'notification') {
                             // Add new notification to the list
@@ -192,13 +195,13 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
     const getNotificationColor = (type: string) => {
         switch (type) {
             case 'match_invite':
-                return '#00f0ff'; // neon blue
+                return '#00f0ff';
             case 'friend_request':
-                return '#b744ff'; // neon purple
+                return '#b744ff';
             case 'tournament_invite':
-                return '#00ff88'; // neon green
+                return '#00ff88';
             default:
-                return '#ff006e'; // neon pink
+                return '#ff006e';
         }
     };
 

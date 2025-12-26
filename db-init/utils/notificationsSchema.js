@@ -6,7 +6,7 @@ const initializeNotifications = (db) => {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 recipient_id INTEGER NOT NULL,
                 sender_id INTEGER,
-                type TEXT NOT NULL CHECK(type IN ('match_invite', 'friend_request', 'friend_accept', 'tournament_invite', 'system')) DEFAULT 'system',
+                type TEXT NOT NULL CHECK(type IN ('match_invite', 'friend_request', 'friend_accept', 'tournament_invite', 'system', 'message')) DEFAULT 'system',
                 title TEXT NOT NULL,
                 message TEXT NOT NULL,
                 data JSON,
