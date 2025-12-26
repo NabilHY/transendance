@@ -286,6 +286,13 @@ export default function ChatWindow({
     // Update processed count immediately to avoid double-processing
     lastMessageCountRef.current = messages.length;
     if (!data || data.type !== 'game_invite_response' || data.response !== 'accepted') return;
+    
+    // Only redirect for recent messages (within 5 seconds), not old history
+    const messageTime = new Date(last.sent_at).getTime();
+    const currentTime = new Date().getTime();
+    const timeDiff = currentTime - messageTime;
+    if (timeDiff > 5000) return; // Don't redirect for old messages
+    
     const { inviteId, inviterId, receiverId } = data;
     if (processedInvitesRef.current.has(inviteId)) return;
     // If current user is the inviter, redirect them to match on receiver acceptance
