@@ -432,6 +432,15 @@ export default function ChatWindow({
         {messages.map((message, index) => {
           const data = parseInvite(message.content);
           const isGameInviteMessage = data?.type === 'game_invite' || data?.type === 'game_invite_response';
+          
+          // Check if this invite has already been responded to
+          const hasResponse = (inviteId: string) => {
+            return messages.some(msg => {
+              const msgData = parseInvite(msg.content);
+              return msgData?.type === 'game_invite_response' && msgData?.inviteId === inviteId;
+            });
+          };
+          
           return (
           <div
             key={index}
@@ -444,12 +453,13 @@ export default function ChatWindow({
                 {(() => {
                   if (data?.type === 'game_invite') {
                     const isReceiver = currentUser?.id.toString() === data.receiverId;
+                    const responded = hasResponse(data.inviteId);
                     return (
                       <div>
                         <div>
                           {isReceiver ? '/You have been invited to a match.' : `/You invited ${conversation.name} to a match.`}
                         </div>
-                        {isReceiver && (
+                        {isReceiver && !responded && (
                           <div className={styles.inviteActions}>
                             <button
                               className={styles.acceptBtn}
