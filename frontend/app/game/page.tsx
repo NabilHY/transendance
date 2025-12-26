@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import { useSearchParams } from 'next/navigation';
 import { getAuthToken, fetchPlayerStats, getAuthBackendUrl } from './utils/api';
 import { useGameWebSocket } from './hooks/useGameWebSocket';
 import { useGameKeyboard } from './hooks/useGameKeyboard';
@@ -21,6 +22,7 @@ import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, Q
 export default function GamePage() {
   const { user } = useAuth();
   const { loading: authLoading, isAuthenticated: isLoggedIn } = useRequireAuth();
+  const searchParams = useSearchParams();
   const tournamentWaitingTimeoutRef = useRef<any>(null);
   const matchReadyCountdownRef = useRef<any>(null);
   
@@ -41,6 +43,7 @@ export default function GamePage() {
   const [quadWaitingInfo, setQuadWaitingInfo] = useState<QuadWaitingInfo | null>(null);
   const [quadWinScreenData, setQuadWinScreenData] = useState<QuadWinScreenData | null>(null);
   const [matchHistoryRefresh, setMatchHistoryRefresh] = useState<number>(0);
+  const [directGameInfo, setDirectGameInfo] = useState<{ opponentId: string; inviteId: string } | null>(null);
 
   // WebSocket connection
   const {
@@ -116,6 +119,18 @@ export default function GamePage() {
     await fetchPlayerStats(getAuthTokenWithUser, setPlayerStats, setAuthError);
   };
 
+  // Check for direct game invite from URL parameters
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    const opponentId = searchParams.get('opponentId');
+    const inviteId = searchParams.get('inviteId');
+    
+    if (mode === 'direct' && opponentId && inviteId) {
+      console.log(`🎮 Direct game invite detected: opponentId=${opponentId}, inviteId=${inviteId}`);
+      setDirectGameInfo({ opponentId, inviteId });
+    }
+  }, [searchParams]);
+
   // Check authentication on mount
   useEffect(() => {
     if (!isLoggedIn || authLoading) return;
@@ -127,12 +142,18 @@ export default function GamePage() {
         setAuthError(null);
         setIsAuthenticated(true);
         await refreshPlayerStats();
+        
+        // Auto-start direct game invite if present
+        if (directGameInfo) {
+          console.log('🎮 Auto-starting direct game invite...');
+          await connectWebSocket('matchmaking', undefined, directGameInfo);
+        }
       } else {
         setIsAuthenticated(false);
       }
     };
     checkAuth();
-  }, [isLoggedIn, authLoading]);
+  }, [isLoggedIn, authLoading, directGameInfo]);
 
   // Handle page refresh/close - disconnect from websocket
   useEffect(() => {

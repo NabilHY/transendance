@@ -442,3 +442,56 @@
 .leaveCancelButton:hover {
   border-color: #555555;
 }
+
+.inviteActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.acceptBtn,
+.declineBtn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.acceptBtn {
+  background: #4caf50;
+  color: #ffffff;
+}
+
+.acceptBtn:hover {
+  background: #45a049;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+}
+
+.declineBtn {
+  background: #f44336;
+  color: #ffffff;
+}
+
+.declineBtn:hover {
+  background: #da190b;
+  box-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
+}
+
+.gameInviteMessage {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(56, 142, 60, 0.15));
+  border-left: 4px solid #4caf50;
+}
+
+.gameInviteMessage .messageContent {
+  background: #125214;
+}
+
+.gameInviteContent {
+  background: rgba(76, 175, 80, 0.08) !important;
+  border-radius: 8px;
+  padding: 12px !important;
+  /* border: 1px solid rgba(76, 175, 80, 0.3); */
+}

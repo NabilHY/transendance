@@ -31,6 +31,7 @@ export default function ChatWindow({
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const processedInvitesRef = useRef<Set<string>>(new Set());
+  const lastMessageCountRef = useRef<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { sendMessage } = useChatSocket();
@@ -247,6 +248,9 @@ export default function ChatWindow({
     };
     sendMessage(message);
     setMessages(prev => [...prev, message]);
+    // Navigate only when the user explicitly accepts
+    const opponentId_num = typeof inviterId === 'string' ? parseInt(inviterId) : inviterId;
+    router.push(`/game?mode=direct&opponentId=${opponentId_num}&inviteId=${inviteId}`);
   };
 
   const handleDeclineInvite = (inviteId: string, inviterId: string, receiverId: string) => {
@@ -272,21 +276,23 @@ export default function ChatWindow({
     setMessages(prev => [...prev, message]);
   };
 
-  // Navigate inviter when an invite is accepted
+  // Auto-redirect inviter ONLY on NEW acceptance messages
   useEffect(() => {
     if (!currentUser) return;
-    for (const msg of messages) {
-      const data = parseInvite(msg.content);
-      if (!data) continue;
-      if (data.type === "game_invite_response" && data.response === "accepted") {
-        const { inviteId, inviterId, receiverId } = data;
-        if (processedInvitesRef.current.has(inviteId)) continue;
-        if (currentUser.id.toString() === inviterId) {
-          processedInvitesRef.current.add(inviteId);
-          // router.push(`/game?invite=${receiverId}`);
-          break;
-        }
-      }
+    // Ignore initial history
+    if (messages.length <= lastMessageCountRef.current) return;
+    const last = messages[messages.length - 1];
+    const data = parseInvite(last.content);
+    // Update processed count immediately to avoid double-processing
+    lastMessageCountRef.current = messages.length;
+    if (!data || data.type !== 'game_invite_response' || data.response !== 'accepted') return;
+    const { inviteId, inviterId, receiverId } = data;
+    if (processedInvitesRef.current.has(inviteId)) return;
+    // If current user is the inviter, redirect them to match on receiver acceptance
+    if (currentUser.id.toString() === inviterId) {
+      processedInvitesRef.current.add(inviteId);
+      const opponentId = typeof receiverId === 'string' ? parseInt(receiverId) : receiverId;
+      router.push(`/game?mode=direct&opponentId=${opponentId}&inviteId=${inviteId}`);
     }
   }, [messages, currentUser, router]);
 
@@ -423,22 +429,42 @@ export default function ChatWindow({
 
       <div ref={messagesEndRef} className={styles.messagesContainer}>
       
-        {messages.map((message, index) => (
+        {messages.map((message, index) => {
+          const data = parseInvite(message.content);
+          const isGameInviteMessage = data?.type === 'game_invite' || data?.type === 'game_invite_response';
+          return (
           <div
             key={index}
             className={`${styles.messageWrapper} ${
               (message.sender_id === currentUser?.id.toString() || message.sender_id === currentUser?.id.toString()) ? styles.sent : styles.received
-            }`}
+            } ${isGameInviteMessage ? styles.gameInviteMessage : ''}`}
           >
-            <div className={styles.message}>
+            <div className={`${styles.message} ${isGameInviteMessage ? styles.gameInviteContent : ''}`}>
               <div className={styles.messageContent}>
                 {(() => {
-                  const data = parseInvite(message.content);
                   if (data?.type === 'game_invite') {
                     const isReceiver = currentUser?.id.toString() === data.receiverId;
                     return (
                       <div>
-                        {isReceiver ? '/You have been invited to a match.' : '/You invited the user to a match.'}
+                        <div>
+                          {isReceiver ? '/You have been invited to a match.' : `/You invited ${conversation.name} to a match.`}
+                        </div>
+                        {isReceiver && (
+                          <div className={styles.inviteActions}>
+                            <button
+                              className={styles.acceptBtn}
+                              onClick={() => handleAcceptInvite(data.inviteId, data.inviterId, data.receiverId)}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              className={styles.declineBtn}
+                              onClick={() => handleDeclineInvite(data.inviteId, data.inviterId, data.receiverId)}
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   }
@@ -453,7 +479,8 @@ export default function ChatWindow({
               </div>
             </div>
           </div>
-        ))}
+        );
+        })}
         {/* <div ref={messagesEndRef} /> */}
       </div>
 

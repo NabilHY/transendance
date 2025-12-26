@@ -7,7 +7,7 @@ import type { GameState, QuadGameState, PlayerInfo, GameMode, AIDifficulty, Game
 interface UseGameWebSocketReturn {
   wsRef: React.MutableRefObject<WebSocket | null>;
   isConnected: boolean;
-  connect: (gameMode: GameMode, aiDifficulty?: AIDifficulty) => Promise<void>;
+  connect: (gameMode: GameMode, aiDifficulty?: AIDifficulty, directGameInfo?: { opponentId: string; inviteId: string }) => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: any) => void;
 }
@@ -57,7 +57,7 @@ export const useGameWebSocket = (
     }
   }, []);
 
-  const connect = useCallback(async (gameMode: GameMode, aiDifficulty?: AIDifficulty) => {
+  const connect = useCallback(async (gameMode: GameMode, aiDifficulty?: AIDifficulty, directGameInfo?: { opponentId: string; inviteId: string }) => {
     // Close existing connection if any
     disconnect();
 
@@ -124,6 +124,14 @@ export const useGameWebSocket = (
         const joinMessage: any = { type: "join", gameMode };
         if (gameMode === 'ai' && aiDifficulty) {
           joinMessage.aiDifficulty = aiDifficulty;
+        }
+        // If this is a direct game invite, include hint data but keep standard join flow
+        if (directGameInfo) {
+          joinMessage.directInvite = {
+            opponentId: parseInt(directGameInfo.opponentId),
+            inviteId: directGameInfo.inviteId
+          };
+          console.log('🎮 Direct invite detected; joining via matchmaking:', joinMessage.directInvite);
         }
         ws.send(JSON.stringify(joinMessage));
       } else if (message.type === 'waiting' || message.type === 'waitingForOpponent') {
