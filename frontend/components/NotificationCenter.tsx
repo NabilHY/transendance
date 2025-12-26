@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Bell, X, Check } from 'lucide-react';
 import styles from './NotificationCenter.module.css';
 
@@ -33,6 +33,9 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const wsRef = useRef<WebSocket | null>(null);
+    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Fetch notifications
     const fetchNotifications = useCallback(async () => {
@@ -109,21 +112,21 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
         fetchNotifications();
 
         // Poll every 30 seconds
-        const pollInterval = setInterval(fetchNotifications, 30000);
+        pollIntervalRef.current = setInterval(fetchNotifications, 30000);
 
         // Attempt WebSocket connection for real-time updates
-        let ws: WebSocket | null = null;
-        
         const connectWebSocket = () => {
+            console.log("Attempting WebSocket connection...");
+            
             try {
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                ws = new WebSocket(`${protocol}//${window.location.host}/notifications`);
+                wsRef.current = new WebSocket(`ws://localhost:4000/notifications/ws`);
 
-                ws.onopen = () => {
+                wsRef.current.onopen = () => {
                     console.log('✅ Notification WebSocket connected');
                 };
 
-                ws.onmessage = (event) => {
+                wsRef.current.onmessage = (event) => {
                     try {
                         const message = JSON.parse(event.data);
                         
@@ -137,29 +140,39 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                     }
                 };
 
-                ws.onerror = (err) => {
+                wsRef.current.onerror = (err) => {
                     console.error('WebSocket error:', err);
                 };
 
-                ws.onclose = () => {
+                wsRef.current.onclose = () => {
                     console.log('WebSocket closed, will retry in 5 seconds');
-                    setTimeout(connectWebSocket, 5000);
+                    reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
                 };
             } catch (err) {
                 console.error('Failed to connect WebSocket:', err);
-                setTimeout(connectWebSocket, 5000);
+                reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
             }
         };
 
         connectWebSocket();
 
         return () => {
-            clearInterval(pollInterval);
-            if (ws) {
-                ws.close();
+            // Cleanup polling
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+            }
+            
+            // Cleanup reconnect timeout
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
+            
+            // Close WebSocket
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                wsRef.current.close();
             }
         };
-    }, [fetchNotifications]);
+    }, []);
 
     const getNotificationIcon = (type: string) => {
         switch (type) {
@@ -193,7 +206,7 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
         if (isOpen) {
             fetchNotifications();
         }
-    }, [isOpen, fetchNotifications]);
+    }, [isOpen]);
 
     return (
         <div className={styles.notificationCenter}>

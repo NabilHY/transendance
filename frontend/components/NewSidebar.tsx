@@ -1,13 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import styles from './NewSidebar.module.css';
 import logo from '@/public/racket.png';
 import { useAuth } from '@/context/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LogOut, X } from 'lucide-react';
-import { useNotifications } from '@/context/NotificationContext';
+import { LogOut } from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
 
 const authenticatedItems = [
@@ -29,13 +27,6 @@ export default function NewSidebar() {
     const { isLoggedIn, logout, clearError, user } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
-    const { gameInvites, pendingInvites, acceptInvite, declineInvite } = useNotifications();
-    // console.log("games invites: ", gameInvites);
-    // console.log("pending invites: ", pendingInvites);
-    // console.log("acceptInvite: ", acceptInvite);
-    // console.log("declineInvite: ", declineInvite);
-    
-    const [showInvitePanel, setShowInvitePanel] = useState(false);
 
     const items = isLoggedIn ? authenticatedItems : unauthenticatedItems;
     
@@ -89,19 +80,12 @@ export default function NewSidebar() {
             <nav className={styles.nav}>
                 {items.map((item) => {
                     const active = item.id === activeItem?.id;
-                    const hasPendingInvites = item.id === 'chat' && gameInvites > 0;
                     
                     return (
                         <div key={item.id} className={styles.navItemWrapper}>
                             <button
                                 type="button"
-                                onClick={() => {
-                                    if (item.id === 'chat' && gameInvites > 0) {
-                                        setShowInvitePanel(!showInvitePanel);
-                                    } else {
-                                        handleNavigation(item.href);
-                                    }
-                                }}
+                                onClick={() => handleNavigation(item.href)}
                                 className={`${styles.navItem} ${active ? styles.active : ''}`}
                             >
                                 <div className={styles.navItemContent}>
@@ -111,9 +95,6 @@ export default function NewSidebar() {
                                     <span>{item.label}</span>
                                 </div>
                                 <div className={styles.navItemRight}>
-                                    {hasPendingInvites && (
-                                        <span className={styles.badge}>{gameInvites}</span>
-                                    )}
                                     <span className={styles.ellipsisIcon}>⋯</span>
                                 </div>
                             </button>
@@ -141,58 +122,6 @@ export default function NewSidebar() {
                     <LogOut size={18} />
                     <span>Logout</span>
                 </button>
-            )}
-
-            {showInvitePanel && isLoggedIn && (
-                <div className={styles.invitePanel}>
-                    <div className={styles.invitePanelHeader}>
-                        <h3 className={styles.invitePanelTitle}>Game Invites</h3>
-                        <button
-                            type="button"
-                            className={styles.invitePanelClose}
-                            onClick={() => setShowInvitePanel(false)}
-                            aria-label="Close invites panel"
-                        >
-                            <X size={16} />
-                        </button>
-                    </div>
-                    <div className={styles.invitePanelContent}>
-                        {pendingInvites.length === 0 ? (
-                            <p className={styles.noInvites}>No pending invites</p>
-                        ) : (
-                            <div className={styles.invitesList}>
-                                {pendingInvites.map((invite) => (
-                                    <div key={invite.inviteId} className={styles.inviteItem}>
-                                        <div className={styles.inviteInfo}>
-                                            <span className={styles.inviterName}>
-                                                {invite.inviterName}
-                                            </span>
-                                            <span className={styles.inviteAction}>
-                                                invited you to a match
-                                            </span>
-                                        </div>
-                                        <div className={styles.inviteActions}>
-                                            <button
-                                                type="button"
-                                                className={styles.acceptBtn}
-                                                onClick={() => acceptInvite(invite.inviteId)}
-                                            >
-                                                Accept
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={styles.declineBtn}
-                                                onClick={() => declineInvite(invite.inviteId)}
-                                            >
-                                                Decline
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
             )}
         </aside>
     );

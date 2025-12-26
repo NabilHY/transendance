@@ -10,7 +10,6 @@ import { useRouter } from "next/navigation";
 import { getReceiverId, Message } from "@/lib/chat";
 import { useChatSocket } from "@/app/chat/ChatSocketContext";
 import { useChatData } from "@/app/chat/ChatDataContext";
-import { useNotifications } from "@/context/NotificationContext";
 
 interface ChatWindowProps {
   conversation: Conversation;
@@ -34,14 +33,8 @@ export default function ChatWindow({
   const processedInvitesRef = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { addInvite, setSendMessageHandler } = useNotifications();
   const { sendMessage } = useChatSocket();
   const { refreshConversations } = useChatData();
-
-  // Register the send message handler with notifications context
-  useEffect(() => {
-    setSendMessageHandler(sendMessage);
-  }, [sendMessage, setSendMessageHandler]);
 
   const scrollToBottom = () => {
     // messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -82,24 +75,6 @@ export default function ChatWindow({
     checkBlockStatus();
     console.log("ChatWindow: ", conversation);
   }, [conversation, currentUser]);
-
-  // Track incoming invite messages for sidebar notification
-  useEffect(() => {
-    if (!currentUser) return;
-    messages.forEach((msg) => {
-      const data = parseInvite(msg.content);
-      if (!data) return;
-      if (data.type === "game_invite" && data.receiverId === currentUser.id.toString()) {
-        addInvite({
-          inviteId: data.inviteId,
-          inviterId: data.inviterId,
-          inviterName: msg.sender_name,
-          receiverId: data.receiverId,
-          channelId: conversation.id,
-        });
-      }
-    });
-  }, [messages, currentUser, addInvite, conversation.id]);
 
   // ! handle blocked users
   const handleSubmit = async (e: React.FormEvent) => {
@@ -195,7 +170,6 @@ export default function ChatWindow({
       const receiverId = await getReceiverId(conversation);
       if (!receiverId) return;
 
-      // Send notification via API
       const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/match-invite`, {
         method: 'POST',
         credentials: 'include',

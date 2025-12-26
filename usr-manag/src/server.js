@@ -1,6 +1,7 @@
 const fastify = require('fastify')({ logger: true });
 const config = require('../config');
 const notificationHandler = require('../routes/notificationHandler');
+const { validateToken } = require('../utils/validateToken');
 // Define allowed origins - support localhost, 127.0.0.1, and local network IPs
 
 const allowedOrigins = config.FRONTEND_URL;
@@ -162,22 +163,37 @@ fastify.register(require('../plugins/metrics'), { prefix: '/metrics' });
 // WebSocket endpoint for real-time notifications
 fastify.register(async function (fastify) {
     fastify.get('/notifications/ws', { websocket: true }, (connection, req) => {
-        const userId = req.user?.id;
-        
-        if (!userId) {
-            connection.socket.close(1008, 'Unauthorized');
+        // Manually authenticate because websocket handlers don't run preHandlers
+        const rawCookie = req.headers?.cookie;
+        const bearer = req.headers?.authorization;
+        const token = req.cookies?.accessToken || bearer?.replace('Bearer ', '');
+
+        const result = validateToken(token);
+        if (!result.valid || !result.userId) {
+            console.warn(`[WS] Unauthorized connection attempt. Cookie: ${rawCookie || 'none'}, Authorization: ${bearer || 'none'}`);
+            connection?.socket?.close?.(1008, 'Unauthorized');
             return;
         }
 
-        notificationHandler.registerNotificationConnection(userId, connection.socket);
+        const userId = result.userId;
+        const ws = connection?.socket || connection; // socket should be present; fallback for safety
+
+        if (!ws || typeof ws.on !== 'function') {
+            console.error('[WS] Socket missing on connection; cannot register events');
+            return;
+        }
+
+        console.log(`[WS] User ${userId} connected. Cookie: ${rawCookie || 'none'}`);
+        notificationHandler.registerNotificationConnection(userId, ws);
         
-        connection.socket.on('close', () => {
-            notificationHandler.unregisterNotificationConnection(userId, connection.socket);
+        ws.on('close', (code, reason) => {
+            console.log(`[WS] Connection closed for user ${userId}. Code: ${code} Reason: ${reason?.toString?.() || ''}`);
+            notificationHandler.unregisterNotificationConnection(userId, ws);
         });
         
-        connection.socket.on('error', (err) => {
+        ws.on('error', (err) => {
             console.error(`WebSocket error for user ${userId}:`, err);
-            notificationHandler.unregisterNotificationConnection(userId, connection.socket);
+            notificationHandler.unregisterNotificationConnection(userId, ws);
         });
     });
 });
