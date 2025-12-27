@@ -1,17 +1,13 @@
-/**
- * Notification Center Component
- * Displays notifications from the notification system
- */
-
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Bell, X, Check } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import styles from './NotificationCenter.module.css';
 
 interface Notification {
     id: number;
-    type: 'match_invite' | 'friend_request' | 'friend_accept' | 'tournament_invite' | 'system';
+    type: 'match_invite' | 'friend_request' | 'friend_accept' | 'tournament_invite' | 'system' | 'message';
     title: string;
     message: string;
     data: any;
@@ -33,11 +29,10 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
     const wsRef = useRef<WebSocket | null>(null);
-    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Fetch notifications
     const fetchNotifications = useCallback(async () => {
         console.log("getting notifications....");
         
@@ -50,7 +45,6 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                 const data = await response.json();
                 setNotifications(data.notifications || []);
                 
-                // Count unread
                 const unread = data.notifications.filter((n: Notification) => !n.is_read).length;
                 setUnreadCount(unread);
             }
@@ -59,7 +53,6 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
         }
     }, []);
 
-    // Mark notification as read
     const markAsRead = async (notificationId: number) => {
         try {
             await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/${notificationId}/read`, {
@@ -78,7 +71,33 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
         }
     };
 
-    // Dismiss notification
+    const handleNotificationClick = (notification: Notification) => {
+        if (!notification.is_read) {
+            markAsRead(notification.id);
+        }
+
+        console.log("hhhhhhhhhhhh ----> ", notification.sender_id, " | ", notification);
+
+        if (notification.type === 'friend_request') {
+            console.log("it is a friend request");
+            router.push(`/users/${notification.sender_id}`);
+        } else if (notification.type === 'match_invite') {
+            console.log("it is a match invite", notification.data.conversation_id);
+
+            if (notification.data?.gameData.channelId) {
+                router.push(`/chat/${notification.data?.gameData.channelId}`);
+            }
+        } else if (notification.type === 'message') {
+            console.log("it is a message", notification.data.conversation.channelId);
+
+            if (notification.data?.conversation?.channelId) {
+                router.push(`/chat/${notification.data.conversation.channelId}`);
+            }
+        }
+
+        setIsOpen(false);
+    };
+
     const dismissNotification = async (notificationId: number) => {
         try {
             await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/${notificationId}/dismiss`, {
@@ -106,20 +125,14 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
         }
     };
 
-    // Setup polling and WebSocket
     useEffect(() => {
-        // Initial fetch
         fetchNotifications();
 
-        // Poll every 30 seconds
-        pollIntervalRef.current = setInterval(fetchNotifications, 30000);
-
-        // Attempt WebSocket connection for real-time updates
         const connectWebSocket = () => {
             console.log("Attempting WebSocket connection...");
             
             try {
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                // ! localhost must be changed in prod mode -- simo
                 wsRef.current = new WebSocket(`ws://localhost:4000/notifications/ws`);
 
                 wsRef.current.onopen = () => {
@@ -129,13 +142,8 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                 wsRef.current.onmessage = (event) => {
                     try {
                         const message = JSON.parse(event.data);
-
                         console.log("new message: ", message);
-                        
-                        // one of the following actions will be performed based on message type if it is a friend request it goes to sender profile which is "/users/[sender_id]" , if it is a match invite or a message it goes to /chat/[conversation_id]"
-                        
                         if (message.type === 'notification') {
-                            // Add new notification to the list
                             setNotifications(prev => [message.data, ...prev]);
                             setUnreadCount(prev => prev + 1);
                         }
@@ -158,20 +166,14 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
             }
         };
 
-        connectWebSocket();
+        connectWebSocket();       
+
 
         return () => {
-            // Cleanup polling
-            if (pollIntervalRef.current) {
-                clearInterval(pollIntervalRef.current);
-            }
-            
-            // Cleanup reconnect timeout
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
             }
             
-            // Close WebSocket
             if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
                 wsRef.current.close();
             }
@@ -205,16 +207,8 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                 return '#ff006e';
         }
     };
-
-    useEffect(() => {
-        if (isOpen) {
-            fetchNotifications();
-        }
-    }, [isOpen]);
-
     return (
         <div className={styles.notificationCenter}>
-            {/* Bell Icon Button */}
             <button
                 className={styles.bellButton}
                 onClick={() => setIsOpen(!isOpen)}
@@ -226,7 +220,6 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                 )}
             </button>
 
-            {/* Notification Dropdown */}
             {isOpen && (
                 <div className={styles.dropdown}>
                     <div className={styles.header}>
@@ -259,6 +252,7 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                                             notification.type
                                         )
                                     }}
+                                    onClick={() => handleNotificationClick(notification)}
                                 >
                                     <div className={styles.itemContent}>
                                         <div className={styles.itemHeader}>
@@ -289,9 +283,10 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                                         {!notification.is_read && (
                                             <button
                                                 className={styles.actionBtn}
-                                                onClick={() =>
-                                                    markAsRead(notification.id)
-                                                }
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    markAsRead(notification.id);
+                                                }}
                                                 title="Mark as read"
                                             >
                                                 <Check size={16} />
@@ -299,9 +294,10 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                                         )}
                                         <button
                                             className={styles.dismissBtn}
-                                            onClick={() =>
-                                                dismissNotification(notification.id)
-                                            }
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                dismissNotification(notification.id);
+                                            }}
                                             title="Dismiss"
                                         >
                                             <X size={16} />

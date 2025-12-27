@@ -96,7 +96,6 @@ export default function UserDetailPage() {
     const rejectRequest = async () => {
         if (!user) return;
 
-        // console.log(currentUser?.id + " trying to reject friend request from: " + user.id);
         try {
             const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/reject`, {
                 method: 'POST',
@@ -118,7 +117,6 @@ export default function UserDetailPage() {
     };
 
     const fetchFriendshipStatus = async () => {
-        // Implement fetching friendship status if needed
         // console.log("Fetching friendship status...");
         if(!currentUser || !user) {
             // console.log("No current user or user to fetch friendship status for.");
@@ -138,7 +136,6 @@ export default function UserDetailPage() {
             if (response.ok) {
                 console.log("* success");
                 setFriendshipStatus(data.status);
-                // console.log("Friendship status: ", data.status);
             } else {
                 console.warn("Failed to fetch friendship status:", data.message);
             }
@@ -158,7 +155,6 @@ export default function UserDetailPage() {
             const response = await umGetUser(userId, csrfToken);
             
             if (response.ok) {
-                // console.log("response data: ", response.data);
                 
                 setUser(response.data as UMUser);
             } else {
@@ -175,7 +171,6 @@ export default function UserDetailPage() {
     const handleUnblock = async () => {
         if (!user) return;
 
-        // console.log(currentUser?.id + " trying to unblock user: " + user.id);
         setActionLoading(true);
         try {
             const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/unblock`, {
@@ -187,7 +182,6 @@ export default function UserDetailPage() {
                 body: JSON.stringify({ id: user?.id }),
             });
             const data = await result.json();
-            // console.log("* CLIENT ---> requested: ", data);
             if( result.ok )
                 setFriendshipStatus("accepted");
         } finally {
@@ -198,7 +192,6 @@ export default function UserDetailPage() {
     const handleAddFriend = async () => {
         if (!user) return;
 
-        // console.log(currentUser?.id + " trying to add friend: " + user.id);
         setActionLoading(true);
         try {
             const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/friend`, {
@@ -214,7 +207,6 @@ export default function UserDetailPage() {
             if( result.ok ) {
                 setFriendshipStatus("pending");
                 
-                // Send friend request notification
                 await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/friend-request`, {
                     method: 'POST',
                     headers: {

@@ -146,6 +146,12 @@
   border-left: 4px solid rgba(0, 240, 255, 0.3);
   transition: all 0.2s ease;
   background: transparent;
+  cursor: pointer;
+}
+
+.item:hover {
+  background: rgba(0, 240, 255, 0.08);
+  transform: translateX(2px);
 }
 
 .item:hover {

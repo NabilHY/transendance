@@ -81,7 +81,7 @@ function getChannelMembers(channel_id, db) {
   return members.map(member => member.user_id);
 }
 
-async function sendMessageNotification(senderId, receiverId, messagePreview) {
+async function sendMessageNotification(senderId, receiverId, messagePreview, channelId) {
   try {
     // Generate a service token for authentication
     const serviceToken = jwt.sign(
@@ -99,7 +99,10 @@ async function sendMessageNotification(senderId, receiverId, messagePreview) {
       body: JSON.stringify({
         recipientId: receiverId,
         senderId: senderId,
-        messagePreview: messagePreview.substring(0, 50)
+        messagePreview: messagePreview.substring(0, 50),
+        conversation: {
+          channelId: channelId,
+        }
       })
     });
     if (!response.ok) {
@@ -232,7 +235,7 @@ fastify.get("/ws", { websocket: true }, (socket, req) => {
           sendToReceiver(msg, fastify.db, 0);
 
           // Send notification for private message
-          sendMessageNotification(msg.sender_id, msg.receiver_id, msg.content);
+          sendMessageNotification(msg.sender_id, msg.receiver_id, msg.content, msg.channel_id);
         } else if (msg.receiver_id && !not_blocked(msg.sender_id, msg.receiver_id, fastify.db)) {
           console.log("* PRIVATE CHANNEL: user_id  ", msg.receiver_id, "blocked the user ", msg.sender_id);
           socket.send(JSON.stringify({ error: "You are blocked by the user." })); 

@@ -257,7 +257,7 @@ module.exports = async function (fastify) {
     // Create a message notification
     fastify.post('/notifications/message', {preHandler: fastify.authenticate} , async (request, reply) => {
         try {
-            const { recipientId, senderId, messagePreview } = request.body;
+            const { recipientId, senderId, messagePreview, conversation } = request.body;
 
             if (!recipientId || !senderId) {
                 return reply.code(400).send({ message: 'recipientId and senderId required' });
@@ -290,7 +290,8 @@ module.exports = async function (fastify) {
                 JSON.stringify({
                     senderUsername: sender.username,
                     senderName: `${sender.first_name} ${sender.last_name}`,
-                    messagePreview: messagePreview || ''
+                    messagePreview: messagePreview || '',
+                    conversation: conversation || {}
                 }),
                 expiresAt
             );
