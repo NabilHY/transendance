@@ -191,7 +191,6 @@ export default function ChatWindow({
         throw new Error('Failed to send match invite notification');
       }
 
-      // Also send the chat message for conversation context
       const inviteId = crypto.randomUUID();
       const content = JSON.stringify({
         type: "game_invite",
@@ -248,7 +247,6 @@ export default function ChatWindow({
     };
     sendMessage(message);
     setMessages(prev => [...prev, message]);
-    // Navigate only when the user explicitly accepts
     const opponentId_num = typeof inviterId === 'string' ? parseInt(inviterId) : inviterId;
     router.push(`/game?mode=direct&opponentId=${opponentId_num}&inviteId=${inviteId}`);
   };
@@ -276,26 +274,21 @@ export default function ChatWindow({
     setMessages(prev => [...prev, message]);
   };
 
-  // Auto-redirect inviter ONLY on NEW acceptance messages
   useEffect(() => {
     if (!currentUser) return;
-    // Ignore initial history
     if (messages.length <= lastMessageCountRef.current) return;
     const last = messages[messages.length - 1];
     const data = parseInvite(last.content);
-    // Update processed count immediately to avoid double-processing
     lastMessageCountRef.current = messages.length;
     if (!data || data.type !== 'game_invite_response' || data.response !== 'accepted') return;
     
-    // Only redirect for recent messages (within 5 seconds), not old history
     const messageTime = new Date(last.sent_at).getTime();
     const currentTime = new Date().getTime();
     const timeDiff = currentTime - messageTime;
-    if (timeDiff > 5000) return; // Don't redirect for old messages
+    if (timeDiff > 5000) return;
     
     const { inviteId, inviterId, receiverId } = data;
     if (processedInvitesRef.current.has(inviteId)) return;
-    // If current user is the inviter, redirect them to match on receiver acceptance
     if (currentUser.id.toString() === inviterId) {
       processedInvitesRef.current.add(inviteId);
       const opponentId = typeof receiverId === 'string' ? parseInt(receiverId) : receiverId;
@@ -357,7 +350,6 @@ export default function ChatWindow({
             )}
           </div>
 
-          {/* button here */}
           <div className={styles.userDetails}>
             <h3 className={styles.userName}>{conversation.name}</h3>
             <span className={styles.userStatus}>
@@ -440,7 +432,6 @@ export default function ChatWindow({
           const data = parseInvite(message.content);
           const isGameInviteMessage = data?.type === 'game_invite' || data?.type === 'game_invite_response';
           
-          // Check if this invite has already been responded to
           const hasResponse = (inviteId: string) => {
             return messages.some(msg => {
               const msgData = parseInvite(msg.content);

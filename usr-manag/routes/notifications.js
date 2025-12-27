@@ -1,14 +1,8 @@
-/**
- * Notifications Routes
- * Handles getting, creating, and managing notifications
- */
-
 const notificationHandler = require('./notificationHandler');
 
 module.exports = async function (fastify) {
     const db = fastify.db;
 
-    // Get all unread notifications for the current user
     fastify.get('/notifications', {preHandler: fastify.authenticate} , async (request, reply) => {
         try {
             if (!request.user?.id) {
@@ -28,7 +22,6 @@ module.exports = async function (fastify) {
             
             const notifications = stmt.all(request.user.id);
 
-            // Parse JSON data field
             const parsedNotifications = notifications.map(n => ({
                 ...n,
                 data: n.data ? JSON.parse(n.data) : null
@@ -41,7 +34,6 @@ module.exports = async function (fastify) {
         }
     });
 
-    // Get unread notification count
     fastify.get('/notifications/count', {preHandler: fastify.authenticate} , async (request, reply) => {
         try {
             if (!request.user?.id) {
@@ -62,7 +54,6 @@ module.exports = async function (fastify) {
         }
     });
 
-    // Mark notification as read
     fastify.patch('/notifications/:notificationId/read', {preHandler: fastify.authenticate} , async (request, reply) => {
         try {
             if (!request.user?.id) {
@@ -85,7 +76,6 @@ module.exports = async function (fastify) {
         }
     });
 
-    // Dismiss notification
     fastify.patch('/notifications/:notificationId/dismiss', {preHandler: fastify.authenticate} , async (request, reply) => {
         try {
             if (!request.user?.id) {
@@ -108,7 +98,6 @@ module.exports = async function (fastify) {
         }
     });
 
-    // Create a match invite notification (called from game-backend)
     fastify.post('/notifications/match-invite', {preHandler: fastify.authenticate} , async (request, reply) => {
         console.log("daaaaaaaaaaaaaaaaamn");
         
@@ -129,8 +118,7 @@ module.exports = async function (fastify) {
             }
 
             const now = Math.floor(Date.now() / 1000);
-            // const expiresAt = now + (3600 * 24); // 24 hour expiry
-            const expiresAt = now + 60; // 1 min expiry
+            const expiresAt = now + 60;
 
             const insertStmt = db.prepare(`
                 INSERT INTO notifications (
@@ -152,7 +140,6 @@ module.exports = async function (fastify) {
                 expiresAt
             );
 
-            // Broadcast notification via WebSocket if user is connected
             const notification = {
                 id: result.lastInsertRowid,
                 recipient_id: recipientId,
@@ -184,7 +171,6 @@ module.exports = async function (fastify) {
         }
     });
 
-    // Create a friend request notification
     fastify.post('/notifications/friend-request', {preHandler: fastify.authenticate} , async (request, reply) => {
         try {
             const { recipientId, senderId } = request.body;
@@ -193,7 +179,6 @@ module.exports = async function (fastify) {
                 return reply.code(400).send({ message: 'recipientId and senderId required' });
             }
 
-            // Get sender info
             const senderStmt = db.prepare(`
                 SELECT id, first_name, last_name, username FROM users WHERE id = ?
             `);
@@ -204,7 +189,7 @@ module.exports = async function (fastify) {
             }
 
             const now = Math.floor(Date.now() / 1000);
-            const expiresAt = now + (3600 * 24 * 30); // 30 day expiry
+            const expiresAt = now + (3600 * 24 * 30);
 
             const insertStmt = db.prepare(`
                 INSERT INTO notifications (
@@ -224,7 +209,6 @@ module.exports = async function (fastify) {
                 expiresAt
             );
 
-            // Broadcast notification via WebSocket
             const notification = {
                 id: result.lastInsertRowid,
                 recipient_id: recipientId,
@@ -254,7 +238,6 @@ module.exports = async function (fastify) {
         }
     });
 
-    // Create a message notification
     fastify.post('/notifications/message', {preHandler: fastify.authenticate} , async (request, reply) => {
         try {
             const { recipientId, senderId, messagePreview, conversation } = request.body;
@@ -263,7 +246,6 @@ module.exports = async function (fastify) {
                 return reply.code(400).send({ message: 'recipientId and senderId required' });
             }
 
-            // Get sender info
             const senderStmt = db.prepare(`
                 SELECT id, first_name, last_name, username, avatar_url FROM users WHERE id = ?
             `);
@@ -274,7 +256,7 @@ module.exports = async function (fastify) {
             }
 
             const now = Math.floor(Date.now() / 1000);
-            const expiresAt = now + (3600 * 24 * 7); // 7 day expiry
+            const expiresAt = now + (3600 * 24 * 7);
 
             const insertStmt = db.prepare(`
                 INSERT INTO notifications (
@@ -296,7 +278,6 @@ module.exports = async function (fastify) {
                 expiresAt
             );
 
-            // Broadcast notification via WebSocket
             const notification = {
                 id: result.lastInsertRowid,
                 recipient_id: recipientId,
@@ -328,7 +309,6 @@ module.exports = async function (fastify) {
         }
     });
 
-    // Mark all notifications as read
     fastify.patch('/notifications/mark-all-read', {preHandler: fastify.authenticate} , async (request, reply) => {
         try {
             if (!request.user?.id) {

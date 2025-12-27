@@ -1,19 +1,10 @@
-/**
- * WebSocket Notification Handler
- * Broadcasts notifications to connected users in real-time
- */
+const notificationConnections = new Map();
 
-const notificationConnections = new Map(); // userId -> Set of WebSocket connections
-
-// Normalize user identifier to avoid number/string key mismatches in the map
 function normalizeUserId(userId) {
     const asNumber = Number(userId);
     return Number.isNaN(asNumber) ? userId : asNumber;
 }
 
-/**
- * Register a user's WebSocket connection for notifications
- */
 function registerNotificationConnection(userId, ws) {
     const id = normalizeUserId(userId);
     if (!notificationConnections.has(id)) {
@@ -23,9 +14,6 @@ function registerNotificationConnection(userId, ws) {
     console.log(`✅ Notification connection registered for user ${id}`);
 }
 
-/**
- * Unregister a user's WebSocket connection
- */
 function unregisterNotificationConnection(userId, ws) {
     const id = normalizeUserId(userId);
     const connections = notificationConnections.get(id);
@@ -37,9 +25,6 @@ function unregisterNotificationConnection(userId, ws) {
     }
 }
 
-/**
- * Send a notification to a user through WebSocket if they're connected
- */
 function sendNotificationToUser(userId, notification) {
     const id = normalizeUserId(userId);
     const connections = notificationConnections.get(id);
@@ -60,14 +45,11 @@ function sendNotificationToUser(userId, notification) {
             }
         });
 
-        return true; // notification was sent
+        return true;
     }
-    return false; // user not connected
+    return false;
 }
 
-/**
- * Broadcast notification to multiple users
- */
 function broadcastNotification(userIds, notification) {
     const delivered = [];
     userIds.forEach(userId => {
@@ -79,16 +61,10 @@ function broadcastNotification(userIds, notification) {
     return delivered;
 }
 
-/**
- * Get count of online users
- */
 function getOnlineUsersCount() {
     return notificationConnections.size;
 }
 
-/**
- * Check if a user is online
- */
 function isUserOnline(userId) {
     const id = normalizeUserId(userId);
     return notificationConnections.has(id) && notificationConnections.get(id).size > 0;

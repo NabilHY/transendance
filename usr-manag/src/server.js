@@ -160,10 +160,8 @@ fastify.register(require('../routes/notifications'), { prefix: '' });
 // fastify.register(require('../routes/profile'), { prefix: '' });
 fastify.register(require('../plugins/metrics'), { prefix: '/metrics' });
 
-// WebSocket endpoint for real-time notifications
 fastify.register(async function (fastify) {
     fastify.get('/notifications/ws', { websocket: true }, (connection, req) => {
-        // Manually authenticate because websocket handlers don't run preHandlers
         const rawCookie = req.headers?.cookie;
         const bearer = req.headers?.authorization;
         const token = req.cookies?.accessToken || bearer?.replace('Bearer ', '');
@@ -176,7 +174,7 @@ fastify.register(async function (fastify) {
         }
 
         const userId = result.userId;
-        const ws = connection?.socket || connection; // socket should be present; fallback for safety
+        const ws = connection?.socket || connection;
 
         if (!ws || typeof ws.on !== 'function') {
             console.error('[WS] Socket missing on connection; cannot register events');
