@@ -464,7 +464,7 @@ export default function ChatWindow({
                     return (
                       <div>
                         <div>
-                          {isReceiver ? '/You have been invited to a match.' : `/You invited ${conversation.name} to a match.`}
+                          {isReceiver ? '* Game invitation: You have been invited to a match.' : `* Game invitation: You invited ${conversation.name} to a match.`}
                         </div>
                         {isReceiver && !responded && (
                           <div className={styles.inviteActions}>

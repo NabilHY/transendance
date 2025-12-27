@@ -1,15 +1,43 @@
-.container {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  /* background: #121212; */
-  background: 'radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912';
-  height: 100%;
+/* 
+  :global(:root) {
+    --neon-blue: #00f0ff;
+    --neon-purple: #b744ff;
+    --neon-pink: #ff006e;
+    --neon-green: #00ff88;
+    --dark-bg: #050811;
+    --darker-bg: #030512;
+    --card-bg: rgba(8, 12, 26, 0.92);
+    --surface-glow: rgba(0, 240, 255, 0.08);
+    --text-primary: #e8f7ff;
+    --text-secondary: #7dd8ff;
+  } */
+
+  .container {
+    --neon-blue: #00f0ff;
+    --neon-purple: #b744ff;
+    --neon-pink: #ff006e;
+    --neon-green: #00ff88;
+    --dark-bg: #050811;
+    --darker-bg: #030512;
+    --card-bg: rgba(8, 12, 26, 0.92);
+    --response-bg: #636363;
+    --surface-glow: rgba(0, 240, 255, 0.08);
+    --text-primary: #e8f7ff;
+    --text-secondary: #7dd8ff;
+    --neon-deep-blue: #00BFFF;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    background:
+      radial-gradient(circle at 12% 12%, rgba(183, 68, 255, 0.14), transparent 38%),
+      radial-gradient(circle at 82% 0%, rgba(0, 240, 255, 0.18), transparent 45%),
+      var(--dark-bg);
+    height: 100%;
 }
 
 .header {
   padding: 12px 16px;
-  border-bottom: 1px solid #1e90ff;
+  border-bottom: 1px solid var(--neon-blue);
   /* background: #0f0f0f; */
   display: flex;
   justify-content: space-between;
@@ -23,18 +51,18 @@
   padding: 12px 30px;
   background: linear-gradient(
     135deg,
-    rgba(0, 180, 255, 0.18),
-    rgba(30, 90, 255, 0.18)
+    rgba(0, 240, 255, 0.18),
+    rgba(183, 68, 255, 0.18)
   );
 
-  color: #e6f4ff;
+  color: var(--text-primary);
 
-  border: 1px solid rgb(30, 90, 255);
+  border: 1px solid var(--neon-blue);
   border-radius: 8px;
 
   box-shadow:
-    0 0 2px rgba(0, 180, 255, 0.45),
-    inset 0 0 8px rgba(0, 180, 255, 0.2);
+    0 0 6px rgba(0, 240, 255, 0.45),
+    inset 0 0 10px rgba(183, 68, 255, 0.25);
 
   transition: all 0.3s ease;
 }
@@ -60,11 +88,11 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #444444;
+  background: var(--card-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #bbbbbb;
+  color: var(--text-secondary);
   font-size: 1.5rem;
   font-weight: bold;
   
@@ -83,8 +111,8 @@
   right: 0px;
   width: 10px;
   height: 10px;
-  background: #00ff00;
-  border: 2px solid #0f0f0f;
+  background: var(--neon-green);
+  border: 2px solid var(--darker-bg);
   border-radius: 50%;
 }
 
@@ -96,12 +124,12 @@
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .userStatus {
   font-size: 0.875rem;
-  color: #999999;
+  color: var(--text-secondary);
 }
 
 .messagesContainer {
@@ -139,20 +167,25 @@
 }
 
 .sent .messageContent {
-  background: #1e90ff;
-  color: white;
+  /* background: var(--neon-blue); */
+  /* background: linear-gradient(135deg, rgba(0, 240, 255, 0.8), rgba(183, 68, 255, 0.7)); */
+  background: #00BFFF;
+  background: var(--neon-deep-blue);
+  color: var(--darker-bg);
   border-bottom-right-radius: 0.25rem;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.75), 0 0 18px rgba(183, 68, 255, 0.45), inset 0 0 12px rgba(0, 240, 255, 0.35);
 }
 
 .received .messageContent {
-  background: #2a2a2a;
-  color: white;
+  background: var(--response-bg);
+  color: var(--text-primary);
   border-bottom-left-radius: 0.25rem;
+  box-shadow: 0 0 5px rgba(120, 120, 120, 0.75), 0 0 18px rgba(151, 151, 151, 0.788), inset 0 0 12px rgba(226, 226, 226, 0.35);
 }
 
 .messageTime {
   font-size: 0.75rem;
-  color: #999999;
+  color: var(--text-secondary);
   padding: 0 0.5rem;
 }
 
@@ -168,8 +201,8 @@
   display: flex;
   gap: 0.75rem;
   padding: 1rem;
-  background: #0f0f0f;
-  border-top: 1px solid #2a2a2a;
+  background: var(--darker-bg);
+  border-top: 1px solid rgba(0, 240, 255, 0.16);
   margin-bottom: 20px;
 }
 
@@ -178,38 +211,38 @@
 
 .messageInput {
   flex: 1;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  background: #0a0e1a;
+  border: 1px solid rgba(0, 240, 255, 0.18);
   border-radius: 1.5rem;
   padding: 0.75rem 1rem;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 0.875rem;
 }
 
 .messageInput::placeholder {
-  color: #666666;
+  color: #4fa0cc;
 }
 
 .messageInput:focus {
   outline: none;
-  border-color: #1e90ff;
+  border-color: var(--neon-blue);
 }
 
 .messageInput:disabled {
-  background: #0f0f0f;
-  color: #666666;
+  background: var(--darker-bg);
+  color: #4fa0cc;
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 .messageInput:disabled::placeholder {
-  color: #555555;
+  color: #3d6c8c;
 }
 
 .sendButton {
-  background: #1e90ff;
+  background: var(--neon-blue);
   border: none;
-  color: white;
+  color: var(--darker-bg);
   padding: 0.75rem 1.5rem;
   border-radius: 1.5rem;
   font-size: 0.875rem;
@@ -219,19 +252,19 @@
 }
 
 .sendButton:hover:not(:disabled) {
-  background: #1c7ed6;
+  background: #00c6e6;
 }
 
 .sendButton:disabled {
-  background: #555555;
+  background: #244a63;
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 .addUserButton {
   background: transparent;
-  color: #1e90ff;
-  border: 1px solid #1e90ff;
+  color: var(--neon-blue);
+  border: 1px solid var(--neon-blue);
   padding: 0.5rem 1rem;
   border-radius: 999px;
   cursor: pointer;
@@ -241,8 +274,8 @@
 }
 
 .addUserButton:hover {
-  background: #1e90ff;
-  color: #ffffff;
+  background: var(--neon-blue);
+  color: var(--darker-bg);
 }
 
 .addUserFormOverlay {
@@ -251,7 +284,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(5, 8, 17, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -259,40 +292,42 @@
 }
 
 .addUserForm {
-  background: #1a1a1a;
-  border: 1px solid #1e90ff;
+  background: var(--card-bg);
+  border: 1px solid var(--neon-blue);
   border-radius: 1rem;
   padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   min-width: 400px;
-  box-shadow: 0 8px 32px rgba(30, 144, 255, 0.2);
+  box-shadow:
+    0 8px 32px rgba(0, 240, 255, 0.2),
+    0 0 24px rgba(183, 68, 255, 0.18);
 }
 
 .formTitle {
   margin: 0;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 600;
 }
 
 .addUserInput {
-  background: #0f0f0f;
-  border: 1px solid #2a2a2a;
+  background: var(--darker-bg);
+  border: 1px solid rgba(0, 240, 255, 0.18);
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 1rem;
 }
 
 .addUserInput:focus {
   outline: none;
-  border-color: #1e90ff;
+  border-color: var(--neon-blue);
 }
 
 .addUserInput::placeholder {
-  color: #666666;
+  color: #4fa0cc;
 }
 
 .addUserActions {
@@ -312,22 +347,22 @@
 }
 
 .addUserSubmitButton {
-  background: #1e90ff;
-  color: #ffffff;
+  background: var(--neon-blue);
+  color: var(--darker-bg);
 }
 
 .addUserSubmitButton:hover {
-  background: #1c7ed6;
+  background: #00c6e6;
 }
 
 .addUserCancelButton {
   background: transparent;
-  color: #ffffff;
-  border-color: #2a2a2a;
+  color: var(--text-primary);
+  border-color: rgba(0, 240, 255, 0.18);
 }
 
 .addUserCancelButton:hover {
-  border-color: #555555;
+  border-color: #3d6c8c;
 }
 
 .headerActions {
@@ -340,34 +375,34 @@
   padding: 12px 30px;
   background: linear-gradient(
     135deg,
-    rgba(255, 80, 80, 0.18),
-    rgba(255, 20, 20, 0.18)
+    rgba(255, 0, 110, 0.28),
+    rgba(183, 68, 255, 0.22)
   );
 
-  color: #ff6b6b;
+  color: var(--neon-pink);
 
-  border: 1px solid rgb(255, 80, 80);
+  border: 1px solid var(--neon-pink);
   border-radius: 8px;
 
   box-shadow:
-    0 0 2px rgba(255, 80, 80, 0.45),
-    inset 0 0 8px rgba(255, 80, 80, 0.2);
+    0 0 8px rgba(255, 0, 110, 0.45),
+    inset 0 0 10px rgba(183, 68, 255, 0.25);
 
   transition: all 0.3s ease;
 }
 
 .leaveBtn:hover {
-  color: #ffffff;
+  color: var(--text-primary);
   background: linear-gradient(
     135deg,
-    rgba(255, 80, 80, 0.35),
-    rgba(255, 20, 20, 0.35)
+    rgba(255, 0, 110, 0.45),
+    rgba(183, 68, 255, 0.35)
   );
-  border-color: rgba(255, 80, 80, 0.9);
+  border-color: rgba(255, 0, 110, 0.9);
   box-shadow:
-    0 0 16px rgba(255, 80, 80, 0.75),
-    0 0 28px rgba(255, 20, 20, 0.45),
-    inset 0 0 10px rgba(255, 80, 80, 0.35);
+    0 0 18px rgba(255, 0, 110, 0.75),
+    0 0 28px rgba(183, 68, 255, 0.45),
+    inset 0 0 12px rgba(255, 0, 110, 0.35);
 }
 
 .leaveConfirmOverlay {
@@ -376,7 +411,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(5, 8, 17, 0.82);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -384,27 +419,29 @@
 }
 
 .leaveConfirmModal {
-  background: #1a1a1a;
-  border: 1px solid #ff5050;
+  background: var(--card-bg);
+  border: 1px solid var(--neon-pink);
   border-radius: 1rem;
   padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   min-width: 400px;
-  box-shadow: 0 8px 32px rgba(255, 80, 80, 0.2);
+  box-shadow:
+    0 8px 32px rgba(255, 0, 110, 0.25),
+    0 0 24px rgba(183, 68, 255, 0.18);
 }
 
 .leaveConfirmTitle {
   margin: 0;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 600;
 }
 
 .leaveConfirmMessage {
   margin: 0;
-  color: #d4d4d4;
+  color: var(--text-secondary);
   font-size: 1rem;
 }
 
@@ -425,22 +462,22 @@
 }
 
 .leaveConfirmButton {
-  background: #ff5050;
-  color: #ffffff;
+  background: var(--neon-pink);
+  color: var(--darker-bg);
 }
 
 .leaveConfirmButton:hover {
-  background: #ff3333;
+  background: #ff2d85;
 }
 
 .leaveCancelButton {
   background: transparent;
-  color: #ffffff;
-  border-color: #2a2a2a;
+  color: var(--text-primary);
+  border-color: rgba(0, 240, 255, 0.18);
 }
 
 .leaveCancelButton:hover {
-  border-color: #555555;
+  border-color: #3d6c8c;
 }
 
 .inviteActions {
@@ -461,37 +498,39 @@
 }
 
 .acceptBtn {
-  background: #4caf50;
-  color: #ffffff;
+  background: var(--neon-green);
+  color: var(--darker-bg);
 }
 
 .acceptBtn:hover {
-  background: #45a049;
-  box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+  background: #00e07a;
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.55);
 }
 
 .declineBtn {
-  background: #f44336;
-  color: #ffffff;
+  background: var(--neon-pink);
+  color: var(--darker-bg);
 }
 
 .declineBtn:hover {
-  background: #da190b;
-  box-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
+  background: #ff2d85;
+  box-shadow: 0 0 12px rgba(255, 0, 110, 0.55);
 }
 
 .gameInviteMessage {
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(56, 142, 60, 0.15));
-  border-left: 4px solid #4caf50;
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.18), rgba(0, 240, 255, 0.12));
+  border-left: 4px solid var(--neon-green);
 }
 
 .gameInviteMessage .messageContent {
-  background: #125214;
+  color: #CBCBCB;
+  background: #052d1d;
+  box-shadow: none;
 }
 
 .gameInviteContent {
-  background: rgba(76, 175, 80, 0.08) !important;
+  background: rgba(0, 255, 136, 0.12) !important;
   border-radius: 8px;
   padding: 12px !important;
-  /* border: 1px solid rgba(76, 175, 80, 0.3); */
+  /* border: 1px solid rgba(0, 255, 136, 0.3); */
 }

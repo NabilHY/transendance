@@ -59,7 +59,7 @@ export default function NewSidebar() {
                     </div>
                 </div>
                 <div className={styles.headerControls}>
-                    <NotificationCenter userId={user?.id || 0} />
+                    {isLoggedIn && <NotificationCenter userId={user?.id || 0} />}
                     <button
                         type="button"
                         className={styles.controlBtn}

@@ -132,6 +132,7 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
 
                         console.log("new message: ", message);
                         
+                        // one of the following actions will be performed based on message type if it is a friend request it goes to sender profile which is "/users/[sender_id]" , if it is a match invite or a message it goes to /chat/[conversation_id]"
                         
                         if (message.type === 'notification') {
                             // Add new notification to the list
