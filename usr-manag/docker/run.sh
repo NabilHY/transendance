@@ -4,12 +4,21 @@ set -e
 # Prevent writing lockfile into bind-mounted source
 export NPM_CONFIG_PACKAGE_LOCK=false
 
-# Clean install to ensure native modules match container libc
-rm -rf node_modules package-lock.json
-npm install --no-package-lock --legacy-peer-deps
+# Install deps only when needed (node_modules is a Docker volume in compose)
+if [ ! -d node_modules ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+  if [ "${NODE_ENV}" = "production" ]; then
+    npm install --no-package-lock --legacy-peer-deps --omit=dev
+  else
+    npm install --no-package-lock --legacy-peer-deps
+  fi
+fi
 
 # Rebuild native deps if needed (sqlite3)
 # npm rebuild sqlite3 --build-from-source || true
 
-# Start the service in dev mode
-npm run dev
+if [ "${NODE_ENV}" = "production" ]; then
+  npm run start
+else
+  # Start the service in dev mode
+  npm run dev
+fi

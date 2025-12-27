@@ -4,10 +4,16 @@ import { useRouter } from 'next/navigation';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { UMUser, isProfileComplete, umGetMe, umProfileComplete } from '@/lib/api';
+import { UMUser, isProfileComplete, umGetMe, umProfileComplete, umUpdateStatus } from '@/lib/api';
+import { getUserMgmtBase } from '@/lib/api-config';
 
-// Dynamic API base URL - uses current hostname for flexibility
+// Dynamic API base URL:
+// - Dev: talk directly to auth-backend on :8005
+// - Prod (behind nginx TLS): talk to public origin and let nginx route /api/auth/*
 const getApiBase = () => {
+	if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
+		return process.env.NEXT_PUBLIC_BASE_URL;
+	}
 	if (typeof window !== 'undefined') {
 		return `http://${window.location.hostname}:8005`;
 	}
@@ -187,6 +193,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				setUser({ id: data.userId });
 				setIsLoggedIn(true);
 				setRequires2FA(false);
+				
+				// Set user online when authenticated (handles OAuth login and page refresh)
+				try {
+					const csrf = await ensureCsrf();
+					await umUpdateStatus(true, csrf);
+				} catch (err) {
+					console.error('Failed to set online status in fetchMe:', err);
+					// Don't block authentication if this fails
+				}
+				
 				return;
 			}
 			// Not logged in or missing CSRF
@@ -243,6 +259,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			setIsLoggedIn(true);
 			setRequires2FA(false);
 
+			// Set user online when they log in
+			try {
+				const csrf = await ensureCsrf();
+				await umUpdateStatus(true, csrf);
+			} catch (err) {
+				console.error('Failed to set online status on login:', err);
+				// Don't block login if this fails
+			}
+
 			await checkProfileCompletion();
 			await checkProfileAndRedirect();
 		}
@@ -266,12 +291,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			setIsLoggedIn(true);
 			setRequires2FA(false);
 
+			// Set user online when they complete 2FA login
+			try {
+				const csrf = await ensureCsrf();
+				await umUpdateStatus(true, csrf);
+			} catch (err) {
+				console.error('Failed to set online status on 2FA login:', err);
+				// Don't block login if this fails
+			}
+
 			await checkProfileAndRedirect();
 		}
 	}, [apiFetch, ensureCsrf]);
 
 	const logout = useCallback(async () => {
 		setError(null);
+		
+		// Set user offline BEFORE logging out
+		try {
+			const csrf = await ensureCsrf();
+			await umUpdateStatus(false, csrf);
+		} catch (err) {
+			console.error('Failed to set offline status on logout:', err);
+			// Continue with logout even if this fails
+		}
+		
 		await ensureCsrf();
 		const { response, data } = await apiFetch('/api/auth/logout', {
 			method: 'POST',
@@ -348,6 +392,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			}
 		})();
 	}, [ensureCsrf, fetchMe, checkPre2FAToken]);
+
+	// Handle page unload (browser close, tab close, navigation away) to set user offline
+	useEffect(() => {
+		if (!isLoggedIn) return;
+
+		const handlePageHide = (e: PageTransitionEvent) => {
+			// Page is being unloaded
+			if (e.persisted === false) {
+				// Page is not being cached (user is actually leaving)
+				const endpoint = `${getUserMgmtBase()}/me/status/unload`;
+				
+				// Use fetch with keepalive for reliable delivery during page unload
+				// keepalive ensures the request continues even after page unloads
+				fetch(endpoint, {
+					method: 'PATCH',
+					credentials: 'include',
+					keepalive: true,
+				}).catch(() => {
+					// Ignore errors - page is unloading
+				});
+			}
+		};
+
+		const handleVisibilityChange = () => {
+			// When tab becomes hidden, try to set offline
+			// This handles cases where the browser might not fire pagehide
+			if (document.visibilityState === 'hidden') {
+				const endpoint = `${getUserMgmtBase()}/me/status/unload`;
+				
+				fetch(endpoint, {
+					method: 'PATCH',
+					credentials: 'include',
+					keepalive: true,
+				}).catch(() => {
+					// Ignore errors
+				});
+			}
+		};
+
+		window.addEventListener('pagehide', handlePageHide);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
+		return () => {
+			window.removeEventListener('pagehide', handlePageHide);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+		};
+	}, [isLoggedIn]);
 
 	const value: AuthContextValue = useMemo(() => ({
 		csrfToken,

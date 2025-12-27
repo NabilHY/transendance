@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "next dev -p ${FRONTEND_PORT:-3010}",
+    "dev": "next dev -p ${FRONTEND_PORT:-3010} -H 0.0.0.0",
     "dev:nodemon": "nodemon --exec \"next dev -p ${FRONTEND_PORT:-3010}\"",
     "build": "next build",
     "start": "next start -p ${FRONTEND_PORT:-3010}"

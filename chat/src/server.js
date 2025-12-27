@@ -2,6 +2,7 @@
 import Fastify from "fastify";
 import Websocket from "@fastify/websocket";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import metricsPlugin from "../plugins/metrics/index.js";
 import dbPlugin from "../plugins/db.js";
 import config from "../config.js";
@@ -21,7 +22,8 @@ await fastify.register(dbPlugin);
 function sendPendingMessages(socket, userId, channelId, db) {
   try {
     const pendingMessages = db
-      .prepare("SELECT * FROM messages WHERE channel_id = ? ORDER BY sent_at DESC LIMIT 15")
+      // .prepare("SELECT * FROM messages WHERE channel_id = ? ORDER BY sent_at DESC LIMIT 15")
+      .prepare("SELECT * FROM messages WHERE channel_id = ? AND delivered = 0 ORDER BY sent_at DESC")
       .all(channelId);
 
     if (!pendingMessages.length) {
@@ -33,6 +35,12 @@ function sendPendingMessages(socket, userId, channelId, db) {
       console.log("Sending pending message to user:", msg.content);
       socket.send(JSON.stringify(msg));
     }
+
+    // Mark messages as delivered
+    const messageIds = pendingMessages.map(msg => msg.id);
+    const placeholders = messageIds.map(() => '?').join(', ');
+    const updateQuery = `UPDATE messages SET delivered = 1 WHERE id IN (${placeholders})`;
+    db.prepare(updateQuery).run(...messageIds);
   } catch (err) {
     console.error("Error fetching pending messages:", err);
   }
@@ -71,6 +79,38 @@ function getChannelMembers(channel_id, db) {
     return [];
   }
   return members.map(member => member.user_id);
+}
+
+async function sendMessageNotification(senderId, receiverId, messagePreview, channelId) {
+  try {
+    // Generate a service token for authentication
+    const serviceToken = jwt.sign(
+      { sub: senderId, type: 'access', service: 'chat' },
+      config.JWT_SECRET,
+      { expiresIn: '5m' }
+    );
+
+    const response = await fetch(`${config.USR_MANAG_URL}/notifications/message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${serviceToken}`
+      },
+      body: JSON.stringify({
+        recipientId: receiverId,
+        senderId: senderId,
+        messagePreview: messagePreview.substring(0, 50),
+        conversation: {
+          channelId: channelId,
+        }
+      })
+    });
+    if (!response.ok) {
+      console.error('Failed to send message notification:', await response.text());
+    }
+  } catch (err) {
+    console.error('Error sending message notification:', err);
+  }
 }
 
 function sendToReceiver(message, db, isChannel) {
@@ -175,13 +215,14 @@ fastify.get("/ws", { websocket: true }, (socket, req) => {
   connectedUsers.set(userId, socket);
 
   socket.on("message", (rawMsg) => {
-    
     try {
       const msg = JSON.parse(rawMsg.toString());
       console.log("received a message: ", msg, " | " , msg.pending);
       
       if (msg.pending && msg.pending === 1) {
         sendPendingMessages(socket, userId, msg.channel_id, fastify.db);
+        console.log("send pending messages");
+        
         return;
       }
       if (isPrivateChannel(msg.channel_id, fastify.db)) {
@@ -190,8 +231,11 @@ fastify.get("/ws", { websocket: true }, (socket, req) => {
           console.log("not blocked user");
           msg.receiver_id = msg.receiver_id[0];
           console.log("updated recv ===> ", msg);
-          
+
           sendToReceiver(msg, fastify.db, 0);
+
+          // Send notification for private message
+          sendMessageNotification(msg.sender_id, msg.receiver_id, msg.content, msg.channel_id);
         } else if (msg.receiver_id && !not_blocked(msg.sender_id, msg.receiver_id, fastify.db)) {
           console.log("* PRIVATE CHANNEL: user_id  ", msg.receiver_id, "blocked the user ", msg.sender_id);
           socket.send(JSON.stringify({ error: "You are blocked by the user." })); 

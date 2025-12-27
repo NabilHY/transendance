@@ -20,6 +20,42 @@ module.exports = async function (fastify) {
         config.GOOGLE_REDIRECT_URI
     );
     
+    // Helper function to build redirect URI from request headers
+    function buildRedirectUri(req) {
+        // In development mode, prefer the configured redirect URI
+        // This ensures it matches exactly what's registered in Google Cloud Console
+        if (config.GOOGLE_REDIRECT_URI) {
+            console.log('🔍 [OAuth] Using configured GOOGLE_REDIRECT_URI:', config.GOOGLE_REDIRECT_URI);
+            return config.GOOGLE_REDIRECT_URI;
+        }
+        
+        // Fallback to dynamic construction for production/ngrok scenarios
+        // Determine protocol from X-Forwarded-Proto header (set by nginx) or request protocol
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+        
+        // In development, use HTTP; in production, use HTTPS
+        const secureProtocol = (config.NODE_ENV === 'production' || protocol === 'https') ? 'https' : 'http';
+        
+        // Get host from X-Forwarded-Host (preferred) or Host header
+        let host = req.headers['x-forwarded-host'] || req.headers.host || '';
+        
+        // In development with localhost, keep the port; in production/ngrok, remove it
+        if (config.NODE_ENV !== 'production' && host.includes('localhost')) {
+            // Keep port for localhost in dev mode (e.g., localhost:8005)
+            // Don't remove the port
+        } else {
+            // Remove port number for production/ngrok URLs
+        host = host.split(':')[0];
+        }
+        
+        // Construct redirect URI
+        const redirectUri = `${secureProtocol}://${host}/api/auth/google/callback`;
+        
+        console.log('🔍 [OAuth] Built redirect URI dynamically:', redirectUri);
+        
+        return redirectUri;
+    }
+    
     fastify.get('/google', {
         schema: {
             description: 'Initiate Google OAuth2.0 login flow. Generates CSRF state token and redirects to Google consent screen.',
@@ -58,17 +94,17 @@ module.exports = async function (fastify) {
         const state = crypto.randomBytes(16).toString('hex');
         const connectMode = req.query.connect === 'true';
         
-        // rep.setCookie('oauth_state', state, {
-        //     httpOnly: true,
-        //     secure: config.NODE_ENV === 'production',
-        //     sameSite: 'strict',
-        //     maxAge: 600, // 10 minutes
-        //     path: '/'
-        // });
+        // Build redirect URI dynamically from request
+        const redirectUri = buildRedirectUri(req);
+        
+        // Check if request is behind a proxy using HTTPS (via X-Forwarded-Proto header)
+        const isSecure = req.headers['x-forwarded-proto'] === 'https' || 
+                        req.protocol === 'https' || 
+                        config.NODE_ENV === 'production';
         
         rep.setCookie('oauth_state', state, {
             httpOnly: true,
-            secure: config.NODE_ENV === 'production',  // true in production with https
+            secure: isSecure,  // true when behind HTTPS proxy or in production
             sameSite: 'lax',       // lax allows cookies on cross-site redirects (OAuth flow)
             maxAge: 600,           // 10 minutes
             path: '/',
@@ -77,18 +113,21 @@ module.exports = async function (fastify) {
         
         rep.setCookie('oauth_mode', connectMode ? 'connect' : 'login', {
             httpOnly: true,
-            secure: config.NODE_ENV === 'production',
+            secure: isSecure,
             sameSite: 'lax',
             maxAge: 600,
             path: '/'
         });
         
+        // Generate auth URL with dynamically constructed redirect URI
         const authUrl = client.generateAuthUrl({
             access_type: 'offline',
             scope: ['profile', 'email'],
             state: state,
+            redirect_uri: redirectUri, // Override with dynamic redirect URI
         });
         
+        console.log(' ++++++ google stuff ++++++ : redirectUri', redirectUri);
         console.log(' ++++++ google stuff ++++++ : authUrl', authUrl);
         
         return rep.redirect(authUrl);

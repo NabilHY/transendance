@@ -11,9 +11,8 @@ const ChatSocketContext = createContext<ChatSocketContextType | null>(null);
 
 export const useChatSocket = () => {
   const ctx = useContext(ChatSocketContext);
-  if (!ctx) {
+  if (!ctx)
     throw new Error('useChatSocket must be used inside ChatSocketProvider');
-  }
   return ctx;
 };
 

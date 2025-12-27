@@ -71,11 +71,12 @@ fastify.register(require('@fastify/cors'), {
       /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs
       /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs (HTTPS)
       /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs
-      /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/  // Private network IPs (HTTPS)
+      /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs (HTTPS)
+      /^https?:\/\/196\.119\.125\.6(:\d+)?$/  // External public IP
     ];
     
     // Also allow specific configured URLs
-    const configuredOrigins = [config.FRONTEND_URL, config.USR_MANAG_URL, 'http://localhost:3010'].filter(Boolean);
+    const configuredOrigins = [config.FRONTEND_URL, config.USR_MANAG_URL, 'http://localhost:3010', 'http://196.119.125.6:3010'].filter(Boolean);
     
     // Check if origin matches configured URLs or allowed patterns
     const isAllowed = configuredOrigins.includes(origin) || 

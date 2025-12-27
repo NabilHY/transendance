@@ -10,8 +10,8 @@ build/
 coverage/
 
 # Env files
-.env
-*.env
+.env*
+!.env.example
 
 # Logs
 npm-debug.log*
@@ -22,7 +22,6 @@ pnpm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
-.env
 *.db
 sqlite*
 *.md

@@ -150,6 +150,28 @@ module.exports = async function (fastify) {
         return { success: true, is_online: !!is_online };
     });
 
+    // Add this endpoint that works without CSRF (for sendBeacon)
+    fastify.patch('/me/status/unload', { 
+        preHandler: [fastify.authenticate], 
+        schema: {
+            tags: ['Profile'],
+            summary: 'Update online status on page unload',
+            security: [{ bearerAuth: [] }],
+            // No CSRF required for this endpoint
+        } 
+    }, async (request, reply) => {
+        const userId = request.user.id;
+        
+        fastify.db.prepare(`
+            UPDATE users SET 
+                is_online = 0,
+                updated_at = datetime('now')
+            WHERE id = ?
+        `).run(userId);
+        
+        return { success: true, is_online: false };
+    });
+
     // Delete user profile (not the auth account)
     fastify.delete('/me', {
     preHandler: [fastify.authenticate],

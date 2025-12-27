@@ -24,16 +24,18 @@ const SettingsPage = () => {
   const { loading: authLoading, isAuthenticated } = useRequireAuth();
   const [currentUser, setCurrentUser] = useState<ProfileUser | null>(null);
   const [newInfoCurrentUser, setNewInfoCurrentUser] = useState<ProfileUser | null>(null);
-  const [activeModal, setActiveModal] = useState<null | 'username' | 'first_name' | 'last_name' | 'avatar'>(null);
+  const [activeModal, setActiveModal] = useState<null | 'name' | 'avatar'>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null);
+  const [nameUpdateSuccess, setNameUpdateSuccess] = useState(false);
+  const [nameUpdateError, setNameUpdateError] = useState<string | null>(null);
   const usrManagBase = useMemo(() => process.env.NEXT_PUBLIC_USR_MANAG_URL ?? getApiUrls().usrManag, []);
 
-  const updateUserInfo = async (field: string) => {
+  const updateUserInfo = async (field: 'username' | 'first_name' | 'last_name') => {
     if (!newInfoCurrentUser || !currentUser) return;
 
     const newValue = (newInfoCurrentUser as any)[field];
@@ -62,6 +64,60 @@ const SettingsPage = () => {
       console.log("Updated successfully!");
     } catch (err) {
       console.error("error ya dink", err);
+    }
+  };
+
+  const updateAllNameFields = async () => {
+    if (!newInfoCurrentUser || !currentUser) return;
+
+    // Check if any name fields changed
+    const nameChanged = 
+      newInfoCurrentUser.username !== currentUser.username ||
+      newInfoCurrentUser.first_name !== currentUser.first_name ||
+      newInfoCurrentUser.last_name !== currentUser.last_name;
+
+    if (!nameChanged) {
+      console.log("No changes detected for name fields");
+      setNameUpdateError("No changes detected");
+      return;
+    }
+
+    setNameUpdateError(null);
+    setNameUpdateSuccess(false);
+
+    const updatedUser = { 
+      ...currentUser, 
+      username: newInfoCurrentUser.username,
+      first_name: newInfoCurrentUser.first_name,
+      last_name: newInfoCurrentUser.last_name,
+    };
+
+    try {
+      const update = await fetch(
+        `${usrManagBase}/me/profile`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profile: updatedUser }),
+          credentials: "include",
+        }
+      );
+      if (!update.ok)
+        throw new Error("Server error");
+      
+      // Update current user state
+      setCurrentUser(updatedUser);
+      
+      // Show success message
+      setNameUpdateSuccess(true);
+      
+      // Close modal after a short delay to show success message
+      setTimeout(() => {
+        closeModal();
+      }, 2000);
+    } catch (err) {
+      console.error("error updating name fields", err);
+      setNameUpdateError("Failed to update name fields. Please try again.");
     }
   };
 
@@ -103,6 +159,8 @@ const SettingsPage = () => {
     setAvatarFile(null);
     setUploadError(null);
     setUploadSuccess(false);
+    setNameUpdateSuccess(false);
+    setNameUpdateError(null);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -405,65 +463,149 @@ const SettingsPage = () => {
       );
     }
 
-    // Text field modals (username, first_name, last_name)
-    const fieldLabel =
-      activeModal === 'username'
-        ? 'Display Name'
-        : activeModal === 'first_name'
-          ? 'First Name'
-          : 'Last Name';
+    // Name fields modal (username, first_name, last_name combined)
+    if (activeModal === 'name') {
+      const username = newInfoCurrentUser?.username ?? '';
+      const firstName = newInfoCurrentUser?.first_name ?? '';
+      const lastName = newInfoCurrentUser?.last_name ?? '';
 
-    const inputType = 'text';
-    const value = (newInfoCurrentUser as any)?.[activeModal] ?? '';
-
-    const onChange = (v: string) =>
-      setNewInfoCurrentUser((prev) => (prev ? ({ ...prev, [activeModal]: v } as any) : prev));
-
-    const onSave = async () => {
-      await updateUserInfo(activeModal);
-      closeModal();
-    };
-
-    return (
-      <div className="modal-overlay" onClick={closeModal}>
-        <div className="modal-content modal-content-medium" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <div className="modal-icon-wrapper modal-icon-green">
-              <UserCircle size={24} />
+      return (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content modal-content-medium" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-icon-wrapper modal-icon-green">
+                <UserCircle size={24} />
+              </div>
+              <h2 className="modal-title">Name Information</h2>
+              <button className="modal-close" onClick={closeModal}>×</button>
             </div>
-            <h2 className="modal-title">{fieldLabel}</h2>
-            <button className="modal-close" onClick={closeModal}>×</button>
-          </div>
-          <div className="modal-body">
-            <form
-              className="modal-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void onSave();
-              }}
-            >
-              <div className="input-group">
-                <User size={16} />
-                <input
-                  type={inputType}
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  placeholder={fieldLabel}
-                />
-              </div>
-              <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn">
-                  Save
-                </button>
-              </div>
-            </form>
+            <div className="modal-body">
+              <form
+                className="modal-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void updateAllNameFields();
+                }}
+              >
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '13px', 
+                    fontWeight: '500', 
+                    color: '#93a0c5', 
+                    marginBottom: '8px' 
+                  }}>
+                    Display Name (Username)
+                  </label>
+                  <div className="input-group">
+                    <User size={16} />
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setNewInfoCurrentUser((prev) => 
+                        prev ? ({ ...prev, username: e.target.value } as any) : prev
+                      )}
+                      placeholder="Enter display name"
+                    />
+                  </div>
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '13px', 
+                    fontWeight: '500', 
+                    color: '#93a0c5', 
+                    marginBottom: '8px' 
+                  }}>
+                    First Name
+                  </label>
+                  <div className="input-group">
+                    <User size={16} />
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setNewInfoCurrentUser((prev) => 
+                        prev ? ({ ...prev, first_name: e.target.value } as any) : prev
+                      )}
+                      placeholder="Enter first name"
+                    />
+                  </div>
+                </div>
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '13px', 
+                    fontWeight: '500', 
+                    color: '#93a0c5', 
+                    marginBottom: '8px' 
+                  }}>
+                    Last Name
+                  </label>
+                  <div className="input-group">
+                    <User size={16} />
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setNewInfoCurrentUser((prev) => 
+                        prev ? ({ ...prev, last_name: e.target.value } as any) : prev
+                      )}
+                      placeholder="Enter last name"
+                    />
+                  </div>
+                </div>
+                
+                {nameUpdateSuccess && (
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      background: 'rgba(76, 175, 80, 0.1)',
+                      border: '1px solid rgba(76, 175, 80, 0.3)',
+                      borderRadius: '8px',
+                      color: '#81c784',
+                      fontSize: '14px',
+                      width: '100%',
+                      textAlign: 'center',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    ✓ Name information updated successfully!
+                  </div>
+                )}
+
+                {nameUpdateError && (
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      background: 'rgba(255, 77, 77, 0.1)',
+                      border: '1px solid rgba(255, 77, 77, 0.3)',
+                      borderRadius: '8px',
+                      color: '#ff9595',
+                      fontSize: '14px',
+                      width: '100%',
+                      textAlign: 'center',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    {nameUpdateError}
+                  </div>
+                )}
+
+                <div className="modal-actions">
+                  <button type="button" className="btn btn-secondary" onClick={closeModal}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn">
+                    Save
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
-    );
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -502,7 +644,7 @@ const SettingsPage = () => {
               type="button"
               className="security-option-card"
               data-color="#10b981"
-              onClick={() => setActiveModal('username')}
+              onClick={() => setActiveModal('name')}
             >
               <div
                 className="security-option-icon-wrapper"
@@ -511,49 +653,11 @@ const SettingsPage = () => {
                 <UserCircle size={24} />
               </div>
               <div>
-                <h3 className="security-option-title">Display Name</h3>
+                <h3 className="security-option-title">Name</h3>
                 <p className="security-option-description">
-                  {currentUser?.username ? `Current: ${currentUser.username}` : 'Update your display name'}
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className="security-option-card"
-              data-color="#8b5cf6"
-              onClick={() => setActiveModal('first_name')}
-            >
-              <div
-                className="security-option-icon-wrapper"
-                style={{ '--icon-bg': '#8b5cf620', '--icon-color': '#8b5cf6' } as React.CSSProperties}
-              >
-                <User size={24} />
-              </div>
-              <div>
-                <h3 className="security-option-title">First Name</h3>
-                <p className="security-option-description">
-                  {currentUser?.first_name ? `Current: ${currentUser.first_name}` : 'Update your first name'}
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className="security-option-card"
-              data-color="#f59e0b"
-              onClick={() => setActiveModal('last_name')}
-            >
-              <div
-                className="security-option-icon-wrapper"
-                style={{ '--icon-bg': '#f59e0b20', '--icon-color': '#f59e0b' } as React.CSSProperties}
-              >
-                <User size={24} />
-              </div>
-              <div>
-                <h3 className="security-option-title">Last Name</h3>
-                <p className="security-option-description">
-                  {currentUser?.last_name ? `Current: ${currentUser.last_name}` : 'Update your last name'}
+                  {currentUser?.username || currentUser?.first_name || currentUser?.last_name
+                    ? `Display: ${currentUser.username || 'Not set'}, ${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim()
+                    : 'Set your display name, first name, and last name'}
                 </p>
               </div>
             </button>

@@ -10,10 +10,9 @@ import styles from '../login/LoginPage.module.css';
 import { getAvatarUrl, getInitials, type UserWithAvatar } from '@/lib/avatar';
 
 export default function ProfilePage() {
-    const { profile, loading, error, updateOnlineStatus, clearError } = useUser();
+    const { profile, loading, error, clearError } = useUser();
     const { loading: authLoading, isProfileComplete } = useRequireAuth();
     const { logout } = useAuth();
-    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [avatarError, setAvatarError] = useState(false);
 
@@ -49,16 +48,6 @@ export default function ProfilePage() {
             </main>
         );
     }
-
-    const handleStatusToggle = async () => {
-        if (!profile) return;
-        setIsUpdatingStatus(true);
-        try {
-            await updateOnlineStatus(profile.is_online === 0);
-        } finally {
-            setIsUpdatingStatus(false);
-        }
-    };
 
     const handleRefresh = () => {
         window.location.reload();
@@ -388,23 +377,6 @@ export default function ProfilePage() {
                                                 {profile.is_online ? 'Online' : 'Offline'}
                                             </span>
                                         </div>
-                                        <button 
-                                            onClick={handleStatusToggle}
-                                            disabled={isUpdatingStatus}
-                                            className={styles.submitBtn}
-                                            style={{
-                                                padding: '8px 16px',
-                                                fontSize: '13px',
-                                                background: profile.is_online 
-                                                    ? 'linear-gradient(135deg, #ff6b6b, #ff8787)' 
-                                                    : 'linear-gradient(135deg, #51cf66, #69db7c)',
-                                                opacity: isUpdatingStatus ? 0.6 : 1,
-                                                cursor: isUpdatingStatus ? 'not-allowed' : 'pointer'
-                                            }}
-                                        >
-                                            {isUpdatingStatus ? 'Updating...' : 
-                                             (profile.is_online ? 'Go Offline' : 'Go Online')}
-                                        </button>
                                     </div>
                                 </div>
 

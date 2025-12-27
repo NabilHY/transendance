@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import styles from './NewSidebar.module.css';
 import logo from '@/public/racket.png';
 import { useAuth } from '@/context/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LogOut } from 'lucide-react';
+import { NotificationCenter } from './NotificationCenter';
 
 const authenticatedItems = [
     { id: "home", label: "Dashboard", href: "/" },
@@ -24,7 +24,7 @@ const unauthenticatedItems = [
 ];
 
 export default function NewSidebar() {
-    const { isLoggedIn, logout, clearError } = useAuth();
+    const { isLoggedIn, logout, clearError, user } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
 
@@ -59,6 +59,7 @@ export default function NewSidebar() {
                     </div>
                 </div>
                 <div className={styles.headerControls}>
+                    {isLoggedIn && <NotificationCenter userId={user?.id || 0} />}
                     <button
                         type="button"
                         className={styles.controlBtn}

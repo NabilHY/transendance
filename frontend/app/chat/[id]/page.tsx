@@ -7,6 +7,7 @@ import ChatWindow from '@/components/ChatWindow';
 import { fetchCurrentUser } from '@/lib/fetcher';
 import { User } from '@/app/settings/page';
 import { useChatSocket } from '../ChatSocketContext';
+import { getUserMgmtBase } from '@/lib/api-config';
 
 const Page = () => {
   const { id } = useParams() as { id: string };
@@ -18,13 +19,18 @@ const Page = () => {
 
   useEffect(() => {
     fetchCurrentUser().then(setCurrentUser);
-    getConversation(id).then(setConversation);
+    getConversation(id).then(setConversation).then(() => {
+      // fetchMessages(id);
+      console.log("fetched: ", conversation);
+      
+    });
     fetchMessages(id);
   }, [id]);
 
   const fetchMessages = async (id: string) => {
+    const baseUrl = getUserMgmtBase();
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_USR_MANAG_URL}/chat/${id}/messages`,
+      `${baseUrl}/chat/${id}/messages`,
       { credentials: "include" }
     );
 
@@ -49,7 +55,7 @@ const Page = () => {
   if (!currentUser || !conversation) return null;
 
   return (
-    <main style={{ height: 'calc(100dvh - 60px)' }}>
+    <main style={{ height: '100dvh' }}>
       <ChatWindow
         messages={messages}
         setMessages={setMessages}

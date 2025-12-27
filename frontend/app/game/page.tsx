@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import { useSearchParams } from 'next/navigation';
 import { getAuthToken, fetchPlayerStats, getAuthBackendUrl } from './utils/api';
 import { useGameWebSocket } from './hooks/useGameWebSocket';
 import { useGameKeyboard } from './hooks/useGameKeyboard';
@@ -12,17 +13,22 @@ import { GameScreen } from './components/GameScreen';
 import { GameWinScreen } from './components/GameWinScreen';
 import { GameTournamentWaitingScreen } from './components/GameTournamentWaitingScreen';
 import { GameTournamentMatchReadyScreen } from './components/GameTournamentMatchReadyScreen';
+import { GameQuadWaitingScreen } from './components/GameQuadWaitingScreen';
 import { GameLoadingScreen } from './components/GameLoadingScreen';
+import { MatchHistoryPanel } from './components/MatchHistoryPanel';
 import styles from './styles.module.css';
-import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, PlayerInfo, PlayerStats, WinScreenData, TournamentQueue, MatchReadyInfo } from './types';
+import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, QuadGameState, PlayerInfo, PlayerStats, WinScreenData, TournamentQueue, MatchReadyInfo, QuadWaitingInfo, QuadWinScreenData } from './types';
 
 export default function GamePage() {
   const { user } = useAuth();
   const { loading: authLoading, isAuthenticated: isLoggedIn } = useRequireAuth();
+  const searchParams = useSearchParams();
   const tournamentWaitingTimeoutRef = useRef<any>(null);
+  const matchReadyCountdownRef = useRef<any>(null);
   
   // Game state
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [quadGameState, setQuadGameState] = useState<QuadGameState | null>(null);
   const [screen, setScreen] = useState<GameScreenType>("start");
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
@@ -34,6 +40,10 @@ export default function GamePage() {
   const [tournamentQueue, setTournamentQueue] = useState<TournamentQueue | null>(null);
   const [tournamentBracket, setTournamentBracket] = useState<any>(null);
   const [matchReadyInfo, setMatchReadyInfo] = useState<MatchReadyInfo | null>(null);
+  const [quadWaitingInfo, setQuadWaitingInfo] = useState<QuadWaitingInfo | null>(null);
+  const [quadWinScreenData, setQuadWinScreenData] = useState<QuadWinScreenData | null>(null);
+  const [matchHistoryRefresh, setMatchHistoryRefresh] = useState<number>(0);
+  const [directGameInfo, setDirectGameInfo] = useState<{ opponentId: string; inviteId: string } | null>(null);
 
   // WebSocket connection
   const {
@@ -52,7 +62,11 @@ export default function GamePage() {
     setTournamentQueue,
     setTournamentBracket,
     setMatchReadyInfo,
-    tournamentWaitingTimeoutRef
+    tournamentWaitingTimeoutRef,
+    matchReadyCountdownRef,
+    setQuadGameState,
+    setQuadWaitingInfo,
+    setQuadWinScreenData
   );
 
   // Keyboard controls
@@ -60,10 +74,15 @@ export default function GamePage() {
     sendMessage({ type: "update", player1DY, player2DY });
   }, [sendMessage]);
 
+  const sendQuadUpdate = useCallback((dy: number) => {
+    sendMessage({ type: "quadUpdate", dy });
+  }, [sendMessage]);
+
   useGameKeyboard({
     enabled: screen === "game",
     playerInfo,
-    sendUpdate: sendPlayerUpdate
+    sendUpdate: sendPlayerUpdate,
+    sendQuadUpdate: sendQuadUpdate
   });
 
   // Get authentication token with user info
@@ -100,6 +119,18 @@ export default function GamePage() {
     await fetchPlayerStats(getAuthTokenWithUser, setPlayerStats, setAuthError);
   };
 
+  // Check for direct game invite from URL parameters
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    const opponentId = searchParams.get('opponentId');
+    const inviteId = searchParams.get('inviteId');
+    
+    if (mode === 'direct' && opponentId && inviteId) {
+      console.log(`🎮 Direct game invite detected: opponentId=${opponentId}, inviteId=${inviteId}`);
+      setDirectGameInfo({ opponentId, inviteId });
+    }
+  }, [searchParams]);
+
   // Check authentication on mount
   useEffect(() => {
     if (!isLoggedIn || authLoading) return;
@@ -111,12 +142,18 @@ export default function GamePage() {
         setAuthError(null);
         setIsAuthenticated(true);
         await refreshPlayerStats();
+        
+        // Auto-start direct game invite if present
+        if (directGameInfo) {
+          console.log('🎮 Auto-starting direct game invite...');
+          await connectWebSocket('matchmaking', undefined, directGameInfo);
+        }
       } else {
         setIsAuthenticated(false);
       }
     };
     checkAuth();
-  }, [isLoggedIn, authLoading]);
+  }, [isLoggedIn, authLoading, directGameInfo]);
 
   // Handle page refresh/close - disconnect from websocket
   useEffect(() => {
@@ -134,6 +171,14 @@ export default function GamePage() {
       disconnectWebSocket();
     };
   }, [disconnectWebSocket, wsRef]);
+
+  // Refresh match history when game ends (win screen appears)
+  useEffect(() => {
+    if (screen === "win" || screen === "quadWin") {
+      console.log('📊 Game ended - refreshing match history');
+      setMatchHistoryRefresh(prev => prev + 1);
+    }
+  }, [screen]);
 
   // Game mode handlers
   const handleStartSolo = async () => {
@@ -156,6 +201,11 @@ export default function GamePage() {
     await connectWebSocket('tournament');
   };
 
+  const handleStartQuad = async () => {
+    console.log("🎯 Starting quadra pong matchmaking...");
+    await connectWebSocket('quad');
+  };
+
   const handleStartGame = () => {
     if (gameMode === "matchmaking") {
       handleStartMultiplayer();
@@ -163,6 +213,8 @@ export default function GamePage() {
       handleStartAI();
     } else if (gameMode === "tournament") {
       handleStartTournament();
+    } else if (gameMode === "quad") {
+      handleStartQuad();
     } else {
       handleStartSolo();
     }
@@ -203,6 +255,7 @@ export default function GamePage() {
     setPlayerInfo(null);
     setGameState(null);
     setWinScreenData(null);
+    setQuadWinScreenData(null);
     setTournamentQueue(null);
     setTournamentBracket(null);
     disconnectWebSocket();
@@ -216,18 +269,28 @@ export default function GamePage() {
   return (
     <div className={styles.page}>
         {screen === "start" && (
-          <GameStartScreen
-            isAuthenticated={isAuthenticated}
-            playerStats={playerStats}
-            playerInfo={playerInfo}
-            gameMode={gameMode}
-            aiDifficulty={aiDifficulty}
-            authError={authError}
-            onGameModeChange={setGameMode}
-            onAiDifficultyChange={setAiDifficulty}
-            onStartGame={handleStartGame}
-            onRefreshStats={refreshPlayerStats}
-          />
+          <>
+            <GameStartScreen
+              isAuthenticated={isAuthenticated}
+              playerStats={playerStats}
+              playerInfo={playerInfo}
+              gameMode={gameMode}
+              aiDifficulty={aiDifficulty}
+              authError={authError}
+              onGameModeChange={setGameMode}
+              onAiDifficultyChange={setAiDifficulty}
+              onStartGame={handleStartGame}
+              onRefreshStats={refreshPlayerStats}
+            />
+            {user && (
+              <MatchHistoryPanel 
+                userId={typeof user.id === 'number' ? user.id : parseInt(user.id)} 
+                isVisible={true}
+                refreshTrigger={matchHistoryRefresh}
+                isGamePage={true}
+              />
+            )}
+          </>
         )}
 
         {screen === "waiting" && (
@@ -249,9 +312,17 @@ export default function GamePage() {
           />
         )}
 
+        {screen === "quadWaiting" && (
+          <GameQuadWaitingScreen
+            quadWaitingInfo={quadWaitingInfo}
+            onCancel={cancelMatchmaking}
+          />
+        )}
+
         {screen === "game" && (
           <GameScreen
             gameState={gameState}
+            quadGameState={quadGameState}
             playerInfo={playerInfo}
             isConnected={isConnected}
             playerStats={playerStats}
@@ -261,6 +332,7 @@ export default function GamePage() {
         {screen === "end" && (
           <GameWinScreen
             winScreenData={winScreenData}
+            quadWinScreenData={quadWinScreenData}
             gameState={gameState}
             onRestart={handleRestart}
             onMainMenu={handleMainMenu}

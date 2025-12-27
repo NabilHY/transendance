@@ -7,9 +7,10 @@ export NPM_CONFIG_PACKAGE_LOCK=false
 # Ensure database directory exists
 mkdir -p /usr/src/app/db
 
-# Clean install to ensure container-compatible modules (safe if already installed)
-rm -rf node_modules package-lock.json
-npm install --production --no-package-lock || true
+# Install deps only when needed (node_modules is a Docker volume in compose)
+if [ ! -d node_modules ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+  npm install --production --no-package-lock || true
+fi
 
 # Rebuild native deps if needed (sqlite3) to match container libc
 npm rebuild sqlite3 --build-from-source || true

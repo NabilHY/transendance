@@ -11,8 +11,15 @@ module.exports = {
 	GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
 	FRONTEND_URL: process.env.FRONTEND_URL,
 	USR_MANAG_URL: process.env.USR_MANAG_SERVICE_URL || 'http://localhost:4000',
+
+	// Public site origin (what a user's browser can reach). In production behind nginx TLS,
+	// set this to something like: https://10.32.110.187
+	// Falls back to FRONTEND_URL for backwards compatibility.
+	PUBLIC_URL: process.env.PUBLIC_URL || process.env.FRONTEND_URL,
 	
-	BACKEND_URL: process.env.AUTH_BACKEND_URL,
+	// Public-facing backend URL for email links (should be accessible from user's browser)
+	// Defaults to localhost for development, should be set to public URL in production
+	BACKEND_URL: process.env.AUTH_BACKEND_URL || process.env.PUBLIC_AUTH_BACKEND_URL || `http://localhost:${process.env.AUTH_PORT || 8005}`,
 	
 	// Email Configuration
 	EMAIL_FROM: process.env.EMAIL_FROM,

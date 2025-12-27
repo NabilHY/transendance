@@ -1,7 +1,40 @@
 /** @type {import('next').NextConfig} */
+import path from 'path';
+
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: false,
+  // Ignore TypeScript errors during build (allows build to proceed with type errors)
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // Enable Fast Refresh for better hot reloading
+  reactRefresh: true,
+  // Webpack configuration for better file watching in Docker
+  // Enable polling for both dev and production to ensure hot reload always works
+  webpack: (config, { dev, isServer }) => {
+    // Always enable polling for file watching (works better in Docker/WSL)
+    // This ensures hot reload works regardless of NODE_ENV
+    config.watchOptions = {
+      poll: 1000, // Check for changes every second
+      aggregateTimeout: 300, // Delay before rebuilding once the first file changed
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/.next/**',
+      ],
+      followSymlinks: false,
+    };
+    
+    // Ensure webpack-dev-server hot reload is enabled
+    if (dev && !isServer) {
+      config.optimization = config.optimization || {};
+      config.optimization.removeAvailableModules = false;
+      config.optimization.removeEmptyChunks = false;
+    }
+    
+    return config;
+  },
   async rewrites() {
     // Get usr-manag URL from env
     // Prefer USR_MANAG_SERVICE_URL (Docker service name) over USR_MANAG_URL (localhost)
@@ -18,6 +51,7 @@ const nextConfig = {
     const minioUrl = process.env.MINIO_SERVICE_URL || 'http://minio:9000';
 
     return [
+      // Media endpoints
       {
         source: '/media/avatar/me',
         destination: `${usrManagBase}/me/avatar`,

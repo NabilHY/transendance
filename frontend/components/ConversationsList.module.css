@@ -1,22 +1,94 @@
+/* :global(:root) {
+  --neon-blue: #00f0ff;
+  --neon-purple: #b744ff;
+  --neon-pink: #ff006e;
+  --neon-green: #00ff88;
+  --dark-bg: #050811;
+  --darker-bg: #030512;
+  --card-bg: rgba(8, 12, 26, 0.92);
+  --surface-glow: rgba(0, 240, 255, 0.08);
+  --text-primary: #e8f7ff;
+  --text-secondary: #7dd8ff;
+} */
+
 .container {
+  --neon-blue: #00f0ff;
+  --neon-purple: #b744ff;
+  --neon-pink: #ff006e;
+  --neon-green: #00ff88;
+  --dark-bg: #050811;
+  --darker-bg: #030512;
+  --card-bg: rgba(8, 12, 26, 0.92);
+  --surface-glow: rgba(0, 240, 255, 0.08);
+  --text-primary: #e8f7ff;
+  --text-secondary: #7dd8ff;
   width: 350px;
-  /* background: #0f0f0f; */
-  border-right: 1px solid #1765b35d;
+  min-width: 64px;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(183, 68, 255, 0.16), transparent 36%),
+    radial-gradient(circle at 90% 0%, rgba(0, 240, 255, 0.18), transparent 45%),
+    var(--dark-bg);
+  border-right: 1px solid rgba(0, 240, 255, 0.25);
   display: flex;
   flex-direction: column;
   height: 100%;
+  transition: width 0.25s ease, opacity 0.25s ease;
+  overflow: hidden;
+}
+
+.containerCollapsed {
+  width: 64px;
+  opacity: 0.9;
 }
 
 .header {
   padding: 1.5rem;
-  border-bottom: 1px solid #1765b35d;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.25);
+}
+
+.collapseHandle {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 10px 0 10px;
+}
+
+.collapseBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--neon-blue);
+  background: rgba(0, 240, 255, 0.14);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.collapseBtn:hover {
+  background: rgba(0, 240, 255, 0.26);
+  transform: translateY(-1px);
+  border-color: rgba(0, 240, 255, 0.75);
+}
+
+.containerCollapsed .header,
+.containerCollapsed .actionsRow,
+.containerCollapsed .tabToggle,
+.containerCollapsed .conversationsList {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.containerCollapsed .collapseHandle {
+  padding-right: 10px;
 }
 
 .title {
   font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 1rem;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .tabToggle {
@@ -31,51 +103,51 @@
   padding: 0.75rem;
   background: linear-gradient(
     135deg,
-    rgba(0, 180, 255, 0.18),
-    rgba(30, 90, 255, 0.18)
+    rgba(0, 240, 255, 0.18),
+    rgba(183, 68, 255, 0.18)
   );
 
-  color: #e6f4ff;
+  color: var(--text-primary);
 
-  border: 1px solid rgb(30, 90, 255);
+  border: 1px solid var(--neon-blue);
   border-radius: 8px;
 
   box-shadow:
-    0 0 2px rgba(0, 180, 255, 0.45),
-    inset 0 0 8px rgba(0, 180, 255, 0.2);
+    0 0 6px rgba(0, 240, 255, 0.45),
+    inset 0 0 10px rgba(183, 68, 255, 0.25);
 
   transition: all 0.3s ease;
 }
 
 .tabButton:hover {
-  color: #ffffff;
+  color: var(--text-primary);
   box-shadow:
-    0 0 11px rgba(0, 180, 255, 0.75),
-    0 0 18px rgba(30, 90, 255, 0.45),
-    inset 0 0 10px rgba(0, 180, 255, 0.35);
+    0 0 11px rgba(0, 240, 255, 0.75),
+    0 0 18px rgba(183, 68, 255, 0.45),
+    inset 0 0 12px rgba(0, 240, 255, 0.35);
 }
 
 .tabButton.active {
   background: linear-gradient(
     135deg,
-    rgba(0, 180, 255, 0.8),
-    rgba(30, 90, 255, 0.8)
+    rgba(0, 240, 255, 0.8),
+    rgba(183, 68, 255, 0.7)
   );
 
-  color: #ffffff;
-  border-color: rgba(0, 180, 255);
+  color: var(--darker-bg);
+  border-color: var(--neon-blue);
 
   box-shadow:
-    0 0 10px rgba(0, 180, 255, 0.95),
-    0 0 12px rgba(30, 90, 255, 0.65);
+    0 0 12px rgba(0, 240, 255, 0.95),
+    0 0 18px rgba(183, 68, 255, 0.65);
 }
 
 /* .tabButton {
   flex: 1;
   padding: 0.75rem;
-  background: #2a2a2a;
-  color: #999999;
-  border: 1px solid #1765b35d;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  border: 1px solid rgba(0, 240, 255, 0.25);
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
@@ -84,14 +156,14 @@
 }
 
 .tabButton:hover {
-  background: #333333;
-  color: #ffffff;
+  background: rgba(0, 240, 255, 0.12);
+  color: var(--text-primary);
 }
 
 .tabButton.active {
-  background: #1e90ff;
-  color: #ffffff;
-  border-color: #1e90ff;
+  background: var(--neon-blue);
+  color: var(--darker-bg);
+  border-color: var(--neon-blue);
 } */
 
 .conversationsList {
@@ -106,21 +178,21 @@
   padding: 1rem 1.5rem;
   background: none;
   border: none;
-  color: #ffffff;
+  color: var(--text-primary);
   text-align: left;
   cursor: pointer;
   transition: background-color 0.2s ease;
   width: 100%;
-  border-bottom: 1px solid #1e90ff;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
   
 }
 
 .conversationItem:hover {
-  background: #1a1a1a;
+  background: rgba(0, 240, 255, 0.08);
 }
 
 .conversationItem.active {
-  background: #1e90ff;
+  background: var(--neon-blue);
 }
 
 .avatarContainer {
@@ -141,8 +213,8 @@
   right: 2px;
   width: 12px;
   height: 12px;
-  background: #00ff00;
-  border: 2px solid #0f0f0f;
+  background: var(--neon-green);
+  border: 2px solid var(--darker-bg);
   border-radius: 50%;
 }
 
@@ -165,23 +237,23 @@
 
 .timestamp {
   font-size: 0.75rem;
-  color: #999999;
+  color: var(--text-secondary);
 }
 
 .conversationItem.active .timestamp {
-  color: #cccccc;
+  color: var(--darker-bg);
 }
 
 .lastMessage {
   font-size: 0.875rem;
-  color: #999999;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .conversationItem.active .lastMessage {
-  color: #cccccc;
+  color: var(--darker-bg);
 }
 
 .chatUserItem {
@@ -193,11 +265,11 @@
   border-radius: 8px;
   transition: background 0.15s ease;
   margin: 10px;
-  border: 2px rgb(0, 45, 101) solid;
+  border: 2px solid rgba(0, 240, 255, 0.25);
 }
 
 .chatUserItem:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 240, 255, 0.08);
 }
 
 .chatUserAvatar {
@@ -217,13 +289,13 @@
 .chatUserName {
   font-size: 15px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   line-height: 1.2;
 }
 
 .chatUserUsername {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-secondary);
   margin-top: 2px;
   line-height: 1.2;
 }
@@ -231,7 +303,7 @@
 .sectionHeader {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #666666;
+  color: var(--text-secondary);
   text-transform: uppercase; 
   padding: 12px 16px 8px 16px;
 }
@@ -240,11 +312,11 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #444444;
+  background: var(--card-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #bbbbbb;
+  color: var(--text-secondary);
   font-size: 1.5rem;
   font-weight: bold; 
 }
@@ -253,28 +325,28 @@
   padding: 0.6rem 1rem;
   background: linear-gradient(
     135deg,
-    rgba(0, 180, 255, 0.35),
-    rgba(30, 90, 255, 0.35)
+    rgba(0, 240, 255, 0.35),
+    rgba(183, 68, 255, 0.35)
   );
-  color: #ffffff;
-  border: 1px solid rgba(0, 180, 255, 0.9);
+  color: var(--text-primary);
+  border: 1px solid rgba(0, 240, 255, 0.9);
   border-radius: 10px;
   cursor: pointer;
   margin-bottom: 15px;
   box-shadow:
-    0 0 10px rgba(0, 180, 255, 0.75),
-    0 0 18px rgba(30, 90, 255, 0.45),
-    inset 0 0 10px rgba(0, 180, 255, 0.35);
+    0 0 12px rgba(0, 240, 255, 0.75),
+    0 0 18px rgba(183, 68, 255, 0.45),
+    inset 0 0 12px rgba(0, 240, 255, 0.35);
   transition: all 0.3s ease;
 }
 
 .primaryBtn:hover {
-  background: #1e90ff;
-  color: #0f0f0f;
-  border-color: #1e90ff;
+  background: var(--neon-blue);
+  color: var(--darker-bg);
+  border-color: var(--neon-blue);
   box-shadow:
-    0 0 10px rgba(0, 180, 255, 0.95),
-    0 0 12px rgba(30, 90, 255, 0.65);
+    0 0 14px rgba(0, 240, 255, 0.95),
+    0 0 18px rgba(183, 68, 255, 0.65);
 }
 
 .groupForm {
@@ -286,31 +358,33 @@
   flex-direction: column;
   gap: 1rem;
   /* background: #1a1a1a; */
-  border: 1px solid #1e90ff;
+  border: 1px solid var(--neon-blue);
   border-radius: 1rem;
   padding: 2rem;
   z-index: 1000;
   min-width: 350px;
-  box-shadow: 0 8px 32px rgba(30, 144, 255, 0.5);
+  box-shadow:
+    0 8px 32px rgba(0, 240, 255, 0.25),
+    0 0 24px rgba(183, 68, 255, 0.18);
   background: linear-gradient(
     135deg,
-    rgb(0, 0, 0),
-    rgba(7, 28, 85)
+    rgba(5, 8, 17, 0.95),
+    rgba(0, 240, 255, 0.08)
   );
 }
 
 .groupInput {
-  background: #0f0f0f;
-  border: 1px solid #2a2a2a;
+  background: var(--darker-bg);
+  border: 1px solid rgba(0, 240, 255, 0.18);
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 1rem;
 }
 
 .groupInput:focus {
   outline: none;
-  border-color: #1e90ff;
+  border-color: var(--neon-blue);
 }
 
 .groupActions {
@@ -335,43 +409,60 @@
   /* color: #0f0f0f; */
   background: linear-gradient(
     135deg,
-    rgba(0, 180, 255, 0.18),
-    rgba(30, 90, 255, 0.18)
+    rgba(0, 240, 255, 0.18),
+    rgba(183, 68, 255, 0.18)
   );
 
-  color: #e6f4ff;
+  color: var(--text-primary);
 
-  border: 1px solid rgb(30, 90, 255);
+  border: 1px solid var(--neon-blue);
   border-radius: 8px;
 
   box-shadow:
-    0 0 2px rgba(0, 180, 255, 0.45),
-    inset 0 0 8px rgba(0, 180, 255, 0.2);
+    0 0 6px rgba(0, 240, 255, 0.45),
+    inset 0 0 10px rgba(183, 68, 255, 0.25);
 
   transition: all 0.3s ease;
 }
 
 .groupSubmitButton:hover {
-  background: #1c7ed6;
+  background: #00c6e6;
 }
 
 .groupCancelButton {
-  background: black;
-  color: #ffffff;
-  border-color: rgb(134, 134, 134);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-color: rgba(0, 240, 255, 0.18);
 }
 
 .groupCancelButton:hover {
-  border-color: #555555;
+  border-color: #3d6c8c;
 }
 
 .groupTextarea {
-  background: #0f0f0f;
-  border: 1px solid #2a2a2a;
+  background: var(--darker-bg);
+  border: 1px solid rgba(0, 240, 255, 0.18);
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 1rem;
   resize: vertical;
   min-height: 80px;
+}
+
+/* make a green dot */
+.online {
+  position: relative;
+}
+
+.online::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  background-color: var(--neon-green);
+  border-radius: 50%;
+  border: 2px solid var(--darker-bg);
 }

@@ -44,7 +44,12 @@ export const useGameAuth = (isLoggedIn: boolean, authLoading: boolean): UseGameA
       
       if (authToken) {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8005'}/api/game-token`, {
+          const apiBase =
+            process.env.NEXT_PUBLIC_BASE_URL ||
+            process.env.NEXT_PUBLIC_API_BASE ||
+            'http://localhost:8005';
+
+          const response = await fetch(`${apiBase}/api/game-token`, {
             method: 'GET',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' }

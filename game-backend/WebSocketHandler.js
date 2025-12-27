@@ -1,4 +1,5 @@
 const GameManager = require('./GameManager');
+const QuadPongManager = require('./QuadPongManager');
 const UserAuth = require('./UserAuth');
 
 class WebSocketHandler {
@@ -6,6 +7,7 @@ class WebSocketHandler {
     this.fastify = fastify;
     this.userAuth = new UserAuth();
     this.gameManager = new GameManager(this.userAuth);
+    this.quadPongManager = new QuadPongManager(this.userAuth);
     
     // Start global game update loop
     this.startGameUpdateLoop();
@@ -197,6 +199,48 @@ class WebSocketHandler {
                 }));
                 console.log(`🎯 Tournament ${result.tournamentId} started with 8 players`);
               }
+            } else if (gameMode === 'quad') {
+              // Add player to quad pong matchmaking
+              const result = await this.quadPongManager.addToQuadMatchmaking(
+                connection.socket,
+                user
+              );
+              
+              if (Array.isArray(result)) {
+                // Match created with 4 players
+                console.log(`🎮 [QUAD] Match created with 4 players!`);
+                
+                // Send game joined to all 4 players
+                for (const playerResult of result) {
+                  if (playerResult.connection) {
+                    playerResult.connection.send(JSON.stringify({
+                      type: 'quadGameJoined',
+                      playerRole: playerResult.role,
+                      team: playerResult.team,
+                      roomId: playerResult.roomId,
+                      teammates: playerResult.teammates,
+                      opponents: playerResult.opponents,
+                      gameState: playerResult.gameState,
+                      user: playerResult.user
+                    }));
+                    console.log(`📤 [QUAD] Sent quadGameJoined to ${playerResult.user.username} (${playerResult.team}, ${playerResult.role})`);
+                  }
+                  
+                  // Set playerInfo for current connection
+                  if (playerResult.connectionId === connection.id) {
+                    playerInfo = playerResult;
+                  }
+                }
+              } else {
+                // Added to waiting queue
+                playerInfo = result;
+                connection.socket.send(JSON.stringify({
+                  type: 'quadWaiting',
+                  queuePosition: result.queuePosition,
+                  totalWaiting: result.totalWaiting
+                }));
+                console.log(`⏳ [QUAD] ${user.username} added to quad queue (${result.totalWaiting}/4)`);
+              }
             }
             
           } else if (data.type === "tournamentMatchReady") {
@@ -219,6 +263,16 @@ class WebSocketHandler {
               this.gameManager.handlePlayerInput(playerInfo.connectionId, data);
             } else {
               console.log(`⚠️ Cannot handle input - no playerInfo or connectionId`);
+            }
+          } else if (data.type === "quadUpdate") {
+            // Handle quad pong movement - find player by connection
+            const quadConnectionId = this.quadPongManager.findConnectionIdBySocket(connection.socket);
+            if (quadConnectionId) {
+              this.quadPongManager.handlePlayerUpdate(quadConnectionId, {
+                dy: data.dy
+              });
+            } else {
+              console.log(`⚠️ Cannot handle quadUpdate - player not found in quad games`);
             }
           } else if (data.type === "cancel") {
             // Handle matchmaking cancellation
@@ -249,6 +303,11 @@ class WebSocketHandler {
           
           // Remove player from game using connection.id
           await this.gameManager.removePlayer(connection.id);
+          
+          // Also remove from quad pong if they were in quad mode
+          if (playerInfo && playerInfo.gameType === 'quad') {
+            await this.quadPongManager.removePlayer(playerInfo.connectionId);
+          }
         });
       });
     });

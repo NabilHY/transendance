@@ -11,6 +11,8 @@ import { ProfileCard } from '@/components/ProfileCard';
 import { headers } from 'next/dist/client/components/headers';
 import CurrentUserProfileNotice from '@/components/CurrentUserProfileNotice';
 import { handleMessageClick } from '@/lib/chat';
+import { MatchHistoryPanel } from '@/app/game/components/MatchHistoryPanel';
+import '../../game/styles.module.css';
 
 export default function UserDetailPage() {
     const params = useParams();
@@ -94,7 +96,6 @@ export default function UserDetailPage() {
     const rejectRequest = async () => {
         if (!user) return;
 
-        // console.log(currentUser?.id + " trying to reject friend request from: " + user.id);
         try {
             const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/reject`, {
                 method: 'POST',
@@ -116,7 +117,6 @@ export default function UserDetailPage() {
     };
 
     const fetchFriendshipStatus = async () => {
-        // Implement fetching friendship status if needed
         // console.log("Fetching friendship status...");
         if(!currentUser || !user) {
             // console.log("No current user or user to fetch friendship status for.");
@@ -136,7 +136,6 @@ export default function UserDetailPage() {
             if (response.ok) {
                 console.log("* success");
                 setFriendshipStatus(data.status);
-                // console.log("Friendship status: ", data.status);
             } else {
                 console.warn("Failed to fetch friendship status:", data.message);
             }
@@ -156,7 +155,6 @@ export default function UserDetailPage() {
             const response = await umGetUser(userId, csrfToken);
             
             if (response.ok) {
-                // console.log("response data: ", response.data);
                 
                 setUser(response.data as UMUser);
             } else {
@@ -173,7 +171,6 @@ export default function UserDetailPage() {
     const handleUnblock = async () => {
         if (!user) return;
 
-        // console.log(currentUser?.id + " trying to unblock user: " + user.id);
         setActionLoading(true);
         try {
             const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/unblock`, {
@@ -185,7 +182,6 @@ export default function UserDetailPage() {
                 body: JSON.stringify({ id: user?.id }),
             });
             const data = await result.json();
-            // console.log("* CLIENT ---> requested: ", data);
             if( result.ok )
                 setFriendshipStatus("accepted");
         } finally {
@@ -196,7 +192,6 @@ export default function UserDetailPage() {
     const handleAddFriend = async () => {
         if (!user) return;
 
-        // console.log(currentUser?.id + " trying to add friend: " + user.id);
         setActionLoading(true);
         try {
             const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/friend`, {
@@ -209,8 +204,21 @@ export default function UserDetailPage() {
             });
             const data = await result.json();
             // console.log("* CLIENT ---> requested: ", data);
-            if( result.ok )
+            if( result.ok ) {
                 setFriendshipStatus("pending");
+                
+                await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/friend-request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ 
+                        recipientId: user.id,
+                        senderId: currentUser?.id 
+                    }),
+                });
+            }
             
         } catch (err) {
             console.error("Failed to add friend:", err);
@@ -288,21 +296,46 @@ export default function UserDetailPage() {
 
     return (
         //   background: radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912;
-        <main style={{ padding: 24, fontFamily: 'sans-serif', margin: '0 auto', background: 'radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912', minHeight: '100dvh' }}>
+        <main
+            style={{
+                padding: 24,
+                fontFamily: 'sans-serif',
+                margin: '0 auto',
+                background: 'radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912',
+                minHeight: '100dvh',
+                // Provide the neon theme variables expected by MatchHistoryPanel styles
+                '--neon-blue': '#00f0ff',
+                '--neon-purple': '#b744ff',
+                '--neon-pink': '#ff006e',
+                '--neon-green': '#00ff88',
+                '--dark-bg': '#0a0e1a',
+                '--darker-bg': '#050811',
+                '--card-bg': 'rgba(15, 20, 35, 0.85)',
+            }}
+        >
             
-            <ProfileCard 
-                profile={user} 
-                isCurrentUser={isCurrentUser}
-                onAddFriend={handleAddFriend} 
-                friendshipStatus={friendshipStatus} 
-                acceptRequest={acceptRequest}
-                invitationReceived={invitationReceived}
-                blockUser={handleBlockUser}
-                rejectRequest={rejectRequest}
-                handleMessageBtn={() => handleMessageBtn(user.id.toString())}
-                handleUnblock={handleUnblock}
-            />
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 24}}>
+                <ProfileCard 
+                    profile={user}
+                    isCurrentUser={isCurrentUser}
+                    onAddFriend={handleAddFriend}
+                    friendshipStatus={friendshipStatus} 
+                    acceptRequest={acceptRequest}
+                    invitationReceived={invitationReceived}
+                    blockUser={handleBlockUser}
+                    rejectRequest={rejectRequest}
+                    handleMessageBtn={() => handleMessageBtn(user.id.toString())}
+                    handleUnblock={handleUnblock}
+                />
 
+                <MatchHistoryPanel
+                    userId={typeof user.id === 'number' ? user.id : parseInt(user.id)}
+                    isVisible={true}
+                    isGamePage={false}
+                />
+
+            </div>
+            
             <CurrentUserProfileNotice isCurrentUser={isCurrentUser}/>
 
         </main>

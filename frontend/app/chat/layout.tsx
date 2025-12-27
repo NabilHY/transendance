@@ -6,14 +6,12 @@ import styles from "./styles.module.css";
 import { fetchCurrentUser } from "@/lib/fetcher";
 import { Friend } from "@/lib/chat";
 import ChatSocketContext from "./ChatSocketContext";
-import { Conversation, Message, getReceivers } from "@/lib/chat";
+import { Conversation, Message, getReceiverStatus, getConversations, getChannelName } from "@/lib/chat";
 import { User } from "../settings/page";
-import { getConversations, getChannelName } from "@/lib/chat";
+// import { getConversations, getChannelName } from "@/lib/chat";
 import ChatDataContext from "./ChatDataContext";
-
-const chatURL = process.env.NEXT_PUBLIC_CHAT_URL || "ws://localhost:8006";
-const userMgntURL = process.env.NEXT_PUBLIC_USR_MANAG_URL || "http://localhost:4000";
-
+import { getChatWsUrl, getUserMgmtBase } from "@/lib/api-config";
+// import { getReceiverStatus } from "@/lib/chat";
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [currentUser, setCurrentUser] =
@@ -22,6 +20,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const [initError, setInitError] = useState<string | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
+  const pendingMessagesRef = useRef<Message[]>([]);
   // const [updated, setUpdated] = useState<boolean>(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
@@ -43,12 +42,29 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       setCurrentUser(user);
 
       try {
-        setFriends(await getFriends());
+        await getFriends().then((friends) => {
+          setFriends(friends);
+          console.log("friends loaded: ", friends);
+        });
+        // setFriends(friends).then(() => {
+        //   console.log("friends loaded: ", friends);
+        // });
 
-        socketRef.current = new WebSocket(`${chatURL}/ws?userId=${user.id}`);
+        const wsUrl = getChatWsUrl(user.id);
+        console.log("CHAT: Connecting to WebSocket:", wsUrl);
+        socketRef.current = new WebSocket(wsUrl);
 
         socketRef.current.onopen = () => {
           console.log("CHAT: WebSocket connected");
+          // Flush any messages queued while the socket was still connecting.
+          const socket = socketRef.current;
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            pendingMessagesRef.current.forEach((msg) =>
+              socket.send(JSON.stringify(msg))
+            );
+            pendingMessagesRef.current = [];
+          }
+          setIsSuccess(true);
         };
 
         socketRef.current.onmessage = (event) => {
@@ -64,7 +80,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           console.log("CHAT: ❌ WebSocket closed");
         };
 
-        setIsSuccess(true);
       } catch (e: any) {
         setInitError(e?.message || "Chat initialization failed.");
       } finally {
@@ -86,7 +101,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 }, [currentUser]);
 
   const getFriends = async () => {
-    const res = await fetch(`${userMgntURL}/me/friends`, {
+    const baseUrl = getUserMgmtBase();
+    // const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/me/friends`, {
+    const res = await fetch(`${baseUrl}/me/friends`, {
       credentials: "include",
     });
     return res.ok ? res.json() : [];
@@ -94,7 +111,27 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const sendMessage = async (message: Message) => {
       console.log("message to send: ", message);
-      socketRef.current?.send(JSON.stringify(message));
+      const socket = socketRef.current;
+
+      if (!socket) {
+        console.warn("CHAT: No socket available to send message");
+        return;
+      }
+
+      const payload = JSON.stringify(message);
+
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(payload);
+        return;
+      }
+
+      if (socket.readyState === WebSocket.CONNECTING) {
+        // Queue the message and let the onopen handler flush.
+        pendingMessagesRef.current.push(message);
+        return;
+      }
+
+      console.warn("CHAT: Socket not open; readyState:", socket.readyState);
       // setMessages(prev => [...prev, message]);
   };
 
@@ -103,9 +140,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     convs.map(async (conv) => {
       if (conv.is_private && !conv.name) {
         const name = await getChannelName(conv.id);
+        const status = await getReceiverStatus(conv.id);
+        console.log("receiver status ===> ", status);
         return {
           ...conv,
           name: name || "Private Chat",
+          is_online: status.status === "online" ? true : false,
         };
       }
       return {
@@ -117,11 +157,29 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 };
 
 
+
   const fetchConversations = async () => {
     if (!currentUser) return;
 
     const data = await getConversations(currentUser.id);
-    const normalized = await normalizeConversations(data);
+    const normalized = await normalizeConversations(data).then((res) => {
+      console.log("normal ===> ", res);
+      // send meeage
+      res.forEach((conv) => {
+        const message: Message = {
+          uuid: crypto.randomUUID(),
+          channel_id: conv.id,
+          sender_id: currentUser != null ? currentUser.id.toString() : 'unknown',
+          sent_at: new Date().toISOString(),
+          content: "",
+          sender_name: "",
+          receiver_id: undefined,
+          pending: 1,
+          };
+        sendMessage(message);
+      });
+      return res;
+    });
     setConversations(normalized);
   };
 

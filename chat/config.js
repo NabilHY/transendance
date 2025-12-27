@@ -7,4 +7,6 @@ export default {
     METRICS_ALLOW_CIDRS: process.env.METRICS_ALLOW_CIDRS || '172.16.0.0/12',
     METRICS_DENY_IPS: process.env.METRICS_DENY_IPS || '127.0.0.1,::1',
     METRICS_GATEWAY_IP: process.env.METRICS_GATEWAY_IP || '172.16.0.1',
+    USR_MANAG_URL: process.env.USR_MANAG_SERVICE_URL || process.env.USR_MANAG_URL || 'http://usr-manag:4000',
+    JWT_SECRET: process.env.JWT_SECRET || 'UJq44uXahz4yd8v9UpLz+rH0EA3ZJ8dhRi/0isY1qhc=',
 };

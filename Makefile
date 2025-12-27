@@ -1,6 +1,14 @@
 # Makefile for ft_transendance_42 project
 # Docker Compose commands for managing microservices (auth-backend, usr-manag, frontend)
 
+ENV ?= dev
+
+# Select compose file based on environment
+COMPOSE_FILE = $(if $(filter prod,$(ENV)),docker-compose.prod.yml,docker-compose.yml)
+
+
+COMPOSE = docker compose -f $(COMPOSE_FILE)
+
 # Volumes :
 VOLUMES_DIR=/home/${USER}/transendance_volumes
 ENV_FILE=.env
@@ -17,8 +25,8 @@ help:
 	@echo "Available commands:"
 	@echo "  setup       - Quick environment setup for development"
 	@echo "  setup-full  - Interactive environment setup"
-	@echo "  build       - Build all services"
-	@echo "  up          - Start all services in detached mode"
+	@echo "  build       - Build all services (use env=prod for production)"
+	@echo "  up          - Start all services in detached mode (use env=prod for production)"
 	@echo "  down        - Stop and remove all services"
 	@echo "  restart     - Restart all services"
 	@echo "  logs        - Show logs from all services"
@@ -29,37 +37,45 @@ help:
 	@echo "  test        - Run smoke tests to verify endpoints"
 	@echo "  init        - Complete setup (env + deps + build + start)"
 	@echo "  dev         - Start all services and show logs"
+	@echo ""
+	@echo "Environment:"
+	@echo "  env=dev     - Use development compose file (default)"
+	@echo "  env=prod    - Use production compose file"
+	@echo ""
+	@echo "Examples (NOTE: variable must come BEFORE target):"
+	@echo "  make build           - Build with dev compose file"
+	@echo "  make env=prod build  - Build with prod compose file (CORRECT)"
 
 ${users_db_dir}:
 	mkdir -p ${users_db_dir}
 
 # Build commands
-build: 
-	docker compose build --no-cache
+build:
+	$(COMPOSE) build --no-cache
 
 # Start commands
 up: ${users_db_dir}
-	docker compose up -d
+	$(COMPOSE) up -d
 
 # Stop commands
 down:
-	docker compose down
+	$(COMPOSE) down
 
 # Restart commands
 restart:
-	docker compose restart
+	$(COMPOSE) restart
 
 # Log commands
 logs:
-	docker compose logs -f
+	$(COMPOSE) logs -f
 
 # Status commands
 ps:
-	docker compose ps
+	$(COMPOSE) ps
 
 # Clean commands
 clean:
-	docker compose down -v --remove-orphans
+	$(COMPOSE) down -v --remove-orphans
 	docker system prune -f
 
 # Rebuild commands
@@ -95,19 +111,19 @@ dev: up logs
 # Database commands
 db-backup:
 	@echo "Backing up auth-backend database..."
-	docker compose exec auth-backend sqlite3 /usr/src/app/db/sqlite.db ".backup /usr/src/app/db/backup_$(shell date +%Y%m%d_%H%M%S).db"
+	$(COMPOSE) exec auth-backend sqlite3 /usr/src/app/db/sqlite.db ".backup /usr/src/app/db/backup_$(shell date +%Y%m%d_%H%M%S).db"
 	@echo "Backing up usr-manag database..."
-	docker compose exec usr-manag sqlite3 /usr/src/app/data/database.sqlite ".backup /usr/src/app/data/backup_$(shell date +%Y%m%d_%H%M%S).db"
+	$(COMPOSE) exec usr-manag sqlite3 /usr/src/app/data/database.sqlite ".backup /usr/src/app/data/backup_$(shell date +%Y%m%d_%H%M%S).db"
 
 # Service-specific commands
 backend-shell:
-	docker compose exec auth-backend /bin/bash
+	$(COMPOSE) exec auth-backend /bin/bash
 
 usr-manag-shell:
-	docker compose exec usr-manag /bin/sh
+	$(COMPOSE) exec usr-manag /bin/sh
 
 frontend-shell:
-	docker compose exec frontend /bin/sh
+	$(COMPOSE) exec frontend /bin/sh
 
 # Monitoring commands
 stats:
@@ -116,8 +132,8 @@ stats:
 # Environment commands
 env:
 	@echo "Auth-backend environment:"
-	@docker compose exec auth-backend env | grep -E "(NODE_ENV|JWT|DB)" || echo "No environment variables found"
+	@$(COMPOSE) exec auth-backend env | grep -E "(NODE_ENV|JWT|DB)" || echo "No environment variables found"
 	@echo "Usr-manag environment:"
-	@docker compose exec usr-manag env | grep -E "(NODE_ENV|AUTH_SERVICE_URL|DATABASE_PATH)" || echo "No environment variables found"
+	@$(COMPOSE) exec usr-manag env | grep -E "(NODE_ENV|AUTH_SERVICE_URL|DATABASE_PATH)" || echo "No environment variables found"
 	@echo "Frontend environment:"
-	@docker compose exec frontend env | grep -E "(NODE_ENV|API)" || echo "No environment variables found"
+	@$(COMPOSE) exec frontend env | grep -E "(NODE_ENV|API)" || echo "No environment variables found"

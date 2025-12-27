@@ -91,9 +91,9 @@ export function ProfileCard({ profile, isCurrentUser, onAddFriend, friendshipSta
             </>
           )}
 
-        <div className={`button-grid ${isCurrentUser ? "no-display" : ""} ${friendshipStatus === "blocked" || friendshipStatus === "blocker" || friendshipStatus === "pending" ? "no-display" : null }`}>
-          <button className="btn-primary">Invite to Match</button>
-          <button className="btn-secondary" onClick={handleMessageBtn} >Message</button>
+        <div style={{width: '100%', marginTop: '10px'}} className={`${isCurrentUser ? "no-display" : ""} ${friendshipStatus === "blocked" || friendshipStatus === "blocker" || friendshipStatus === "pending" ? "no-display" : null }`}>
+          {/* <button className="btn-primary">Invite to Match</button> */}
+          <button style={{width: '100%'}} className="btn-secondary" onClick={handleMessageBtn} >Message</button>
         </div>
         {/* for blockers users */}
         <div className={`button-grid mt-small ${isCurrentUser ? "no-display" : ""} ${friendshipStatus !== "blocker" ? "no-display" : "blocking" }`}>

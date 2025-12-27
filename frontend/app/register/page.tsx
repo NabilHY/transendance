@@ -13,6 +13,28 @@ export default function RegisterPage() {
 	const [message, setMessage] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	
+	const getApiBase = () => {
+	if (typeof window !== 'undefined') {
+		// Use explicit base URL if configured (production)
+		if (process.env.NEXT_PUBLIC_BASE_URL) {
+			return process.env.NEXT_PUBLIC_BASE_URL;
+		}
+		// Production: Use current page origin (HTTPS, no port) when behind nginx/ngrok
+		// Dev: Use direct port connection
+		const protocol = window.location.protocol;
+		const hostname = window.location.hostname;
+		const port = window.location.port;
+		
+		// If no port or standard HTTPS port (443), use origin without port (production/ngrok)
+		if (!port || port === '443' || port === '') {
+			// Force HTTPS for production OAuth
+			return `https://${hostname}`;
+		}
+		// Dev: use direct port connection
+		return `${protocol === 'https:' ? 'https' : 'http'}://${hostname}:8005`;
+	}
+	return process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005';
+};
 	const { loading } = useRequireGuest();
 
 	if (loading) {
@@ -104,7 +126,7 @@ export default function RegisterPage() {
 								<div className={styles.divider}>or</div>
 								<a
 									className={styles.googleBtn}
-									href={`${process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8005'}/api/auth/google`}
+									href={`${getApiBase()}/api/auth/google`}
 								>
 									<svg className={styles.googleIcon} width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
 										<path d="M17.64 9.20454C17.64 8.56636 17.5827 7.95272 17.4764 7.36363H9V10.845H13.8436C13.635 11.97 13.0009 12.9232 12.0477 13.5614V15.8195H14.9564C16.6582 14.2527 17.64 11.9455 17.64 9.20454Z" fill="#4285F4"/>

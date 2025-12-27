@@ -1,5 +1,7 @@
 const fastify = require('fastify')({ logger: true });
 const config = require('../config');
+const notificationHandler = require('../routes/notificationHandler');
+const { validateToken } = require('../utils/validateToken');
 // Define allowed origins - support localhost, 127.0.0.1, and local network IPs
 
 const allowedOrigins = config.FRONTEND_URL;
@@ -22,10 +24,14 @@ const isOriginAllowed = (origin) => {
         /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs
         /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,   // Private network IPs (HTTPS)
         /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs
-        /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/  // Private network IPs (HTTPS)
+        /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/,  // Private network IPs (HTTPS)
+        /^https?:\/\/196\.119\.125\.6(:\d+)?$/,  // External public IP
+        /^https?:\/\/[\d.]+:\d+$/  // Any IP address with port (development mode)
     ];
     
-    return allowedPatterns.some(pattern => pattern.test(origin));
+    const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+    console.log(`[CORS] Origin: ${origin} - Allowed: ${isAllowed}`);
+    return isAllowed;
 };
 
 console.log('allowedOrigins ::::::', allowedOrigins);
@@ -56,6 +62,7 @@ fastify.setErrorHandler(function (err, req, reply) {
 fastify.register(require('@fastify/cookie'));
 
 // Register plugins
+fastify.register(require('@fastify/websocket'));
 fastify.register(require('@fastify/cors'), {
     origin: (origin, cb) => {
         const allowed = isOriginAllowed(origin);
@@ -149,7 +156,46 @@ fastify.register(require('../routes/chat'), { prefix: '' });
 fastify.register(require('../routes/friends'), { prefix: '' });
 fastify.register(require('../routes/media'), { prefix: '' });
 // fastify.register(require('../routes/profile'), { prefix: '' });
+fastify.register(require('../routes/notifications'), { prefix: '' });
+// fastify.register(require('../routes/profile'), { prefix: '' });
 fastify.register(require('../plugins/metrics'), { prefix: '/metrics' });
+
+fastify.register(async function (fastify) {
+    fastify.get('/notifications/ws', { websocket: true }, (connection, req) => {
+        const rawCookie = req.headers?.cookie;
+        const bearer = req.headers?.authorization;
+        const token = req.cookies?.accessToken || bearer?.replace('Bearer ', '');
+
+        const result = validateToken(token);
+        if (!result.valid || !result.userId) {
+            console.warn(`[WS] Unauthorized connection attempt. Cookie: ${rawCookie || 'none'}, Authorization: ${bearer || 'none'}`);
+            connection?.socket?.close?.(1008, 'Unauthorized');
+            return;
+        }
+
+        const userId = result.userId;
+        const ws = connection?.socket || connection;
+
+        if (!ws || typeof ws.on !== 'function') {
+            console.error('[WS] Socket missing on connection; cannot register events');
+            return;
+        }
+
+        console.log(`[WS] User ${userId} connected. Cookie: ${rawCookie || 'none'}`);
+        notificationHandler.registerNotificationConnection(userId, ws);
+        
+        ws.on('close', (code, reason) => {
+            console.log(`[WS] Connection closed for user ${userId}. Code: ${code} Reason: ${reason?.toString?.() || ''}`);
+            notificationHandler.unregisterNotificationConnection(userId, ws);
+        });
+        
+        ws.on('error', (err) => {
+            console.error(`WebSocket error for user ${userId}:`, err);
+            notificationHandler.unregisterNotificationConnection(userId, ws);
+        });
+    });
+});
+
 const start = async () => {
     try {
         await fastify.listen({ port: `${config.USR_MANAG_PORT}`, host: '0.0.0.0' });
