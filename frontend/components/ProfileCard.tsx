@@ -15,9 +15,14 @@ interface ProfileCardProps {
   rejectRequest?: () => void;
   handleMessageBtn: () => void;
   handleUnblock?: () => void;
+  playerStats?: {
+    games_played: number;
+    games_won: number;
+    win_rate: number;
+  };
 }
 
-export function ProfileCard({ profile, isCurrentUser, onAddFriend, friendshipStatus, acceptRequest, invitationReceived, blockUser, rejectRequest, handleMessageBtn, handleUnblock }: ProfileCardProps) {
+export function ProfileCard({ profile, isCurrentUser, onAddFriend, friendshipStatus, acceptRequest, invitationReceived, blockUser, rejectRequest, handleMessageBtn, handleUnblock, playerStats }: ProfileCardProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState(false);
 
@@ -34,6 +39,9 @@ export function ProfileCard({ profile, isCurrentUser, onAddFriend, friendshipSta
     });
     return () => { cancelled = true; };
   }, [profile.id, profile.profile_pic, profile.avatar_updated_at, isCurrentUser]);
+
+  console.log("playerStats: ", playerStats);
+  
 
   return (
     <div className="profile-card">
@@ -125,16 +133,16 @@ export function ProfileCard({ profile, isCurrentUser, onAddFriend, friendshipSta
         <div className="stats-grid">
           <div className="stat-card">
             {/* <div className="stat-number">{profile.total_games}</div> */}
-            <div className="stat-number">120</div>
+            <div className="stat-number">{playerStats ? playerStats.games_played : '—'}</div>
             <div className="stat-label">Games</div>
           </div>
           <div className="stat-card">
             {/* <div className="stat-number">{profile.total_wins}</div> */}
-            <div className="stat-number">85</div>
+            <div className="stat-number">{playerStats ? playerStats.games_won : '—'}</div>
             <div className="stat-label">Wins</div>
           </div>
           <div className="stat-card">
-            <div className="stat-number">75%</div>
+            <div className="stat-number">{playerStats ? playerStats.win_rate : '—'}%</div>
               {/* {profile.win_rate > 0 ? profile.win_rate.toFixed(0) : '—'}%
             </div> */}
             <div className="stat-label">Win Rate</div>

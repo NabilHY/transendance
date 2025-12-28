@@ -12,6 +12,39 @@
     --text-secondary: #7dd8ff;
   } */
 
+.container :global(*::-webkit-scrollbar) {
+  width: 12px;
+  height: 12px;
+}
+
+.container :global(*::-webkit-scrollbar-track) {
+  background: rgba(10, 14, 26, 0.6);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+.container :global(*::-webkit-scrollbar-thumb) {
+  background: linear-gradient(180deg, var(--neon-blue), var(--neon-purple));
+  border-radius: 10px;
+  border: 2px solid rgba(10, 14, 26, 0.8);
+  box-shadow: 
+    0 0 10px rgba(0, 240, 255, 0.3),
+    inset 0 0 10px rgba(183, 68, 255, 0.3);
+}
+
+.container :global(*::-webkit-scrollbar-thumb:hover) {
+  background: linear-gradient(180deg, var(--neon-purple), var(--neon-pink));
+  box-shadow: 
+    0 0 15px rgba(183, 68, 255, 0.5),
+    inset 0 0 15px rgba(255, 0, 110, 0.4);
+}
+
+.container :global(*) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--neon-blue) rgba(10, 14, 26, 0.6);
+}
+
+
   .container {
     --neon-blue: #00f0ff;
     --neon-purple: #b744ff;

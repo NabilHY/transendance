@@ -13,6 +13,8 @@ import CurrentUserProfileNotice from '@/components/CurrentUserProfileNotice';
 import { handleMessageClick } from '@/lib/chat';
 import { MatchHistoryPanel } from '@/app/game/components/MatchHistoryPanel';
 import '../../game/styles.module.css';
+import { fetchPlayerStats, getAuthToken } from '@/app/game/utils/api';
+import type { PlayerStats } from '@/app/game/types';
 
 export default function UserDetailPage() {
     const params = useParams();
@@ -24,8 +26,11 @@ export default function UserDetailPage() {
     const [actionLoading, setActionLoading] = useState(false);
     const [friendshipStatus, setFriendshipStatus] = useState<string | null>(null);
     const [invitationReceived, setInvitationReceived] = useState<boolean>(false);
+    const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
+    const [statsError, setStatsError] = useState<string | null>(null);
     const router = useRouter();
     const { user: currentUser, ensureCsrf } = useAuth();
+
 
     useEffect(() => {
         // console.log("---------------->");
@@ -44,6 +49,24 @@ export default function UserDetailPage() {
         }
         // console.log("userId changed: ", userId);
     }, [userId]);
+
+    // Fetch authenticated player's stats once auth is ready
+    useEffect(() => {
+        const loadStats = async () => {
+            try {
+                await fetchPlayerStats(getAuthToken, setPlayerStats, setStatsError).then(() => {
+                    console.log("Player stats fetched: ", playerStats);
+                });
+            } catch (e) {
+                console.error('Failed to fetch player stats:', e);
+            } finally {
+                console.log("Finished fetching player stats: ", playerStats);
+            }
+        };
+        if (!authLoading) {
+            loadStats();
+        }
+    }, [authLoading]);
 
     const invitationsReceived = async () => {
         // console.log("Fetching invitations received...");
@@ -313,30 +336,34 @@ export default function UserDetailPage() {
                 '--card-bg': 'rgba(15, 20, 35, 0.85)',
             }}
         >
-            
-            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 24}}>
-                <ProfileCard 
-                    profile={user}
-                    isCurrentUser={isCurrentUser}
-                    onAddFriend={handleAddFriend}
-                    friendshipStatus={friendshipStatus} 
-                    acceptRequest={acceptRequest}
-                    invitationReceived={invitationReceived}
-                    blockUser={handleBlockUser}
-                    rejectRequest={rejectRequest}
-                    handleMessageBtn={() => handleMessageBtn(user.id.toString())}
-                    handleUnblock={handleUnblock}
-                />
+            {user && playerStats !== null && (
+                <>
+                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 24}}>
+                        <ProfileCard 
+                            profile={user}
+                            isCurrentUser={isCurrentUser}
+                            onAddFriend={handleAddFriend}
+                            friendshipStatus={friendshipStatus} 
+                            acceptRequest={acceptRequest}
+                            invitationReceived={invitationReceived}
+                            blockUser={handleBlockUser}
+                            rejectRequest={rejectRequest}
+                            handleMessageBtn={() => handleMessageBtn(user.id.toString())}
+                            handleUnblock={handleUnblock}
+                            playerStats={playerStats}
+                        />
 
-                <MatchHistoryPanel
-                    userId={typeof user.id === 'number' ? user.id : parseInt(user.id)}
-                    isVisible={true}
-                    isGamePage={false}
-                />
+                        <MatchHistoryPanel
+                            userId={typeof user.id === 'number' ? user.id : parseInt(user.id)}
+                            isVisible={true}
+                            isGamePage={false}
+                        />
 
-            </div>
-            
-            <CurrentUserProfileNotice isCurrentUser={isCurrentUser}/>
+                    </div>
+                
+                    <CurrentUserProfileNotice isCurrentUser={isCurrentUser}/>
+                </>
+            )}
 
         </main>
     );
