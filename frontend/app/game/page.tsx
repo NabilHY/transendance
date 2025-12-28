@@ -146,7 +146,7 @@ export default function GamePage() {
         // Auto-start direct game invite if present
         if (directGameInfo) {
           console.log('🎮 Auto-starting direct game invite...');
-          await connectWebSocket('matchmaking', undefined, directGameInfo);
+          await connectWebSocket('direct', undefined, directGameInfo);
         }
       } else {
         setIsAuthenticated(false);

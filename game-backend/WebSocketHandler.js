@@ -83,8 +83,61 @@ class WebSocketHandler {
           if (data.type === "join") {
             // Player wants to join a game with authentication
             const gameMode = data.gameMode || 'matchmaking';
+            const directInvite = data.directInvite;
             
-            if (gameMode === 'matchmaking') {
+            if (gameMode === 'direct' && directInvite) {
+              const result = await this.gameManager.addDirectMatchPlayer(
+                connection.socket,
+                user,
+                directInvite
+              );
+              if (result.error) {
+                connection.socket.send(JSON.stringify({ type: 'directMatchError', error: result.error }));
+              } else if (result.matchReady && result.players) {
+                console.log(`[DIRECT] Match ready! Sending gameJoined to ${result.players.length} players`);
+                // Send gameJoined to both players
+                for (const p of result.players) {
+                  if (p.connection) {
+                    console.log(`[DIRECT] Sending gameJoined to ${p.user.username} (${p.role})`);
+                    p.connection.send(JSON.stringify({
+                      type: 'gameJoined',
+                      playerRole: p.role,
+                      roomId: p.roomId,
+                      opponent: p.opponent,
+                      user: p.user,
+                      gameState: p.gameState
+                    }));
+
+                    // Also send an info sync so each handler keeps correct playerInfo
+                    p.connection.send(JSON.stringify({
+                      type: 'playerInfoSync',
+                      playerRole: p.role,
+                      roomId: p.roomId,
+                      connectionId: p.connectionId,
+                      gameType: 'direct'
+                    }));
+                    console.log(`[DIRECT] Sent messages to ${p.user.username}`);
+                  } else {
+                    console.log(`[DIRECT] WARNING: No connection for ${p.user.username}`);
+                  }
+
+                  if (p.connection === connection.socket) {
+                    playerInfo = p;
+                    console.log(`[DIRECT] Set playerInfo for current connection: ${p.user.username}`);
+                  }
+                }
+              } else if (result.waiting) {
+                playerInfo = result.waiting;
+                connection.socket.send(JSON.stringify({
+                  type: 'waitingForOpponent',
+                  playerRole: result.waiting.role,
+                  roomId: result.waiting.roomId,
+                  message: 'Waiting for invited player to join',
+                  inviteId: directInvite.inviteId,
+                  opponentId: directInvite.opponentId
+                }));
+              }
+            } else if (gameMode === 'matchmaking') {
               // Use authenticated matchmaking
               const result = await this.gameManager.addAuthenticatedPlayer(
                 connection.socket, 
@@ -259,8 +312,17 @@ class WebSocketHandler {
           } else if (data.type === "update" || data.type === "reset") {
             // Handle game input if player is in a game
             // Use the connectionId that GameManager assigned, not connection.id
-            if (playerInfo && playerInfo.connectionId) {
-              this.gameManager.handlePlayerInput(playerInfo.connectionId, data);
+            let resolvedConnectionId = playerInfo && playerInfo.connectionId ? playerInfo.connectionId : null;
+            if (!resolvedConnectionId) {
+              resolvedConnectionId = this.gameManager.findConnectionIdBySocket(connection.socket);
+              if (resolvedConnectionId) {
+                const gmPlayer = this.gameManager.getPlayerInfo(resolvedConnectionId);
+                playerInfo = gmPlayer ? { ...gmPlayer, connectionId: resolvedConnectionId } : playerInfo;
+              }
+            }
+
+            if (resolvedConnectionId) {
+              this.gameManager.handlePlayerInput(resolvedConnectionId, data);
             } else {
               console.log(`⚠️ Cannot handle input - no playerInfo or connectionId`);
             }

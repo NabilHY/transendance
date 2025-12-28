@@ -2,7 +2,7 @@
 
 export type GameScreen = "start" | "waiting" | "game" | "end" | "tournamentWaiting" | "tournamentMatchReady" | "quadWaiting";
 
-export type GameMode = "solo" | "matchmaking" | "ai" | "tournament" | "quad";
+export type GameMode = "solo" | "matchmaking" | "ai" | "tournament" | "quad" | "direct";
 
 export type AIDifficulty = "easy" | "medium" | "hard" | "impossible";
 
