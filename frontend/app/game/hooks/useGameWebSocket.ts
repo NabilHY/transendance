@@ -115,6 +115,28 @@ export const useGameWebSocket = (
         return;
       }
 
+      if (message.type === 'directMatchError') {
+        console.error('❌ Direct match error:', message.error);
+        setAuthError(message.error || 'Failed to start direct match.');
+        setScreen("start");
+        setPlayerInfo(null);
+        setGameState(null);
+        ws.close();
+        return;
+      }
+
+      if (message.type === 'playerInfoSync') {
+        console.log('[WS] Player info sync:', message);
+        setPlayerInfo(prev => ({
+          ...prev,
+          role: message.playerRole,
+          roomId: message.roomId,
+          gameType: message.gameType || prev?.gameType || 'multiplayer',
+          inviteId: message.inviteId || (prev as any)?.inviteId
+        }));
+        return;
+      }
+
       if (message.type === 'authSuccess' || message.type === 'authenticated') {
         console.log('✅ Authentication successful:', message);
         setPlayerInfo(message.user);
@@ -126,27 +148,31 @@ export const useGameWebSocket = (
           joinMessage.aiDifficulty = aiDifficulty;
         }
         // If this is a direct game invite, include hint data but keep standard join flow
-        if (directGameInfo) {
+        if (gameMode === 'direct' && directGameInfo) {
           joinMessage.directInvite = {
             opponentId: parseInt(directGameInfo.opponentId),
             inviteId: directGameInfo.inviteId
           };
-          console.log('🎮 Direct invite detected; joining via matchmaking:', joinMessage.directInvite);
+          console.log('🎯 Direct invite detected; requesting direct match:', joinMessage.directInvite);
         }
         ws.send(JSON.stringify(joinMessage));
       } else if (message.type === 'waiting' || message.type === 'waitingForOpponent') {
+        console.log('[WS] Waiting for opponent:', message);
         setScreen("waiting");
-        setPlayerInfo({ ...message, user: message.user });
+        setPlayerInfo({ ...message, user: message.user, inviteId: (message as any).inviteId });
       } else if (message.type === 'gameJoined') {
+        console.log('[WS] Game joined! Message:', message);
         setScreen("game");
         setPlayerInfo({
           role: message.playerRole,
           roomId: message.roomId,
           gameType: message.gameMode || 'multiplayer',
           opponent: message.opponent,
-          user: message.user
+          user: message.user,
+          inviteId: (message as any).inviteId
         });
         setGameState(message.gameState);
+        console.log('[WS] Set screen to game, playerInfo and gameState updated');
       } else if (message.type === 'tournamentQueued') {
         setScreen("tournamentWaiting");
         setTournamentQueue({

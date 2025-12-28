@@ -33,6 +33,7 @@ class GameManager {
     this.games = new Map(); // roomId -> { gameState, gameLoop, players: Set(), spectators: Set() }
     this.players = new Map(); // connectionId -> { roomId, role, connection }
     this.waitingPlayers = []; // Players waiting to be matched
+    this.directMatchQueue = new Map(); // inviteId -> { inviter, opponentId, connectionId }
     this.nextGameId = 1;
     
     // Track processed games globally to prevent ANY duplicates
@@ -77,10 +78,122 @@ class GameManager {
     } else if (gameMode === 'tournament') {
       // Add to tournament queue
       return this.addToTournamentQueue(connection, connectionId, user);
+    } else if (gameMode === 'direct') {
+      throw new Error('Use addDirectMatchPlayer for direct mode');
     } else {
       // Add to matchmaking queue
       return this.addToMatchmakingAuth(connection, connectionId, user);
     }
+  }
+
+  // Add player for a direct invite match between two specific users
+  async addDirectMatchPlayer(connection, user, directInvite) {
+    const { inviteId, opponentId } = directInvite || {};
+    if (!inviteId || !opponentId) {
+      return { error: 'Missing invite parameters' };
+    }
+
+    console.log(`[DIRECT] addDirectMatchPlayer called for user ${user.username} (${user.id}), invite ${inviteId}, opponentId hint ${opponentId}`);
+
+    // If user already connected, remove old connection
+    const existingPlayer = this.findPlayerByUserId(user.id);
+    if (existingPlayer) {
+      console.log(`User ${user.username} already connected, removing old connection for direct match`);
+      await this.removePlayer(existingPlayer.connectionId);
+    }
+
+    const connectionId = this.generateConnectionId();
+
+    // Check if the other party is already waiting in this invite room
+    const pending = this.directMatchQueue.get(inviteId);
+    if (!pending) {
+      // Store as first joiner
+      const roomId = this.generateRoomId();
+      this.directMatchQueue.set(inviteId, {
+        inviter: user,
+        opponentId: parseInt(opponentId),
+        connectionId,
+        connection,
+        roomId
+      });
+
+      console.log(`[DIRECT] Stored pending inviter ${user.username} (${user.id}) waiting for opponent ${opponentId} in room ${roomId}`);
+
+      // Keep tracking player for cleanup
+      this.players.set(connectionId, {
+        roomId,
+        role: 'waiting',
+        connection,
+        user,
+        directInviteId: inviteId
+      });
+
+      return {
+        waiting: {
+          connectionId,
+          roomId,
+          role: 'player1',
+          user,
+          gameType: 'direct'
+        }
+      };
+    }
+
+    // Validate opponent matches expected id
+    if (pending.opponentId !== user.id) {
+      console.log(`[DIRECT] Opponent mismatch. Pending expects ${pending.opponentId}, got ${user.id}. Allowing anyway.`);
+    }
+
+    // Create the direct game with inviter (pending) and current user
+    const player1Data = {
+      connection: pending.connection,
+      connectionId: pending.connectionId,
+      user: pending.inviter
+    };
+    const player2Data = {
+      connection,
+      connectionId,
+      user
+    };
+
+    const created = this.createMultiplayerGameAuth(player1Data, player2Data);
+
+    console.log(`[DIRECT] Created direct match ${created.player1.roomId}: ${player1Data.user.username} vs ${player2Data.user.username}`);
+
+    // Cleanup queue entry
+    this.directMatchQueue.delete(inviteId);
+
+    // Update player map with direct game type
+    this.players.set(player1Data.connectionId, {
+      roomId: created.player1.roomId,
+      role: 'player1',
+      connection: player1Data.connection,
+      user: player1Data.user,
+      gameType: 'direct'
+    });
+    this.players.set(player2Data.connectionId, {
+      roomId: created.player2.roomId,
+      role: 'player2',
+      connection: player2Data.connection,
+      user: player2Data.user,
+      gameType: 'direct'
+    });
+
+    return {
+      matchReady: true,
+      players: [
+        {
+          ...created.player1,
+          opponent: created.player1.opponent,
+          connection: player1Data.connection
+        },
+        {
+          ...created.player2,
+          opponent: created.player2.opponent,
+          connection: player2Data.connection
+        }
+      ]
+    };
   }
 
   // Find player by user ID
@@ -88,6 +201,16 @@ class GameManager {
     for (const [connectionId, playerData] of this.players.entries()) {
       if (playerData.user && playerData.user.id === userId) {
         return { connectionId, ...playerData };
+      }
+    }
+    return null;
+  }
+
+  // Find a connectionId by WebSocket instance (used when local playerInfo is stale)
+  findConnectionIdBySocket(socket) {
+    for (const [connectionId, playerData] of this.players.entries()) {
+      if (playerData.connection === socket) {
+        return connectionId;
       }
     }
     return null;
@@ -888,6 +1011,15 @@ class GameManager {
   async removePlayer(connectionId) {
     const player = this.players.get(connectionId);
     if (!player) return;
+
+    // If player was in a pending direct invite, drop it
+    if (player.directInviteId) {
+      const pending = this.directMatchQueue.get(player.directInviteId);
+      if (pending && pending.connectionId === connectionId) {
+        this.directMatchQueue.delete(player.directInviteId);
+        console.log(`🧹 Cleared pending direct invite ${player.directInviteId} due to disconnect`);
+      }
+    }
 
     // Remove from waiting queue if present
     this.waitingPlayers = this.waitingPlayers.filter(p => p.connectionId !== connectionId);
