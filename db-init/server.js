@@ -8,6 +8,9 @@ const { initializeNotifications } = require('./utils/notificationsSchema');
 const { runMigrations } = require('./utils/migrations');
 const config = require('./config');
 
+// Register metrics plugin
+fastify.register(require('./plugins/metrics'));
+
 // Simple config
 const PORT = config.PORT;
 const DATABASE_PATH = config.DATABASE_PATH || '/usr/src/app/db/shared.sqlite';

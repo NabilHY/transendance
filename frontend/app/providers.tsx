@@ -2,6 +2,7 @@
 
 import { AuthProvider } from '../context/AuthContext';
 import { UserProvider } from '../context/UserContext';
+import { PopupProvider } from '../context/PopupContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -121,21 +122,23 @@ export default function Providers({ children }: { children?: React.ReactNode }) 
 	return (
 		<AuthProvider>
 			<UserProvider>
-				<FetchInterceptor>
-					<OAuthCallbackHandler children={children ?? null} />
-					<ToastContainer
-						position="top-right"
-						autoClose={5000}
-						hideProgressBar={false}
-						newestOnTop={false}
-						closeOnClick
-						rtl={false}
-						pauseOnFocusLoss
-						draggable
-						pauseOnHover
-						theme="light"
-					/>
-				</FetchInterceptor>
+				<PopupProvider>
+					<FetchInterceptor>
+						<OAuthCallbackHandler children={children ?? null} />
+						<ToastContainer
+							position="top-right"
+							autoClose={5000}
+							hideProgressBar={false}
+							newestOnTop={false}
+							closeOnClick
+							rtl={false}
+							pauseOnFocusLoss
+							draggable
+							pauseOnHover
+							theme="light"
+						/>
+					</FetchInterceptor>
+				</PopupProvider>
 			</UserProvider>
 		</AuthProvider>
 	);

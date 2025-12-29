@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRequireGuest } from '@/hooks/useAuthGuard';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import styles from '../login/LoginPage.module.css';
 
 const API_BASE =
@@ -20,7 +21,7 @@ export default function ForgotPasswordPage() {
 	const { loading } = useRequireGuest();
 
 	if (loading) {
-		return <div>Loading...</div>;
+		return <LoadingScreen />;
 	}
 
 	function isValidEmail(value: string): boolean {

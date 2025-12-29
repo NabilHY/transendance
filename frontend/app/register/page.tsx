@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { getCsrfToken, register as apiRegister } from '@/lib/api';
 import { useRequireGuest } from '@/hooks/useAuthGuard';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import styles from '../login/LoginPage.module.css';
 
 export default function RegisterPage() {
@@ -38,7 +39,7 @@ export default function RegisterPage() {
 	const { loading } = useRequireGuest();
 
 	if (loading) {
-		return <div>Loading...</div>;
+		return <LoadingScreen />;
 	}
 
 	async function onSubmit(e: React.FormEvent) {

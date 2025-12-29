@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { umUpdateProfile, getCsrfToken } from '@/lib/api';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import styles from '../login/LoginPage.module.css';
 
 export default function CompleteProfilePage() {
@@ -24,16 +25,6 @@ export default function CompleteProfilePage() {
             router.push('/');
         }
     }, [authLoading, isProfileComplete, router]);
-    
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            e.preventDefault();
-            e.returnValue = '';
-        };
-        
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, []);
 
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -91,13 +82,7 @@ export default function CompleteProfilePage() {
     }
 
     if (authLoading) {
-        return (
-            <main className={styles.page}>
-                <div className={styles.container}>
-                    <div style={{ color: '#8c96b6', fontSize: '15px' }}>Loading...</div>
-                </div>
-            </main>
-        );
+        return <LoadingScreen />;
     }
 
     return (

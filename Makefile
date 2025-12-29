@@ -18,9 +18,11 @@ usr-manag-node_modules_dir=${VOLUMES_DIR}/usr-manag-node_modules
 frontend-node_modules_dir=${VOLUMES_DIR}/frontend-node_modules
 db-init-node_modules_dir=${VOLUMES_DIR}/db-init-node_modules
 
-.PHONY: help setup setup-full init build up down restart logs ps clean rebuild install-deps test smoke-test
+.PHONY: help setup setup-full init build up down restart logs ps clean rebuild install-deps test smoke-test dev prod prod-build prod-up prod-down prod-logs prod-restart prod-ngrok prod-ngrok-down build-prod
 
-# Default target
+# Default target - dev mode
+.DEFAULT_GOAL := dev
+
 help:
 	@echo "Available commands:"
 	@echo "  setup       - Quick environment setup for development"
@@ -36,15 +38,28 @@ help:
 	@echo "  install-deps - Install dependencies (for local development)"
 	@echo "  test        - Run smoke tests to verify endpoints"
 	@echo "  init        - Complete setup (env + deps + build + start)"
-	@echo "  dev         - Start all services and show logs"
+	@echo "  dev         - Start all services in dev mode and show logs (default)"
+	@echo ""
+	@echo "Production commands:"
+	@echo "  prod        - Build and start all services in production mode"
+	@echo "  prod-build  - Build all services in production mode"
+	@echo "  prod-up     - Start all services in production mode"
+	@echo "  prod-down   - Stop all services in production mode"
+	@echo "  prod-logs   - Show logs from all production services"
+	@echo "  prod-restart - Restart all services in production mode"
+	@echo ""
+	@echo "Note: make prod includes ngrok (set NGROK_AUTHTOKEN in .env to enable)"
 	@echo ""
 	@echo "Environment:"
 	@echo "  env=dev     - Use development compose file (default)"
 	@echo "  env=prod    - Use production compose file"
 	@echo ""
-	@echo "Examples (NOTE: variable must come BEFORE target):"
-	@echo "  make build           - Build with dev compose file"
-	@echo "  make env=prod build  - Build with prod compose file (CORRECT)"
+	@echo "Examples:"
+	@echo "  make              - Start dev mode (default)"
+	@echo "  make build        - Build with dev compose file"
+	@echo "  make prod         - Build and start in production mode"
+	@echo "  make prod-up      - Start production services"
+	@echo "  make env=prod build - Alternative: Build with prod compose file"
 
 ${users_db_dir}:
 	mkdir -p ${users_db_dir}
@@ -77,7 +92,10 @@ ps:
 clean:
 	$(COMPOSE) down -v --remove-orphans
 	docker system prune -f
-
+	
+prod: 
+	docker compose -f docker-compose.prod.yml build --no-cache
+	docker compose -f docker-compose.prod.yml up -d
 # Rebuild commands
 rebuild: clean build up
 
@@ -106,7 +124,60 @@ init: setup install-deps build up
 	@echo "🚀 Access the application at: http://localhost:8080"
 
 # Quick development commands
-dev: up logs
+dev: build up logs
+	@echo "✅ Development services built and started!"
+
+# Production commands
+prod: prod-build prod-up
+	@if [ -z "$$NGROK_AUTHTOKEN" ]; then \
+		echo "⚠️  Warning: NGROK_AUTHTOKEN not set - ngrok will not start"; \
+		echo "   To enable ngrok tunnel, add NGROK_AUTHTOKEN to your .env file"; \
+	else \
+		echo "✅ Ngrok tunnel will be available (check logs with: make prod-logs)"; \
+	fi
+	@echo "✅ Production services built and started!"
+	@echo "🚀 Production mode is active"
+
+prod-build:
+	@echo "🔨 Building production services..."
+	docker compose -f docker-compose.prod.yml build --no-cache
+
+# Build only production compose file (without starting)
+build-prod:
+	@echo "🔨 Building docker-compose.prod.yml services..."
+	docker compose -f docker-compose.prod.yml build --no-cache
+
+prod-up:
+	@echo "🚀 Starting production services..."
+	docker compose -f docker-compose.prod.yml up -d
+	@echo "✅ Production services started!"
+
+prod-down:
+	@echo "🛑 Stopping production services..."
+	docker compose -f docker-compose.prod.yml down
+
+prod-logs:
+	docker compose -f docker-compose.prod.yml logs -f
+
+prod-restart:
+	@echo "🔄 Restarting production services..."
+	docker compose -f docker-compose.prod.yml restart
+
+# Production with ngrok tunnel
+prod-ngrok: prod-build
+	@if [ -z "$$NGROK_AUTHTOKEN" ]; then \
+		echo "❌ Error: NGROK_AUTHTOKEN environment variable is not set"; \
+		echo "Please set it in your .env file or export it:"; \
+		echo "  export NGROK_AUTHTOKEN=your-token-here"; \
+		exit 1; \
+	fi
+	@echo "🚀 Starting production services with ngrok..."
+	docker compose -f docker-compose.prod.yml --profile ngrok up -d
+	@echo "✅ Production services with ngrok started!"
+
+prod-ngrok-down:
+	@echo "🛑 Stopping production services with ngrok..."
+	docker compose -f docker-compose.prod.yml --profile ngrok down
 
 # Database commands
 db-backup:

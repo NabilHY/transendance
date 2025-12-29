@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { Users, Home, Settings, LogOut, Search, X, UserPlus, UserX, User as UserIcon, Circle } from 'lucide-react';
 import baseStyles from '../login/LoginPage.module.css';
 import styles from './UsersPage.module.css';
@@ -170,13 +171,7 @@ export default function UsersPage() {
     };
     
     if (authLoading) {
-        return (
-            <main className={baseStyles.page}>
-                <div className={baseStyles.container}>
-                    <div className={styles.loadingText}>Loading...</div>
-                </div>
-            </main>
-        );
+        return <LoadingScreen />;
     }
 
     return (

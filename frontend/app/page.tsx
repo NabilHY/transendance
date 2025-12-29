@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useUser } from '@/context/UserContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { User, Users, Settings, Circle, ArrowRight } from 'lucide-react';
 import styles from './login/LoginPage.module.css';
 import { getAvatarUrl, getInitials, type UserWithAvatar } from '@/lib/avatar';
@@ -116,13 +117,7 @@ export default function HomePage() {
 	}, [requires2FA, router]);
 
 	if (authLoading || profileLoading) {
-		return (
-			<main className={styles.page}>
-				<div className={styles.container}>
-					<div style={{ color: '#8c96b6', fontSize: '15px' }}>Loading...</div>
-				</div>
-			</main>
-		);
+		return <LoadingScreen />;
 	}
 
 	return (

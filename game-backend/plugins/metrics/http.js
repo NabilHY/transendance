@@ -1,9 +1,7 @@
-import { client, getOrCreateGauge, getOrCreateHistogram } from './registry.js';
-import config from '../../config.js';
+const { client, getOrCreateGauge, getOrCreateHistogram } = require('./registry.js');
 
-const serviceName = config.SERVICE_NAME || 'usr-manag';
+const serviceName = 'game-backend';
 
-// Shared HTTP metrics
 const httpRequestDuration = getOrCreateHistogram({
   name: 'http_request_duration_seconds',
   help: 'Request duration in seconds',
@@ -17,12 +15,7 @@ const httpRequestsInFlight = getOrCreateGauge({
   labelNames: ['service', 'method', 'route'],
 });
 
-const sizeBuckets = [
-  200, 500,
-  1024, 2048, 5120,
-  10240, 51200, 102400,
-  524288, 1048576, 5242880,
-];
+const sizeBuckets = [200, 500, 1024, 2048, 5120, 10240, 51200, 102400, 524288, 1048576, 5242880];
 
 const httpRequestSize = getOrCreateHistogram({
   name: 'http_request_size_bytes',
@@ -46,7 +39,7 @@ const httpRequestErrors =
     labelNames: ['service', 'method', 'route', 'status_code'],
   });
 
-export function registerHttpHooks(fastify) {
+function registerHttpHooks(fastify) {
   fastify.addHook('onRequest', (req, _reply, done) => {
     const route = req.routerPath || req.url || 'unknown';
     
@@ -75,11 +68,8 @@ export function registerHttpHooks(fastify) {
     if (typeof req.__metrics.requestSizeBytes !== 'number') {
       let size = 0;
       try {
-        if (typeof req.body === 'string') {
-          size = Buffer.byteLength(req.body);
-        } else if (req.body !== undefined && req.body !== null) {
-          size = Buffer.byteLength(JSON.stringify(req.body));
-        }
+        if (typeof req.body === 'string') size = Buffer.byteLength(req.body);
+        else if (req.body !== undefined && req.body !== null) size = Buffer.byteLength(JSON.stringify(req.body));
       } catch {}
       req.__metrics.requestSizeBytes = size;
     }
@@ -90,13 +80,9 @@ export function registerHttpHooks(fastify) {
     try {
       let size = 0;
       if (payload !== undefined && payload !== null) {
-        if (Buffer.isBuffer(payload)) {
-          size = payload.length;
-        } else if (typeof payload === 'string') {
-          size = Buffer.byteLength(payload);
-        } else {
-          size = Buffer.byteLength(JSON.stringify(payload));
-        }
+        if (Buffer.isBuffer(payload)) size = payload.length;
+        else if (typeof payload === 'string') size = Buffer.byteLength(payload);
+        else size = Buffer.byteLength(JSON.stringify(payload));
       }
       if (!req.__metrics) req.__metrics = {};
       req.__metrics.responseSizeBytes = size;
@@ -121,16 +107,16 @@ export function registerHttpHooks(fastify) {
 
       httpRequestsInFlight.dec({ service: serviceName, method, route });
 
-      const reqSize = (req.__metrics && typeof req.__metrics.requestSizeBytes === 'number')
-        ? req.__metrics.requestSizeBytes
-        : 0;
+      const reqSize =
+        req.__metrics && typeof req.__metrics.requestSizeBytes === 'number' ? req.__metrics.requestSizeBytes : 0;
       httpRequestSize.observe({ service: serviceName, method, route }, reqSize);
 
       const cl = reply.getHeader && reply.getHeader('content-length');
       const clNum = cl ? parseInt(Array.isArray(cl) ? cl[0] : String(cl), 10) : NaN;
-      const respSize = Number.isFinite(clNum)
-        ? clNum
-        : ((req.__metrics && typeof req.__metrics.responseSizeBytes === 'number') ? req.__metrics.responseSizeBytes : 0);
+      const respSize =
+        Number.isFinite(clNum) ? clNum : (req.__metrics && typeof req.__metrics.responseSizeBytes === 'number'
+          ? req.__metrics.responseSizeBytes
+          : 0);
       httpResponseSize.observe({ service: serviceName, method, route, status_code: reply.statusCode }, respSize);
 
       const errLabels = { service: serviceName, method, route, status_code: reply.statusCode };
@@ -142,4 +128,5 @@ export function registerHttpHooks(fastify) {
   });
 }
 
+module.exports = { registerHttpHooks };
 

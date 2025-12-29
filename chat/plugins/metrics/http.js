@@ -49,6 +49,12 @@ const httpRequestErrors =
 export function registerHttpHooks(fastify) {
   fastify.addHook('onRequest', (req, _reply, done) => {
     const route = req.routerPath || req.url || 'unknown';
+    
+    // Skip metrics collection for /metrics endpoint
+    if (route === '/metrics') {
+      return done();
+    }
+    
     req.__metrics = req.__metrics || {};
     req.__metrics.route = route;
     req.__metrics.method = req.method;
@@ -102,6 +108,12 @@ export function registerHttpHooks(fastify) {
   fastify.addHook('onResponse', (req, reply, done) => {
     try {
       const route = (req.__metrics && req.__metrics.route) || req.routerPath || req.url || 'unknown';
+      
+      // Skip metrics collection for /metrics endpoint
+      if (route === '/metrics' || !req.__metrics) {
+        return done();
+      }
+      
       const method = (req.__metrics && req.__metrics.method) || req.method;
       const endNs = process.hrtime.bigint();
       const duration = Number(endNs - (req.startTimeNs || endNs)) / 1e9;

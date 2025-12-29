@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useRequireGuest } from '@/hooks/useAuthGuard';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import styles from './LoginPage.module.css';
 import { get } from 'http';
 
@@ -87,7 +88,7 @@ export default function LoginPage() {
 	}, [searchParams]);
 
 	if (loading) {
-		return <div>Loading...</div>;
+		return <LoadingScreen />;
 	}
 
 	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {

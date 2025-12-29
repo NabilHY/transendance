@@ -12,6 +12,7 @@ import { User } from "../settings/page";
 import ChatDataContext from "./ChatDataContext";
 import { getChatWsUrl, getUserMgmtBase } from "@/lib/api-config";
 // import { getReceiverStatus } from "@/lib/chat";
+import { ChatLoadingScreen } from "./ChatLoadingScreen";
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [currentUser, setCurrentUser] =
@@ -184,11 +185,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   };
 
   if (loading) {
-    return (
-      <main style={{ height: "100dvh", display: "grid", placeItems: "center" }}>
-        <div>Loading chat…</div>
-      </main>
-    );
+    return <ChatLoadingScreen />;
   }
 
   if (initError) {

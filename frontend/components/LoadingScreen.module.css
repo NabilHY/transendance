@@ -1,0 +1,38 @@
+.container {
+  height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #e4ecff;
+}
+
+.content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(228, 236, 255, 0.3);
+  border-top: 3px solid #e4ecff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.text {
+  color: #8c96b6;
+  font-size: 15px;
+  margin: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+

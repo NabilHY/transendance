@@ -246,7 +246,7 @@ module.exports = async function (fastify) {
     },
   },
   async (request, reply) => {
-    const { id: targetId } = request.body;
+    const targetId = parseInt(request.params.id);
     const userId = request.user.id;
 
     if (userId === targetId) {

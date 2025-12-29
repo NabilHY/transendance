@@ -69,14 +69,26 @@ function registerMetricsEndpoint(fastify) {
         response: {
           200: { type: 'string', description: 'Prometheus metrics' },
           403: { type: 'string', description: 'Forbidden' },
+          404: { type: 'string', description: 'Not Found' },
         },
       },
       preHandler : (req, rep, done) => {
+        // Only allow metrics endpoint in production mode
+        if (process.env.NODE_ENV !== 'production') {
+          return rep
+            .code(404)
+            .send('Not Found: Metrics endpoint is only available in production mode');
+        }
+
         const socketIp = req.socket?.remoteAddress;
         const forwardedIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim();
         const candidateIp = socketIp || forwardedIp || req.ip || 'unknown';
 
         const cleanIp = candidateIp.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
+
+        // Only allow localhost/127.0.0.1 or Docker internal network (172.16.0.0/12)
+        const isLocalhost = cleanIp === '127.0.0.1' || cleanIp === 'localhost' || cleanIp === '::1';
+        const isDockerNetwork = allowedCidrs.some((cidr) => ipRangeCheck(cleanIp, cidr));
 
         if (blockedIpSet.has(cleanIp)) {
           fastify.log.warn({
@@ -91,35 +103,28 @@ function registerMetricsEndpoint(fastify) {
             .send('Forbidden: Metrics endpoint is not exposed outside internal network');
         }
 
-        const isAllowedCidr = allowedCidrs.some((cidr) => ipRangeCheck(cleanIp, cidr));
-        const userAgent = req.headers['user-agent'] || '';
-        const isPrometheus = userAgent.includes('Prometheus');
-
-        if (!isAllowedCidr && !isPrometheus) {
+        // Only allow localhost or Docker internal network
+        if (!isLocalhost && !isDockerNetwork) {
           fastify.log.warn({
-            msg: 'Metrics endpoint access denied - not in allow list',
+            msg: 'Metrics endpoint access denied - not localhost or Docker network',
             ip: cleanIp,
             socketIp,
             forwardedIp,
             allowedCidrs,
-            blockedIpSet: Array.from(blockedIpSet),
-            userAgent,
           });
           return rep
             .code(403)
-            .send('Forbidden: Metrics endpoint is only accessible from Prometheus within Docker network');
+            .send('Forbidden: Metrics endpoint is only accessible from localhost or Docker internal network');
         }
 
-        if (process.env.NODE_ENV !== 'production') {
-          fastify.log.debug({
-            msg: 'Metrics endpoint accessed',
-            ip: cleanIp,
-            isAllowedCidr,
-            isPrometheus,
-            socketIp,
-            forwardedIp,
-          });
-        }
+        fastify.log.debug({
+          msg: 'Metrics endpoint accessed',
+          ip: cleanIp,
+          isLocalhost,
+          isDockerNetwork,
+          socketIp,
+          forwardedIp,
+        });
         done();
       }
     },

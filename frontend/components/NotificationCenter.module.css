@@ -58,6 +58,7 @@
   z-index: 1000;
   backdrop-filter: blur(10px);
   overflow: hidden;
+  overflow-x: hidden;
 }
 
 @media (max-width: 500px) {
@@ -107,6 +108,7 @@
 
 .list {
   overflow-y: auto;
+  overflow-x: hidden;
   max-height: 500px;
 }
 
@@ -147,6 +149,8 @@
   transition: all 0.2s ease;
   background: transparent;
   cursor: pointer;
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 .item:hover {
@@ -186,6 +190,10 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .unreadDot {
@@ -203,6 +211,8 @@
   color: rgba(232, 240, 255, 0.8);
   line-height: 1.4;
   word-break: break-word;
+  overflow-wrap: break-word;
+  overflow-x: hidden;
 }
 
 .sender {

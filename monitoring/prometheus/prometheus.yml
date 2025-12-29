@@ -41,6 +41,30 @@ scrape_configs:
       - targets: ['chat:8006']
         labels:
           service: chat
+  - job_name: game-backend
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['game-backend:4322']
+        labels:
+          service: game-backend
+  - job_name: db-init
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['db-init:3005']
+        labels:
+          service: db-init
+  - job_name: minio
+    metrics_path: /minio/v2/metrics/cluster
+    static_configs:
+      - targets: ['minio:9000']
+        labels:
+          service: minio
+          
+  - job_name: nginx
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+        labels:
+          service: nginx
 
 alerting:
   alertmanagers:

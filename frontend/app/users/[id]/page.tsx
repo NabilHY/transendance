@@ -7,6 +7,7 @@ import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
 import { umGetUser, UMUser } from '@/lib/api';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { ProfileCard } from '@/components/ProfileCard';
 import { headers } from 'next/dist/client/components/headers';
 import CurrentUserProfileNotice from '@/components/CurrentUserProfileNotice';
@@ -284,11 +285,7 @@ export default function UserDetailPage() {
     }
 
     if (authLoading) {
-        return (
-            <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
-                <h1>Loading...</h1>
-            </main>
-        );
+        return <LoadingScreen />;
     }
 
     if (error || !user) {

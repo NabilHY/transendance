@@ -88,3 +88,20 @@ export const getChatWsUrl = (userId: string | number): string => {
 export const getGameWsUrl = (): string => {
   return getWsUrl(PORTS.GAME_BACKEND, '/ws');
 };
+
+export const getNotificationWsUrl = (): string => {
+  // Production: Use explicit WSS URL if provided
+  if (WS_ORIGIN) {
+    return `${WS_ORIGIN}/notifications/ws`;
+  }
+  
+  // Production: Convert HTTPS base URL to WSS
+  if (API_ORIGIN) {
+    // Properly convert https:// to wss:// and http:// to ws://
+    const baseUrl = API_ORIGIN.replace(/^https/, 'wss').replace(/^http/, 'ws');
+    return `${baseUrl}/notifications/ws`;
+  }
+
+  // Development: Use dynamic protocol detection
+  return getWsUrl(PORTS.USR_MANAG, '/notifications/ws');
+};

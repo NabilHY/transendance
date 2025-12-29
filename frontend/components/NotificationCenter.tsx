@@ -5,6 +5,8 @@ import { Bell, X, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import styles from './NotificationCenter.module.css';
 
+import { getNotificationWsUrl } from '@/lib/api-config';
+
 interface Notification {
     id: number;
     type: 'match_invite' | 'friend_request' | 'friend_accept' | 'tournament_invite' | 'system' | 'message';
@@ -72,30 +74,34 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
     };
 
     const handleNotificationClick = (notification: Notification) => {
+        // Close dropdown first to prevent DOM manipulation errors during navigation
+        setIsOpen(false);
+
         if (!notification.is_read) {
             markAsRead(notification.id);
         }
 
         console.log("hhhhhhhhhhhh ----> ", notification.sender_id, " | ", notification);
 
-        if (notification.type === 'friend_request') {
-            console.log("it is a friend request");
-            router.push(`/users/${notification.sender_id}`);
-        } else if (notification.type === 'match_invite') {
-            console.log("it is a match invite", notification.data.conversation_id);
+        // Use requestAnimationFrame to ensure dropdown closes before navigation
+        requestAnimationFrame(() => {
+            if (notification.type === 'friend_request') {
+                console.log("it is a friend request");
+                router.push(`/users/${notification.sender_id}`);
+            } else if (notification.type === 'match_invite') {
+                console.log("it is a match invite", notification.data?.conversation_id);
 
-            if (notification.data?.gameData.channelId) {
-                router.push(`/chat/${notification.data?.gameData.channelId}`);
+                if (notification.data?.gameData?.channelId) {
+                    router.push(`/chat/${notification.data.gameData.channelId}`);
+                }
+            } else if (notification.type === 'message') {
+                console.log("it is a message", notification.data?.conversation?.channelId);
+
+                if (notification.data?.conversation?.channelId) {
+                    router.push(`/chat/${notification.data.conversation.channelId}`);
+                }
             }
-        } else if (notification.type === 'message') {
-            console.log("it is a message", notification.data.conversation.channelId);
-
-            if (notification.data?.conversation?.channelId) {
-                router.push(`/chat/${notification.data.conversation.channelId}`);
-            }
-        }
-
-        setIsOpen(false);
+        });
     };
 
     const dismissNotification = async (notificationId: number) => {
@@ -132,11 +138,18 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
             console.log("Attempting WebSocket connection...");
             
             try {
-                // ! localhost must be changed in prod mode -- simo
-                wsRef.current = new WebSocket(`ws://localhost:4000/notifications/ws`);
+                const wsUrl = getNotificationWsUrl();
+                console.log("Connecting to notifications WebSocket:", wsUrl);
+                
+                // Close existing connection if any
+                if (wsRef.current) {
+                    wsRef.current.close();
+                }
+                
+                wsRef.current = new WebSocket(wsUrl);
 
                 wsRef.current.onopen = () => {
-                    console.log('✅ Notification WebSocket connected');
+                    console.log('✅ Notification WebSocket connected (WSS/HTTPS ready)');
                 };
 
                 wsRef.current.onmessage = (event) => {
@@ -154,14 +167,26 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
 
                 wsRef.current.onerror = (err) => {
                     console.error('WebSocket error:', err);
+                    // Don't immediately reconnect on error, let onclose handle it
                 };
 
-                wsRef.current.onclose = () => {
-                    console.log('WebSocket closed, will retry in 5 seconds');
-                    reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
+                wsRef.current.onclose = (event) => {
+                    const wasClean = event.wasClean;
+                    const code = event.code;
+                    const reason = event.reason;
+                    console.log(`WebSocket closed. Code: ${code}, Reason: ${reason || 'none'}, Clean: ${wasClean}`);
+                    
+                    // Only reconnect if it wasn't a clean close (user-initiated)
+                    // and not an authentication error (1008)
+                    if (code !== 1000 && code !== 1008) {
+                        console.log('WebSocket closed unexpectedly, will retry in 5 seconds');
+                        reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
+                    } else if (code === 1008) {
+                        console.warn('WebSocket closed due to authentication error. Will not reconnect.');
+                    }
                 };
             } catch (err) {
-                console.error('Failed to connect WebSocket:', err);
+                console.error('Failed to create WebSocket connection:', err);
                 reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
             }
         };

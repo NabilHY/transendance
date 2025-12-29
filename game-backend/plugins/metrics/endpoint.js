@@ -135,3 +135,4 @@ function registerMetricsEndpoint(fastify) {
 }
 
 module.exports = { registerMetricsEndpoint };
+
