@@ -138,9 +138,9 @@ module.exports = async function (fastify) {
                 const baseUrlRaw = config.PUBLIC_URL || config.FRONTEND_URL ||
                     (req.headers['x-forwarded-host']
                         ? `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers['x-forwarded-host']}`
-                        : (req.headers.host ? `${req.protocol || 'http'}://${req.headers.host}` : 'http://localhost:8005'));
+                        : (req.headers.host ? `${req.protocol || 'http'}://${req.headers.host}` : 'http://localhost:3010'));
                 const baseUrl = String(baseUrlRaw).replace(/\/+$/, '');
-                const link = `${baseUrl}/api/auth/verify-email/confirm?token=${emailVerificationToken}`;
+                const link = `${baseUrl}/verify-email?token=${emailVerificationToken}`;
                 try {
                     await fastify.trackExternal('smtp', () => transporter.sendMail({
                         from: config.EMAIL_FROM,

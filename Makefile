@@ -48,7 +48,7 @@ help:
 	@echo "  prod-logs   - Show logs from all production services"
 	@echo "  prod-restart - Restart all services in production mode"
 	@echo ""
-	@echo "Note: make prod includes ngrok (set NGROK_AUTHTOKEN in .env to enable)"
+	@echo "Note: make prod includes ngrok tunnel (always started)"
 	@echo ""
 	@echo "Environment:"
 	@echo "  env=dev     - Use development compose file (default)"
@@ -129,14 +129,9 @@ dev: build up logs
 
 # Production commands
 prod: prod-build prod-up
-	@if [ -z "$$NGROK_AUTHTOKEN" ]; then \
-		echo "⚠️  Warning: NGROK_AUTHTOKEN not set - ngrok will not start"; \
-		echo "   To enable ngrok tunnel, add NGROK_AUTHTOKEN to your .env file"; \
-	else \
-		echo "✅ Ngrok tunnel will be available (check logs with: make prod-logs)"; \
-	fi
 	@echo "✅ Production services built and started!"
 	@echo "🚀 Production mode is active"
+	@echo "📡 Ngrok tunnel is starting (check logs with: make prod-logs | grep ngrok)"
 
 prod-build:
 	@echo "🔨 Building production services..."
