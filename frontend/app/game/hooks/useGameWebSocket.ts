@@ -159,8 +159,12 @@ export const useGameWebSocket = (
           playerList: message.playerList
         });
       } else if (message.type === 'tournamentStarted') {
+        console.log('[TOURNAMENT] Tournament started with bracket:', message.bracket);
         setTournamentBracket(message.bracket);
-        setScreen("tournamentWaiting");
+        // Show bracket screen first before matches start
+        setScreen("tournamentBracket");
+        
+        // TODO: After showing bracket, wait for server to send first match ready
       } else if (message.type === 'tournamentMatchReady') {
         if (tournamentWaitingTimeoutRef.current) {
           clearTimeout(tournamentWaitingTimeoutRef.current);

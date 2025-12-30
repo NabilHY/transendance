@@ -14,10 +14,11 @@ import { GameWinScreen } from './components/GameWinScreen';
 import { GameTournamentWaitingScreen } from './components/GameTournamentWaitingScreen';
 import { GameTournamentMatchReadyScreen } from './components/GameTournamentMatchReadyScreen';
 import { GameQuadWaitingScreen } from './components/GameQuadWaitingScreen';
+import { TournamentBracket } from './components/TournamentBracket';
 import { GameLoadingScreen } from './components/GameLoadingScreen';
 import { MatchHistoryPanel } from './components/MatchHistoryPanel';
 import styles from './styles.module.css';
-import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, QuadGameState, PlayerInfo, PlayerStats, WinScreenData, TournamentQueue, MatchReadyInfo, QuadWaitingInfo, QuadWinScreenData } from './types';
+import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, QuadGameState, PlayerInfo, PlayerStats, WinScreenData, TournamentQueue, MatchReadyInfo, QuadWaitingInfo, QuadWinScreenData, BracketMatch } from './types';
 
 export default function GamePage() {
   const { user } = useAuth();
@@ -287,6 +288,14 @@ export default function GamePage() {
             tournamentQueue={tournamentQueue}
             tournamentBracket={tournamentBracket}
             onCancel={cancelMatchmaking}
+          />
+        )}
+
+        {screen === "tournamentBracket" && tournamentBracket && user && (
+          <TournamentBracket
+            bracket={tournamentBracket.matches || []}
+            currentUserId={typeof user.id === 'number' ? user.id : parseInt(user.id)}
+            showReadyButton={false}
           />
         )}
 

@@ -206,15 +206,34 @@ class WebSocketHandler {
                 }));
                 console.log(`🏆 ${user.username} joined tournament queue (${result.queueSize}/8)`);
               } else if (result.started) {
-                // Set user's game_status to 'in_tournament'
-                await this.userAuth.setUserGameStatus(user.id, 'in_tournament');
+                // Tournament started with 8 players!
+                console.log(`🎯 Tournament ${result.tournamentId} starting...`);
                 
-                connection.socket.send(JSON.stringify({
-                  type: 'tournamentStarted',
-                  tournamentId: result.tournamentId,
-                  bracket: result.bracket
-                }));
-                console.log(`🎯 Tournament ${result.tournamentId} started with 8 players`);
+                // Get the tournament object
+                const tournament = this.gameManager.tournamentManager.getTournament(result.tournamentId);
+                if (!tournament) {
+                  console.error(`❌ Tournament ${result.tournamentId} not found after starting!`);
+                  return;
+                }
+                
+                // Get bracket data for frontend
+                const bracketData = this.gameManager.tournamentManager.getBracketForFrontend(tournament);
+                console.log(`📊 Bracket data:`, JSON.stringify(bracketData, null, 2));
+                
+                // Send bracket to all 8 players
+                for (const player of tournament.players) {
+                  // Set each player's game_status to 'in_tournament'
+                  await this.userAuth.setUserGameStatus(player.user.id, 'in_tournament');
+                  
+                  if (player.connection && player.connection.readyState === 1) {
+                    player.connection.send(JSON.stringify({
+                      type: 'tournamentStarted',
+                      tournamentId: result.tournamentId,
+                      bracket: bracketData
+                    }));
+                    console.log(`📤 Sent tournament bracket to ${player.user.username}`);
+                  }
+                }
               }
             } else if (gameMode === 'quad') {
               // Add player to quad pong matchmaking
