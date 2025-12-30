@@ -8,6 +8,7 @@ import { useGameWebSocket } from './hooks/useGameWebSocket';
 import { useGameKeyboard } from './hooks/useGameKeyboard';
 import { GameStartScreen } from './components/GameStartScreen';
 import { GameWaitingScreen } from './components/GameWaitingScreen';
+import { GameMatchReadyScreen } from './components/GameMatchReadyScreen';
 import { GameScreen } from './components/GameScreen';
 import { GameWinScreen } from './components/GameWinScreen';
 import { GameTournamentWaitingScreen } from './components/GameTournamentWaitingScreen';
@@ -273,6 +274,12 @@ export default function GamePage() {
 
         {screen === "waiting" && (
           <GameWaitingScreen onCancel={cancelMatchmaking} />
+        )}
+
+        {screen === "matchReady" && playerInfo && (
+          <GameMatchReadyScreen
+            playerInfo={playerInfo}
+          />
         )}
 
         {screen === "tournamentWaiting" && (

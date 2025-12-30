@@ -181,6 +181,58 @@ class UserAuth {
     }
 
     /**
+     * Update user's game status
+     * Possible values: 'offline', 'online', 'in_queue', 'in_game', 'in_tournament'
+     * Note: If is_online is 0, game_status will automatically be set to 'offline' by database trigger
+     */
+    setUserGameStatus(userId, gameStatus) {
+        return new Promise((resolve, reject) => {
+            const db = this.getDb();
+            
+            // Validate game_status value
+            const validStatuses = ['offline', 'online', 'in_queue', 'in_game', 'in_tournament'];
+            if (!validStatuses.includes(gameStatus)) {
+                db.close();
+                return reject(new Error(`Invalid game_status: ${gameStatus}. Must be one of: ${validStatuses.join(', ')}`));
+            }
+            
+            db.run('UPDATE users SET game_status = ? WHERE id = ?', [gameStatus, userId], function(err) {
+                db.close();
+                if (err) {
+                    console.error('Error updating game status:', err);
+                    reject(err);
+                } else {
+                    console.log(`✅ Updated game_status for user ${userId}: ${gameStatus}`);
+                    resolve(true);
+                }
+            });
+        });
+    }
+
+    /**
+     * Get user's current game status
+     */
+    getUserGameStatus(userId) {
+        return new Promise((resolve, reject) => {
+            const db = this.getDb();
+            db.get('SELECT game_status, is_online FROM users WHERE id = ?', [userId], (err, row) => {
+                db.close();
+                if (err) {
+                    console.error('Error getting game status:', err);
+                    reject(err);
+                } else if (!row) {
+                    reject(new Error('User not found'));
+                } else {
+                    resolve({
+                        gameStatus: row.game_status,
+                        isOnline: row.is_online === 1
+                    });
+                }
+            });
+        });
+    }
+
+    /**
      * Update user's game statistics after a game (using shared database)
      */
     updateGameStats(userId, gameResult) {

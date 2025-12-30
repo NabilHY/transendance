@@ -19,6 +19,17 @@ class GameState {
       totalVolleys: 0,  // Track ball exchanges between paddles
     };
     
+    // Expose constants as instance property
+    this.constants = {
+      CANVAS_WIDTH,
+      CANVAS_HEIGHT,
+      PADDLE_WIDTH,
+      PADDLE_HEIGHT,
+      PADDLE_MARGIN_X,
+      PADDLE_MARGIN_Y,
+      BALL_SIZE
+    };
+    
     this.baseSpeed = 1.5;
     this.movementSpeed = 0;
     this.lastSpeedIncrease = Date.now();

@@ -130,15 +130,27 @@ export const useGameWebSocket = (
         setScreen("waiting");
         setPlayerInfo({ ...message, user: message.user });
       } else if (message.type === 'gameJoined') {
-        setScreen("game");
-        setPlayerInfo({
+        // Show match ready screen first
+        setScreen("matchReady");
+        // Preserve existing user data from auth and merge with game data
+        setPlayerInfo((prev) => ({
+          ...prev,
           role: message.playerRole,
           roomId: message.roomId,
           gameType: message.gameMode || 'multiplayer',
           opponent: message.opponent,
-          user: message.user
-        });
+          user: prev?.user || prev // Keep existing user data from authSuccess
+        }));
         setGameState(message.gameState);
+        
+        // Show match ready screen for 4 seconds (3 second countdown + 1 second buffer) before game
+        if (matchReadyCountdownRef.current) {
+          clearTimeout(matchReadyCountdownRef.current);
+        }
+        matchReadyCountdownRef.current = setTimeout(() => {
+          setScreen("game");
+          matchReadyCountdownRef.current = null;
+        }, 4000);
       } else if (message.type === 'tournamentQueued') {
         setScreen("tournamentWaiting");
         setTournamentQueue({
@@ -232,6 +244,17 @@ export const useGameWebSocket = (
         // The game will continue or end with proper win screens
         console.log('Player left:', message.message);
         // Don't show alert or reset screen - let the game handle it naturally
+      } else if (message.type === 'gameEnded') {
+        // Game ended due to team disconnection
+        console.log('Game ended:', message.reason, message.message);
+        if (message.reason === 'opponentTeamLeft') {
+          // Show a brief message before resetting
+          alert(message.message || 'Opponent team disconnected. You win!');
+        }
+        setScreen("start");
+        setPlayerInfo(null);
+        setGameState(null);
+        setQuadGameState(null);
       } else if (message.type === 'matchCancelled') {
         setScreen("start");
         setPlayerInfo(null);
@@ -257,7 +280,9 @@ export const useGameWebSocket = (
         });
       } else if (message.type === 'quadGameJoined') {
         console.log('[QUAD] Game joined:', message);
-        setScreen("game");
+        
+        // Show match ready screen first for quad games
+        setScreen("matchReady");
         setPlayerInfo({
           role: message.playerRole,
           team: message.team,
@@ -268,6 +293,15 @@ export const useGameWebSocket = (
           user: message.user
         });
         setQuadGameState(message.gameState);
+        
+        // Transition to game after 4 seconds
+        if (matchReadyCountdownRef.current) {
+          clearTimeout(matchReadyCountdownRef.current);
+        }
+        matchReadyCountdownRef.current = setTimeout(() => {
+          setScreen("game");
+          matchReadyCountdownRef.current = null;
+        }, 4000);
       } else if (message.type === 'quadGameResult') {
         console.log('[QUAD] Game result:', message);
         setQuadWinScreenData(message as unknown as QuadWinScreenData);

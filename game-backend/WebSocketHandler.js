@@ -47,8 +47,9 @@ class WebSocketHandler {
         connection.id = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         console.log(`🔗 Connection ID: ${connection.id}`);
         
-        // Set user online
+        // Set user online and game_status to 'online' (available)
         await this.userAuth.setUserOnlineStatus(user.id, true);
+        await this.userAuth.setUserGameStatus(user.id, 'online');
         
         // Set up heartbeat to keep connection alive
         const heartbeatInterval = setInterval(() => {
@@ -99,6 +100,10 @@ class WebSocketHandler {
                 
                 console.log(`🎮 Match created! P1: ${player1.user.username} (${player1.connectionId}) P2: ${player2.user.username} (${player2.connectionId})`);
                 
+                // Set both players' game_status to 'in_game'
+                await this.userAuth.setUserGameStatus(player1.user.id, 'in_game');
+                await this.userAuth.setUserGameStatus(player2.user.id, 'in_game');
+                
                 // Send match notification to player 1
                 if (player1.connection) {
                   player1.connection.send(JSON.stringify({
@@ -143,6 +148,9 @@ class WebSocketHandler {
                 // Added to waiting queue
                 playerInfo = result;
                 
+                // Set user's game_status to 'in_queue'
+                await this.userAuth.setUserGameStatus(user.id, 'in_queue');
+                
                 connection.socket.send(JSON.stringify({
                   type: 'waitingForOpponent',
                   playerRole: result.role,
@@ -164,6 +172,9 @@ class WebSocketHandler {
               
               playerInfo = result;
               
+              // Set user's game_status to 'in_game' (even for solo/AI)
+              await this.userAuth.setUserGameStatus(user.id, 'in_game');
+              
               connection.socket.send(JSON.stringify({
                 type: 'gameJoined',
                 playerRole: result.role,
@@ -184,6 +195,9 @@ class WebSocketHandler {
               );
               
               if (result.queued) {
+                // Set user's game_status to 'in_tournament'
+                await this.userAuth.setUserGameStatus(user.id, 'in_tournament');
+                
                 connection.socket.send(JSON.stringify({
                   type: 'tournamentQueued',
                   queuePosition: result.queuePosition,
@@ -192,6 +206,9 @@ class WebSocketHandler {
                 }));
                 console.log(`🏆 ${user.username} joined tournament queue (${result.queueSize}/8)`);
               } else if (result.started) {
+                // Set user's game_status to 'in_tournament'
+                await this.userAuth.setUserGameStatus(user.id, 'in_tournament');
+                
                 connection.socket.send(JSON.stringify({
                   type: 'tournamentStarted',
                   tournamentId: result.tournamentId,
@@ -209,6 +226,11 @@ class WebSocketHandler {
               if (Array.isArray(result)) {
                 // Match created with 4 players
                 console.log(`🎮 [QUAD] Match created with 4 players!`);
+                
+                // Set all 4 players' game_status to 'in_game'
+                for (const playerResult of result) {
+                  await this.userAuth.setUserGameStatus(playerResult.user.id, 'in_game');
+                }
                 
                 // Send game joined to all 4 players
                 for (const playerResult of result) {
@@ -234,6 +256,10 @@ class WebSocketHandler {
               } else {
                 // Added to waiting queue
                 playerInfo = result;
+                
+                // Set user's game_status to 'in_queue'
+                await this.userAuth.setUserGameStatus(user.id, 'in_queue');
+                
                 connection.socket.send(JSON.stringify({
                   type: 'quadWaiting',
                   queuePosition: result.queuePosition,
@@ -279,6 +305,9 @@ class WebSocketHandler {
             console.log(`🚫 User ${user.username} (${user.id}) cancelled matchmaking`);
             // Remove player from matchmaking queue and any games
             await this.gameManager.removePlayer(connection.id);
+            
+            // Reset user's game_status back to 'online'
+            await this.userAuth.setUserGameStatus(user.id, 'online');
             
             // Send cancellation confirmation
             connection.socket.send(JSON.stringify({

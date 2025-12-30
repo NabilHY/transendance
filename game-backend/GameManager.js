@@ -603,8 +603,25 @@ class GameManager {
       user: player2Data.user
     });
 
-    // Initialize game
-    gameState.resetBall();
+    // Initialize game - but don't start countdown yet
+    // Countdown will start after Match Ready screen (handled by frontend timeout)
+    // Set initial game state without countdown
+    gameState.gameState.ball = { 
+      x: gameState.constants.CANVAS_WIDTH / 2, 
+      y: gameState.constants.CANVAS_HEIGHT / 2, 
+      dx: 0, 
+      dy: 0 
+    };
+    gameState.gameState.countdown = -1; // No countdown yet
+    gameState.gameState.gameActive = false;
+
+    // Start the countdown after 4 seconds (match ready screen duration)
+    setTimeout(() => {
+      if (this.games.has(roomId)) {
+        console.log(`⏰ Starting countdown for room ${roomId} after Match Ready screen`);
+        gameState.resetBall();
+      }
+    }, 4000);
 
     console.log(`Created authenticated multiplayer game ${roomId}: ${player1Data.user.username} vs ${player2Data.user.username}`);
     
@@ -1470,6 +1487,12 @@ class GameManager {
   sendWinScreenData(player1Info, player2Info, winScreenData) {
     try {
       if (player1Info?.connection && winScreenData.player1) {
+        // Reset player's game_status back to 'online' after game ends
+        if (player1Info.user?.id) {
+          this.userAuth.setUserGameStatus(player1Info.user.id, 'online')
+            .catch(err => console.error('Error resetting game_status for player1:', err));
+        }
+        
         player1Info.connection.send(JSON.stringify({
           type: 'gameResult',
           data: winScreenData.player1,
@@ -1479,6 +1502,12 @@ class GameManager {
       }
 
       if (player2Info?.connection && winScreenData.player2) {
+        // Reset player's game_status back to 'online' after game ends
+        if (player2Info.user?.id) {
+          this.userAuth.setUserGameStatus(player2Info.user.id, 'online')
+            .catch(err => console.error('Error resetting game_status for player2:', err));
+        }
+        
         player2Info.connection.send(JSON.stringify({
           type: 'gameResult',
           data: winScreenData.player2,

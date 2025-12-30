@@ -110,6 +110,77 @@ const runMigrations = async (db) => {
             });
         });
     }
+
+    // Add game_status column to users table
+    await new Promise((resolve, reject) => {
+        db.all(`PRAGMA table_info(users)`, (err, columns) => {
+            if (err) return reject(err);
+            
+            const columnExists = columns.some(col => col.name === 'game_status');
+            if (!columnExists) {
+                console.log('➕ Adding game_status column to users table');
+                // Add the column with default value based on current is_online status
+                db.run(`ALTER TABLE users ADD COLUMN game_status TEXT DEFAULT 'offline'`, (err) => {
+                    if (err) {
+                        console.error('❌ Error adding game_status column:', err);
+                        reject(err);
+                    } else {
+                        console.log('✅ Added game_status column');
+                        
+                        // Update existing users: set game_status based on is_online
+                        // If is_online = 1, set to 'online'; if 0, set to 'offline'
+                        db.run(`UPDATE users SET game_status = CASE 
+                            WHEN is_online = 1 THEN 'online' 
+                            ELSE 'offline' 
+                        END`, (err) => {
+                            if (err) {
+                                console.error('❌ Error updating game_status values:', err);
+                                reject(err);
+                            } else {
+                                console.log('✅ Updated game_status for existing users');
+                                resolve();
+                            }
+                        });
+                    }
+                });
+            } else {
+                console.log('✅ Column game_status already exists');
+                resolve();
+            }
+        });
+    });
+
+    // Create a trigger to enforce game_status logic:
+    // When is_online becomes 0, game_status must also become 'offline'
+    await new Promise((resolve, reject) => {
+        console.log('➕ Creating trigger for game_status constraint');
+        
+        // Drop trigger if it exists (for re-running migrations)
+        db.run(`DROP TRIGGER IF EXISTS enforce_game_status_on_offline`, (err) => {
+            if (err) {
+                console.error('❌ Error dropping old trigger:', err);
+            }
+            
+            // Create the trigger
+            db.run(`
+                CREATE TRIGGER IF NOT EXISTS enforce_game_status_on_offline
+                AFTER UPDATE OF is_online ON users
+                FOR EACH ROW
+                WHEN NEW.is_online = 0
+                BEGIN
+                    UPDATE users SET game_status = 'offline' WHERE id = NEW.id;
+                END
+            `, (err) => {
+                if (err) {
+                    console.error('❌ Error creating game_status trigger:', err);
+                    reject(err);
+                } else {
+                    console.log('✅ Created trigger to enforce game_status logic');
+                    resolve();
+                }
+            });
+        });
+    });
     
     console.log('✅ Migrations complete');
 };

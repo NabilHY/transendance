@@ -1,6 +1,6 @@
 // Game-related TypeScript types
 
-export type GameScreen = "start" | "waiting" | "game" | "end" | "tournamentWaiting" | "tournamentMatchReady" | "quadWaiting";
+export type GameScreen = "start" | "waiting" | "matchReady" | "game" | "end" | "tournamentWaiting" | "tournamentMatchReady" | "quadWaiting";
 
 export type GameMode = "solo" | "matchmaking" | "ai" | "tournament" | "quad";
 

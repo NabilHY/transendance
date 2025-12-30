@@ -410,6 +410,7 @@ export type UMUser = {
     first_name?: string; 
     last_name?: string; 
     profile_pic?: string; 
+    avatar_updated_at?: number;
     is_online: number; 
     created_at: string; 
     updated_at?: string; 
