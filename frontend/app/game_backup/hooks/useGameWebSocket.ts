@@ -7,7 +7,7 @@ import type { GameState, QuadGameState, PlayerInfo, GameMode, AIDifficulty, Game
 interface UseGameWebSocketReturn {
   wsRef: React.MutableRefObject<WebSocket | null>;
   isConnected: boolean;
-  connect: (gameMode: GameMode, aiDifficulty?: AIDifficulty) => Promise<void>;
+  connect: (gameMode: GameMode, aiDifficulty?: AIDifficulty, directGameInfo?: { opponentId: string; inviteId: string }) => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: any) => void;
 }
@@ -57,7 +57,7 @@ export const useGameWebSocket = (
     }
   }, []);
 
-  const connect = useCallback(async (gameMode: GameMode, aiDifficulty?: AIDifficulty) => {
+  const connect = useCallback(async (gameMode: GameMode, aiDifficulty?: AIDifficulty, directGameInfo?: { opponentId: string; inviteId: string }) => {
     // Close existing connection if any
     disconnect();
 
@@ -115,6 +115,28 @@ export const useGameWebSocket = (
         return;
       }
 
+      if (message.type === 'directMatchError') {
+        console.error('❌ Direct match error:', message.error);
+        setAuthError(message.error || 'Failed to start direct match.');
+        setScreen("start");
+        setPlayerInfo(null);
+        setGameState(null);
+        ws.close();
+        return;
+      }
+
+      if (message.type === 'playerInfoSync') {
+        console.log('[WS] Player info sync:', message);
+        setPlayerInfo(prev => ({
+          ...prev,
+          role: message.playerRole,
+          roomId: message.roomId,
+          gameType: message.gameType || prev?.gameType || 'multiplayer',
+          inviteId: message.inviteId || (prev as any)?.inviteId
+        }));
+        return;
+      }
+
       if (message.type === 'authSuccess' || message.type === 'authenticated') {
         console.log('✅ Authentication successful:', message);
         setPlayerInfo(message.user);
@@ -125,32 +147,32 @@ export const useGameWebSocket = (
         if (gameMode === 'ai' && aiDifficulty) {
           joinMessage.aiDifficulty = aiDifficulty;
         }
+        // If this is a direct game invite, include hint data but keep standard join flow
+        if (gameMode === 'direct' && directGameInfo) {
+          joinMessage.directInvite = {
+            opponentId: parseInt(directGameInfo.opponentId),
+            inviteId: directGameInfo.inviteId
+          };
+          console.log('🎯 Direct invite detected; requesting direct match:', joinMessage.directInvite);
+        }
         ws.send(JSON.stringify(joinMessage));
       } else if (message.type === 'waiting' || message.type === 'waitingForOpponent') {
+        console.log('[WS] Waiting for opponent:', message);
         setScreen("waiting");
-        setPlayerInfo({ ...message, user: message.user });
+        setPlayerInfo({ ...message, user: message.user, inviteId: (message as any).inviteId });
       } else if (message.type === 'gameJoined') {
-        // Show match ready screen first
-        setScreen("matchReady");
-        // Preserve existing user data from auth and merge with game data
-        setPlayerInfo((prev) => ({
-          ...prev,
+        console.log('[WS] Game joined! Message:', message);
+        setScreen("game");
+        setPlayerInfo({
           role: message.playerRole,
           roomId: message.roomId,
           gameType: message.gameMode || 'multiplayer',
           opponent: message.opponent,
-          user: prev?.user || prev // Keep existing user data from authSuccess
-        }));
+          user: message.user,
+          inviteId: (message as any).inviteId
+        });
         setGameState(message.gameState);
-        
-        // Show match ready screen for 4 seconds (3 second countdown + 1 second buffer) before game
-        if (matchReadyCountdownRef.current) {
-          clearTimeout(matchReadyCountdownRef.current);
-        }
-        matchReadyCountdownRef.current = setTimeout(() => {
-          setScreen("game");
-          matchReadyCountdownRef.current = null;
-        }, 4000);
+        console.log('[WS] Set screen to game, playerInfo and gameState updated');
       } else if (message.type === 'tournamentQueued') {
         setScreen("tournamentWaiting");
         setTournamentQueue({
@@ -159,38 +181,21 @@ export const useGameWebSocket = (
           playerList: message.playerList
         });
       } else if (message.type === 'tournamentStarted') {
-        console.log('[TOURNAMENT] Tournament started with bracket:', message.bracket);
         setTournamentBracket(message.bracket);
-        // Show bracket screen first before matches start
-        setScreen("tournamentBracket");
-        
-        // TODO: After showing bracket, wait for server to send first match ready
+        setScreen("tournamentWaiting");
       } else if (message.type === 'tournamentMatchReady') {
         if (tournamentWaitingTimeoutRef.current) {
           clearTimeout(tournamentWaitingTimeoutRef.current);
           tournamentWaitingTimeoutRef.current = null;
         }
         
-        console.log('🎮 Tournament match ready received');
-        
-        // Store match info
         setMatchReadyInfo({
           opponent: message.opponent,
           playerRole: message.playerRole,
           round: message.round,
           matchId: message.matchId
         });
-        
-        // Store game data for when we transition
-        const gameData = {
-          role: message.playerRole,
-          roomId: message.roomId,
-          gameType: 'tournament',
-          opponent: message.opponent,
-          user: message.user,
-          tournamentId: message.tournamentId,
-          round: message.round
-        };
+        setScreen("tournamentMatchReady");
         
         ws.send(JSON.stringify({
           type: 'tournamentMatchReady',
@@ -202,14 +207,21 @@ export const useGameWebSocket = (
           clearTimeout(matchReadyCountdownRef.current);
         }
         
-        // Small delay before transitioning to game (smooth transition from bracket/waiting)
+        // Store the countdown timeout so it can be cleared if opponent disconnects
         matchReadyCountdownRef.current = setTimeout(() => {
           matchReadyCountdownRef.current = null;
-          console.log('🚀 Transitioning to game now');
           setScreen("game");
-          setPlayerInfo(gameData);
+          setPlayerInfo({
+            role: message.playerRole,
+            roomId: message.roomId,
+            gameType: 'tournament',
+            opponent: message.opponent,
+            user: message.user,
+            tournamentId: message.tournamentId,
+            round: message.round
+          });
           setGameState(message.gameState);
-        }, 1000); // 1 second delay for smooth transition
+        }, 3000);
       } else if (message.type === 'tournamentMatchResult') {
         // Clear any pending match ready countdown if we get a result early
         // (e.g., due to opponent disconnection during countdown)
@@ -218,13 +230,6 @@ export const useGameWebSocket = (
           matchReadyCountdownRef.current = null;
           console.log('⏱️ Cleared match ready countdown due to early match result (opponent disconnected)');
         }
-        
-        console.log('🏆 Tournament match result received:', {
-          won: message.won,
-          waitingForNextRound: message.waitingForNextRound,
-          isTournamentWinner: message.isTournamentWinner,
-          round: message.round
-        });
         
         setWinScreenData({
           playerData: {
@@ -245,23 +250,10 @@ export const useGameWebSocket = (
         setScreen("end");
         
         if (message.won && message.waitingForNextRound) {
-          console.log('⏳ Winner waiting for next round - setting timeout');
           tournamentWaitingTimeoutRef.current = setTimeout(() => {
             setWinScreenData(null);
             setScreen("tournamentWaiting");
           }, 10000);
-        }
-      } else if (message.type === 'tournamentBracketUpdate') {
-        // Round is complete, show updated bracket to all players
-        console.log('📊 Received tournament bracket update, showing bracket');
-        setTournamentBracket(message.bracket);
-        setScreen("tournamentBracket");
-        
-        // Clear any win screen data and timeouts
-        setWinScreenData(null);
-        if (tournamentWaitingTimeoutRef.current) {
-          clearTimeout(tournamentWaitingTimeoutRef.current);
-          tournamentWaitingTimeoutRef.current = null;
         }
       } else if (message.type === 'tournamentChampion') {
         alert(`🎉 Congratulations! You are the Tournament Champion!`);
@@ -274,17 +266,6 @@ export const useGameWebSocket = (
         // The game will continue or end with proper win screens
         console.log('Player left:', message.message);
         // Don't show alert or reset screen - let the game handle it naturally
-      } else if (message.type === 'gameEnded') {
-        // Game ended due to team disconnection
-        console.log('Game ended:', message.reason, message.message);
-        if (message.reason === 'opponentTeamLeft') {
-          // Show a brief message before resetting
-          alert(message.message || 'Opponent team disconnected. You win!');
-        }
-        setScreen("start");
-        setPlayerInfo(null);
-        setGameState(null);
-        setQuadGameState(null);
       } else if (message.type === 'matchCancelled') {
         setScreen("start");
         setPlayerInfo(null);
@@ -310,9 +291,7 @@ export const useGameWebSocket = (
         });
       } else if (message.type === 'quadGameJoined') {
         console.log('[QUAD] Game joined:', message);
-        
-        // Show match ready screen first for quad games
-        setScreen("matchReady");
+        setScreen("game");
         setPlayerInfo({
           role: message.playerRole,
           team: message.team,
@@ -323,15 +302,6 @@ export const useGameWebSocket = (
           user: message.user
         });
         setQuadGameState(message.gameState);
-        
-        // Transition to game after 4 seconds
-        if (matchReadyCountdownRef.current) {
-          clearTimeout(matchReadyCountdownRef.current);
-        }
-        matchReadyCountdownRef.current = setTimeout(() => {
-          setScreen("game");
-          matchReadyCountdownRef.current = null;
-        }, 4000);
       } else if (message.type === 'quadGameResult') {
         console.log('[QUAD] Game result:', message);
         setQuadWinScreenData(message as unknown as QuadWinScreenData);

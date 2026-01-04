@@ -33,6 +33,7 @@ class GameManager {
     this.games = new Map(); // roomId -> { gameState, gameLoop, players: Set(), spectators: Set() }
     this.players = new Map(); // connectionId -> { roomId, role, connection }
     this.waitingPlayers = []; // Players waiting to be matched
+    this.directMatchQueue = new Map(); // inviteId -> { inviter, opponentId, connectionId }
     this.nextGameId = 1;
     
     // Track processed games globally to prevent ANY duplicates
@@ -77,10 +78,122 @@ class GameManager {
     } else if (gameMode === 'tournament') {
       // Add to tournament queue
       return this.addToTournamentQueue(connection, connectionId, user);
+    } else if (gameMode === 'direct') {
+      throw new Error('Use addDirectMatchPlayer for direct mode');
     } else {
       // Add to matchmaking queue
       return this.addToMatchmakingAuth(connection, connectionId, user);
     }
+  }
+
+  // Add player for a direct invite match between two specific users
+  async addDirectMatchPlayer(connection, user, directInvite) {
+    const { inviteId, opponentId } = directInvite || {};
+    if (!inviteId || !opponentId) {
+      return { error: 'Missing invite parameters' };
+    }
+
+    console.log(`[DIRECT] addDirectMatchPlayer called for user ${user.username} (${user.id}), invite ${inviteId}, opponentId hint ${opponentId}`);
+
+    // If user already connected, remove old connection
+    const existingPlayer = this.findPlayerByUserId(user.id);
+    if (existingPlayer) {
+      console.log(`User ${user.username} already connected, removing old connection for direct match`);
+      await this.removePlayer(existingPlayer.connectionId);
+    }
+
+    const connectionId = this.generateConnectionId();
+
+    // Check if the other party is already waiting in this invite room
+    const pending = this.directMatchQueue.get(inviteId);
+    if (!pending) {
+      // Store as first joiner
+      const roomId = this.generateRoomId();
+      this.directMatchQueue.set(inviteId, {
+        inviter: user,
+        opponentId: parseInt(opponentId),
+        connectionId,
+        connection,
+        roomId
+      });
+
+      console.log(`[DIRECT] Stored pending inviter ${user.username} (${user.id}) waiting for opponent ${opponentId} in room ${roomId}`);
+
+      // Keep tracking player for cleanup
+      this.players.set(connectionId, {
+        roomId,
+        role: 'waiting',
+        connection,
+        user,
+        directInviteId: inviteId
+      });
+
+      return {
+        waiting: {
+          connectionId,
+          roomId,
+          role: 'player1',
+          user,
+          gameType: 'direct'
+        }
+      };
+    }
+
+    // Validate opponent matches expected id
+    if (pending.opponentId !== user.id) {
+      console.log(`[DIRECT] Opponent mismatch. Pending expects ${pending.opponentId}, got ${user.id}. Allowing anyway.`);
+    }
+
+    // Create the direct game with inviter (pending) and current user
+    const player1Data = {
+      connection: pending.connection,
+      connectionId: pending.connectionId,
+      user: pending.inviter
+    };
+    const player2Data = {
+      connection,
+      connectionId,
+      user
+    };
+
+    const created = this.createMultiplayerGameAuth(player1Data, player2Data);
+
+    console.log(`[DIRECT] Created direct match ${created.player1.roomId}: ${player1Data.user.username} vs ${player2Data.user.username}`);
+
+    // Cleanup queue entry
+    this.directMatchQueue.delete(inviteId);
+
+    // Update player map with direct game type
+    this.players.set(player1Data.connectionId, {
+      roomId: created.player1.roomId,
+      role: 'player1',
+      connection: player1Data.connection,
+      user: player1Data.user,
+      gameType: 'direct'
+    });
+    this.players.set(player2Data.connectionId, {
+      roomId: created.player2.roomId,
+      role: 'player2',
+      connection: player2Data.connection,
+      user: player2Data.user,
+      gameType: 'direct'
+    });
+
+    return {
+      matchReady: true,
+      players: [
+        {
+          ...created.player1,
+          opponent: created.player1.opponent,
+          connection: player1Data.connection
+        },
+        {
+          ...created.player2,
+          opponent: created.player2.opponent,
+          connection: player2Data.connection
+        }
+      ]
+    };
   }
 
   // Find player by user ID
@@ -88,6 +201,16 @@ class GameManager {
     for (const [connectionId, playerData] of this.players.entries()) {
       if (playerData.user && playerData.user.id === userId) {
         return { connectionId, ...playerData };
+      }
+    }
+    return null;
+  }
+
+  // Find a connectionId by WebSocket instance (used when local playerInfo is stale)
+  findConnectionIdBySocket(socket) {
+    for (const [connectionId, playerData] of this.players.entries()) {
+      if (playerData.connection === socket) {
+        return connectionId;
       }
     }
     return null;
@@ -603,25 +726,8 @@ class GameManager {
       user: player2Data.user
     });
 
-    // Initialize game - but don't start countdown yet
-    // Countdown will start after Match Ready screen (handled by frontend timeout)
-    // Set initial game state without countdown
-    gameState.gameState.ball = { 
-      x: gameState.constants.CANVAS_WIDTH / 2, 
-      y: gameState.constants.CANVAS_HEIGHT / 2, 
-      dx: 0, 
-      dy: 0 
-    };
-    gameState.gameState.countdown = -1; // No countdown yet
-    gameState.gameState.gameActive = false;
-
-    // Start the countdown after 4 seconds (match ready screen duration)
-    setTimeout(() => {
-      if (this.games.has(roomId)) {
-        console.log(`⏰ Starting countdown for room ${roomId} after Match Ready screen`);
-        gameState.resetBall();
-      }
-    }, 4000);
+    // Initialize game
+    gameState.resetBall();
 
     console.log(`Created authenticated multiplayer game ${roomId}: ${player1Data.user.username} vs ${player2Data.user.username}`);
     
@@ -905,6 +1011,15 @@ class GameManager {
   async removePlayer(connectionId) {
     const player = this.players.get(connectionId);
     if (!player) return;
+
+    // If player was in a pending direct invite, drop it
+    if (player.directInviteId) {
+      const pending = this.directMatchQueue.get(player.directInviteId);
+      if (pending && pending.connectionId === connectionId) {
+        this.directMatchQueue.delete(player.directInviteId);
+        console.log(`🧹 Cleared pending direct invite ${player.directInviteId} due to disconnect`);
+      }
+    }
 
     // Remove from waiting queue if present
     this.waitingPlayers = this.waitingPlayers.filter(p => p.connectionId !== connectionId);
@@ -1280,45 +1395,9 @@ class GameManager {
       // If tournament has next round, create next matches after a delay
       if (tournamentResult.nextRound && !tournamentResult.tournamentComplete) {
         console.log(`🎯 Tournament ${gameRoom.tournamentId} advancing to ${tournamentResult.nextRound}`);
-        console.log(`📊 Tournament Result:`, JSON.stringify(tournamentResult, null, 2));
-        
-        // Check if this round is complete (all matches done)
-        if (tournamentResult.status === 'round_complete') {
-          console.log(`🏆🏆🏆 ROUND COMPLETE! Broadcasting updated bracket to all players...`);
-          
-          // Get tournament and bracket data
-          const tournament = this.tournamentManager.getTournament(gameRoom.tournamentId);
-          if (tournament) {
-            const bracketData = this.tournamentManager.getBracketForFrontend(tournament);
-            console.log(`📋 Bracket data:`, JSON.stringify(bracketData, null, 2));
-            
-            // Send updated bracket to ALL players in the tournament
-            for (const player of tournament.players) {
-              if (player.connection && player.connection.readyState === 1) {
-                player.connection.send(JSON.stringify({
-                  type: 'tournamentBracketUpdate',
-                  bracket: bracketData,
-                  roundComplete: true,
-                  nextRound: tournamentResult.nextRound
-                }));
-                console.log(`📤 Sent bracket update to ${player.user.username}`);
-              } else {
-                console.log(`⚠️ Cannot send bracket to ${player.user.username} - connection not ready`);
-              }
-            }
-          }
-          
-          // Delay before starting next round matches (give players time to see bracket)
-          console.log(`⏳ Waiting 8 seconds before starting ${tournamentResult.nextRound}...`);
-          setTimeout(() => {
-            console.log(`🚀 Starting ${tournamentResult.nextRound} matches now!`);
-            this.createTournamentMatches(this.tournamentManager.getTournament(gameRoom.tournamentId));
-          }, 8000); // 8 second delay to view bracket
-        } else {
-          // Not all matches in round complete yet, just wait
-          console.log(`⏳ Waiting for other matches in ${tournament.status} to complete...`);
-          console.log(`📊 Current status: ${tournamentResult.status}`);
-        }
+        setTimeout(() => {
+          this.createTournamentMatches(this.tournamentManager.getTournament(gameRoom.tournamentId));
+        }, 3000); // 3 second delay before next round
       }
       
     } catch (error) {
@@ -1523,12 +1602,6 @@ class GameManager {
   sendWinScreenData(player1Info, player2Info, winScreenData) {
     try {
       if (player1Info?.connection && winScreenData.player1) {
-        // Reset player's game_status back to 'online' after game ends
-        if (player1Info.user?.id) {
-          this.userAuth.setUserGameStatus(player1Info.user.id, 'online')
-            .catch(err => console.error('Error resetting game_status for player1:', err));
-        }
-        
         player1Info.connection.send(JSON.stringify({
           type: 'gameResult',
           data: winScreenData.player1,
@@ -1538,12 +1611,6 @@ class GameManager {
       }
 
       if (player2Info?.connection && winScreenData.player2) {
-        // Reset player's game_status back to 'online' after game ends
-        if (player2Info.user?.id) {
-          this.userAuth.setUserGameStatus(player2Info.user.id, 'online')
-            .catch(err => console.error('Error resetting game_status for player2:', err));
-        }
-        
         player2Info.connection.send(JSON.stringify({
           type: 'gameResult',
           data: winScreenData.player2,

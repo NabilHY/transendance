@@ -267,16 +267,6 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
     const isWinner = playerData.won;
     const isChampion = matchData.isTournamentWinner;
     const waitingForNext = matchData.waitingForNextRound;
-    const stats = playerData.stats;
-    
-    // Debug logging
-    console.log('🏆 Tournament Win Screen:', {
-      isWinner,
-      isChampion,
-      waitingForNext,
-      shouldShowButton: isChampion || !isWinner,
-      shouldShowWaiting: isWinner && !isChampion
-    });
     
     const winRate = stats && stats.totalMatches > 0 ? ((stats.wins / stats.totalMatches) * 100).toFixed(1) : '0.0';
     
@@ -434,7 +424,7 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
           )}
           
           <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: "32px" }}>
-            {(isWinner && !isChampion) ? (
+            {isWinner && waitingForNext ? (
               <div style={{
                 textAlign: "center",
                 padding: "20px"
@@ -443,14 +433,14 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
                   🎮 Waiting for other matches to complete...
                 </p>
               </div>
-            ) : isChampion || !isWinner ? (
+            ) : (
               <button
                 onClick={onMainMenu}
                 className={styles.button}
               >
                 <Home size={20} /> Return to Main Menu
               </button>
-            ) : null}
+            )}
           </div>
         </div>
       </div>

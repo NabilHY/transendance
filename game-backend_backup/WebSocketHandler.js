@@ -47,9 +47,8 @@ class WebSocketHandler {
         connection.id = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         console.log(`🔗 Connection ID: ${connection.id}`);
         
-        // Set user online and game_status to 'online' (available)
+        // Set user online
         await this.userAuth.setUserOnlineStatus(user.id, true);
-        await this.userAuth.setUserGameStatus(user.id, 'online');
         
         // Set up heartbeat to keep connection alive
         const heartbeatInterval = setInterval(() => {
@@ -84,8 +83,61 @@ class WebSocketHandler {
           if (data.type === "join") {
             // Player wants to join a game with authentication
             const gameMode = data.gameMode || 'matchmaking';
+            const directInvite = data.directInvite;
             
-            if (gameMode === 'matchmaking') {
+            if (gameMode === 'direct' && directInvite) {
+              const result = await this.gameManager.addDirectMatchPlayer(
+                connection.socket,
+                user,
+                directInvite
+              );
+              if (result.error) {
+                connection.socket.send(JSON.stringify({ type: 'directMatchError', error: result.error }));
+              } else if (result.matchReady && result.players) {
+                console.log(`[DIRECT] Match ready! Sending gameJoined to ${result.players.length} players`);
+                // Send gameJoined to both players
+                for (const p of result.players) {
+                  if (p.connection) {
+                    console.log(`[DIRECT] Sending gameJoined to ${p.user.username} (${p.role})`);
+                    p.connection.send(JSON.stringify({
+                      type: 'gameJoined',
+                      playerRole: p.role,
+                      roomId: p.roomId,
+                      opponent: p.opponent,
+                      user: p.user,
+                      gameState: p.gameState
+                    }));
+
+                    // Also send an info sync so each handler keeps correct playerInfo
+                    p.connection.send(JSON.stringify({
+                      type: 'playerInfoSync',
+                      playerRole: p.role,
+                      roomId: p.roomId,
+                      connectionId: p.connectionId,
+                      gameType: 'direct'
+                    }));
+                    console.log(`[DIRECT] Sent messages to ${p.user.username}`);
+                  } else {
+                    console.log(`[DIRECT] WARNING: No connection for ${p.user.username}`);
+                  }
+
+                  if (p.connection === connection.socket) {
+                    playerInfo = p;
+                    console.log(`[DIRECT] Set playerInfo for current connection: ${p.user.username}`);
+                  }
+                }
+              } else if (result.waiting) {
+                playerInfo = result.waiting;
+                connection.socket.send(JSON.stringify({
+                  type: 'waitingForOpponent',
+                  playerRole: result.waiting.role,
+                  roomId: result.waiting.roomId,
+                  message: 'Waiting for invited player to join',
+                  inviteId: directInvite.inviteId,
+                  opponentId: directInvite.opponentId
+                }));
+              }
+            } else if (gameMode === 'matchmaking') {
               // Use authenticated matchmaking
               const result = await this.gameManager.addAuthenticatedPlayer(
                 connection.socket, 
@@ -99,10 +151,6 @@ class WebSocketHandler {
                 const player2 = result.player2;
                 
                 console.log(`🎮 Match created! P1: ${player1.user.username} (${player1.connectionId}) P2: ${player2.user.username} (${player2.connectionId})`);
-                
-                // Set both players' game_status to 'in_game'
-                await this.userAuth.setUserGameStatus(player1.user.id, 'in_game');
-                await this.userAuth.setUserGameStatus(player2.user.id, 'in_game');
                 
                 // Send match notification to player 1
                 if (player1.connection) {
@@ -148,9 +196,6 @@ class WebSocketHandler {
                 // Added to waiting queue
                 playerInfo = result;
                 
-                // Set user's game_status to 'in_queue'
-                await this.userAuth.setUserGameStatus(user.id, 'in_queue');
-                
                 connection.socket.send(JSON.stringify({
                   type: 'waitingForOpponent',
                   playerRole: result.role,
@@ -172,9 +217,6 @@ class WebSocketHandler {
               
               playerInfo = result;
               
-              // Set user's game_status to 'in_game' (even for solo/AI)
-              await this.userAuth.setUserGameStatus(user.id, 'in_game');
-              
               connection.socket.send(JSON.stringify({
                 type: 'gameJoined',
                 playerRole: result.role,
@@ -195,9 +237,6 @@ class WebSocketHandler {
               );
               
               if (result.queued) {
-                // Set user's game_status to 'in_tournament'
-                await this.userAuth.setUserGameStatus(user.id, 'in_tournament');
-                
                 connection.socket.send(JSON.stringify({
                   type: 'tournamentQueued',
                   queuePosition: result.queuePosition,
@@ -206,34 +245,12 @@ class WebSocketHandler {
                 }));
                 console.log(`🏆 ${user.username} joined tournament queue (${result.queueSize}/8)`);
               } else if (result.started) {
-                // Tournament started with 8 players!
-                console.log(`🎯 Tournament ${result.tournamentId} starting...`);
-                
-                // Get the tournament object
-                const tournament = this.gameManager.tournamentManager.getTournament(result.tournamentId);
-                if (!tournament) {
-                  console.error(`❌ Tournament ${result.tournamentId} not found after starting!`);
-                  return;
-                }
-                
-                // Get bracket data for frontend
-                const bracketData = this.gameManager.tournamentManager.getBracketForFrontend(tournament);
-                console.log(`📊 Bracket data:`, JSON.stringify(bracketData, null, 2));
-                
-                // Send bracket to all 8 players
-                for (const player of tournament.players) {
-                  // Set each player's game_status to 'in_tournament'
-                  await this.userAuth.setUserGameStatus(player.user.id, 'in_tournament');
-                  
-                  if (player.connection && player.connection.readyState === 1) {
-                    player.connection.send(JSON.stringify({
-                      type: 'tournamentStarted',
-                      tournamentId: result.tournamentId,
-                      bracket: bracketData
-                    }));
-                    console.log(`📤 Sent tournament bracket to ${player.user.username}`);
-                  }
-                }
+                connection.socket.send(JSON.stringify({
+                  type: 'tournamentStarted',
+                  tournamentId: result.tournamentId,
+                  bracket: result.bracket
+                }));
+                console.log(`🎯 Tournament ${result.tournamentId} started with 8 players`);
               }
             } else if (gameMode === 'quad') {
               // Add player to quad pong matchmaking
@@ -245,11 +262,6 @@ class WebSocketHandler {
               if (Array.isArray(result)) {
                 // Match created with 4 players
                 console.log(`🎮 [QUAD] Match created with 4 players!`);
-                
-                // Set all 4 players' game_status to 'in_game'
-                for (const playerResult of result) {
-                  await this.userAuth.setUserGameStatus(playerResult.user.id, 'in_game');
-                }
                 
                 // Send game joined to all 4 players
                 for (const playerResult of result) {
@@ -275,10 +287,6 @@ class WebSocketHandler {
               } else {
                 // Added to waiting queue
                 playerInfo = result;
-                
-                // Set user's game_status to 'in_queue'
-                await this.userAuth.setUserGameStatus(user.id, 'in_queue');
-                
                 connection.socket.send(JSON.stringify({
                   type: 'quadWaiting',
                   queuePosition: result.queuePosition,
@@ -304,8 +312,17 @@ class WebSocketHandler {
           } else if (data.type === "update" || data.type === "reset") {
             // Handle game input if player is in a game
             // Use the connectionId that GameManager assigned, not connection.id
-            if (playerInfo && playerInfo.connectionId) {
-              this.gameManager.handlePlayerInput(playerInfo.connectionId, data);
+            let resolvedConnectionId = playerInfo && playerInfo.connectionId ? playerInfo.connectionId : null;
+            if (!resolvedConnectionId) {
+              resolvedConnectionId = this.gameManager.findConnectionIdBySocket(connection.socket);
+              if (resolvedConnectionId) {
+                const gmPlayer = this.gameManager.getPlayerInfo(resolvedConnectionId);
+                playerInfo = gmPlayer ? { ...gmPlayer, connectionId: resolvedConnectionId } : playerInfo;
+              }
+            }
+
+            if (resolvedConnectionId) {
+              this.gameManager.handlePlayerInput(resolvedConnectionId, data);
             } else {
               console.log(`⚠️ Cannot handle input - no playerInfo or connectionId`);
             }
@@ -324,9 +341,6 @@ class WebSocketHandler {
             console.log(`🚫 User ${user.username} (${user.id}) cancelled matchmaking`);
             // Remove player from matchmaking queue and any games
             await this.gameManager.removePlayer(connection.id);
-            
-            // Reset user's game_status back to 'online'
-            await this.userAuth.setUserGameStatus(user.id, 'online');
             
             // Send cancellation confirmation
             connection.socket.send(JSON.stringify({

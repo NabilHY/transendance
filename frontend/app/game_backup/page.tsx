@@ -3,26 +3,26 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import { useSearchParams } from 'next/navigation';
 import { getAuthToken, fetchPlayerStats, getAuthBackendUrl } from './utils/api';
 import { useGameWebSocket } from './hooks/useGameWebSocket';
 import { useGameKeyboard } from './hooks/useGameKeyboard';
 import { GameStartScreen } from './components/GameStartScreen';
 import { GameWaitingScreen } from './components/GameWaitingScreen';
-import { GameMatchReadyScreen } from './components/GameMatchReadyScreen';
 import { GameScreen } from './components/GameScreen';
 import { GameWinScreen } from './components/GameWinScreen';
 import { GameTournamentWaitingScreen } from './components/GameTournamentWaitingScreen';
 import { GameTournamentMatchReadyScreen } from './components/GameTournamentMatchReadyScreen';
 import { GameQuadWaitingScreen } from './components/GameQuadWaitingScreen';
-import { TournamentBracket } from './components/TournamentBracket';
 import { GameLoadingScreen } from './components/GameLoadingScreen';
 import { MatchHistoryPanel } from './components/MatchHistoryPanel';
 import styles from './styles.module.css';
-import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, QuadGameState, PlayerInfo, PlayerStats, WinScreenData, TournamentQueue, MatchReadyInfo, QuadWaitingInfo, QuadWinScreenData, BracketMatch } from './types';
+import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, QuadGameState, PlayerInfo, PlayerStats, WinScreenData, TournamentQueue, MatchReadyInfo, QuadWaitingInfo, QuadWinScreenData } from './types';
 
 export default function GamePage() {
   const { user } = useAuth();
   const { loading: authLoading, isAuthenticated: isLoggedIn } = useRequireAuth();
+  const searchParams = useSearchParams();
   const tournamentWaitingTimeoutRef = useRef<any>(null);
   const matchReadyCountdownRef = useRef<any>(null);
   
@@ -43,6 +43,7 @@ export default function GamePage() {
   const [quadWaitingInfo, setQuadWaitingInfo] = useState<QuadWaitingInfo | null>(null);
   const [quadWinScreenData, setQuadWinScreenData] = useState<QuadWinScreenData | null>(null);
   const [matchHistoryRefresh, setMatchHistoryRefresh] = useState<number>(0);
+  const [directGameInfo, setDirectGameInfo] = useState<{ opponentId: string; inviteId: string } | null>(null);
 
   // WebSocket connection
   const {
@@ -118,6 +119,18 @@ export default function GamePage() {
     await fetchPlayerStats(getAuthTokenWithUser, setPlayerStats, setAuthError);
   };
 
+  // Check for direct game invite from URL parameters
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    const opponentId = searchParams.get('opponentId');
+    const inviteId = searchParams.get('inviteId');
+    
+    if (mode === 'direct' && opponentId && inviteId) {
+      console.log(`🎮 Direct game invite detected: opponentId=${opponentId}, inviteId=${inviteId}`);
+      setDirectGameInfo({ opponentId, inviteId });
+    }
+  }, [searchParams]);
+
   // Check authentication on mount
   useEffect(() => {
     if (!isLoggedIn || authLoading) return;
@@ -129,12 +142,18 @@ export default function GamePage() {
         setAuthError(null);
         setIsAuthenticated(true);
         await refreshPlayerStats();
+        
+        // Auto-start direct game invite if present
+        if (directGameInfo) {
+          console.log('🎮 Auto-starting direct game invite...');
+          await connectWebSocket('direct', undefined, directGameInfo);
+        }
       } else {
         setIsAuthenticated(false);
       }
     };
     checkAuth();
-  }, [isLoggedIn, authLoading]);
+  }, [isLoggedIn, authLoading, directGameInfo]);
 
   // Handle page refresh/close - disconnect from websocket
   useEffect(() => {
@@ -268,6 +287,7 @@ export default function GamePage() {
                 userId={typeof user.id === 'number' ? user.id : parseInt(user.id)} 
                 isVisible={true}
                 refreshTrigger={matchHistoryRefresh}
+                isGamePage={true}
               />
             )}
           </>
@@ -277,25 +297,11 @@ export default function GamePage() {
           <GameWaitingScreen onCancel={cancelMatchmaking} />
         )}
 
-        {screen === "matchReady" && playerInfo && (
-          <GameMatchReadyScreen
-            playerInfo={playerInfo}
-          />
-        )}
-
         {screen === "tournamentWaiting" && (
           <GameTournamentWaitingScreen
             tournamentQueue={tournamentQueue}
             tournamentBracket={tournamentBracket}
             onCancel={cancelMatchmaking}
-          />
-        )}
-
-        {screen === "tournamentBracket" && tournamentBracket && user && (
-          <TournamentBracket
-            bracket={tournamentBracket.matches || []}
-            currentUserId={typeof user.id === 'number' ? user.id : parseInt(user.id)}
-            showReadyButton={false}
           />
         )}
 

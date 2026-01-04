@@ -1,8 +1,8 @@
 // Game-related TypeScript types
 
-export type GameScreen = "start" | "waiting" | "matchReady" | "game" | "end" | "tournamentWaiting" | "tournamentMatchReady" | "tournamentBracket" | "quadWaiting";
+export type GameScreen = "start" | "waiting" | "game" | "end" | "tournamentWaiting" | "tournamentMatchReady" | "quadWaiting";
 
-export type GameMode = "solo" | "matchmaking" | "ai" | "tournament" | "quad";
+export type GameMode = "solo" | "matchmaking" | "ai" | "tournament" | "quad" | "direct";
 
 export type AIDifficulty = "easy" | "medium" | "hard" | "impossible";
 
@@ -218,26 +218,4 @@ export interface QuadWinScreenData {
     wins: number;
     losses: number;
   };
-}
-
-// Tournament Bracket Types
-export interface BracketPlayer {
-  userId: number;
-  username: string;
-  avatar?: string;
-  isWinner?: boolean;
-}
-
-export interface BracketMatch {
-  matchId: string;
-  player1: BracketPlayer | null;
-  player2: BracketPlayer | null;
-  winner: BracketPlayer | null;
-  stage: 'quarter' | 'semi' | 'final';
-  isComplete: boolean;
-}
-
-export interface TournamentBracket {
-  matches: BracketMatch[];
-  currentRound: 'quarter' | 'semi' | 'final';
 }
