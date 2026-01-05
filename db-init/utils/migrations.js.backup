@@ -172,6 +172,10 @@ const runMigrations = async (db) => {
         });
     });
     
+    console.log('✅ Migrations complete');
+};
+
+module.exports = { runMigrations };
     // Add game_status column to users table
     await new Promise((resolve, reject) => {
         db.all(`PRAGMA table_info(users)`, (err, columns) => {
@@ -237,8 +241,3 @@ const runMigrations = async (db) => {
             });
         });
     });
-    
-    console.log('✅ Migrations complete');
-};
-
-module.exports = { runMigrations };
