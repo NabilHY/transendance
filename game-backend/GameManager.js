@@ -264,6 +264,22 @@ class GameManager {
   addToTournamentQueue(connection, connectionId, user) {
     console.log(`🏆 Adding ${user.username} to tournament queue`);
     
+    // Check if player is already in an active tournament
+    const existingPlayer = this.players.get(connectionId);
+    if (existingPlayer && existingPlayer.tournamentId) {
+      const existingTournament = this.tournamentManager.getTournament(existingPlayer.tournamentId);
+      if (existingTournament && existingTournament.status !== 'completed') {
+        console.log(`⚠️ ${user.username} is already in tournament ${existingPlayer.tournamentId} (status: ${existingTournament.status})`);
+        // Return the current tournament info instead of adding to queue again
+        return {
+          queued: false,
+          alreadyInTournament: true,
+          tournamentId: existingPlayer.tournamentId,
+          tournamentStatus: existingTournament.status
+        };
+      }
+    }
+    
     // Add player to tournament manager
     const result = this.tournamentManager.addPlayerToQueue(connection, user);
     
@@ -1280,7 +1296,7 @@ class GameManager {
       // If tournament has next round, create next matches after a delay
       if (tournamentResult.nextRound && !tournamentResult.tournamentComplete) {
         console.log(`🎯 Tournament ${gameRoom.tournamentId} advancing to ${tournamentResult.nextRound}`);
-        console.log(`📊 Tournament Result:`, JSON.stringify(tournamentResult, null, 2));
+        console.log(`📊 Tournament Result Status: ${tournamentResult.status}, Next Round: ${tournamentResult.nextRound}`);
         
         // Check if this round is complete (all matches done)
         if (tournamentResult.status === 'round_complete') {
@@ -1292,28 +1308,71 @@ class GameManager {
             const bracketData = this.tournamentManager.getBracketForFrontend(tournament);
             console.log(`📋 Bracket data:`, JSON.stringify(bracketData, null, 2));
             
-            // Send updated bracket to ALL players in the tournament
+            // Determine if this is the first bracket (after quarters) or subsequent
+            const isFirstBracket = tournament.status === 'semi_finals' && tournamentResult.nextRound === 'semi_finals';
+            const bracketDelay = isFirstBracket ? 15000 : 8000; // 15s for first, 8s for rest
+            
+            console.log(`📊 Bracket timing: ${isFirstBracket ? 'FIRST' : 'SUBSEQUENT'} bracket, showing for ${bracketDelay/1000} seconds`);
+            
+            // Send updated bracket ONLY to WINNERS (players who advanced)
+            let successfulBroadcasts = 0;
+            let failedBroadcasts = 0;
+            
+            // Get list of players who advanced to next round
+            const advancedPlayerIds = new Set();
+            if (tournament.status === 'semi_finals') {
+              // After quarters, semi-final players advanced
+              tournament.bracket.semiFinals.forEach(match => {
+                if (match.player1) advancedPlayerIds.add(match.player1.user.id);
+                if (match.player2) advancedPlayerIds.add(match.player2.user.id);
+              });
+            } else if (tournament.status === 'finals') {
+              // After semis, finalists advanced
+              if (tournament.bracket.finals.player1) advancedPlayerIds.add(tournament.bracket.finals.player1.user.id);
+              if (tournament.bracket.finals.player2) advancedPlayerIds.add(tournament.bracket.finals.player2.user.id);
+            }
+            
             for (const player of tournament.players) {
+              // Only send to players who advanced
+              if (!advancedPlayerIds.has(player.user.id)) {
+                console.log(`⏭️ Skipping bracket for eliminated player ${player.user.username}`);
+                continue;
+              }
+              
               if (player.connection && player.connection.readyState === 1) {
-                player.connection.send(JSON.stringify({
-                  type: 'tournamentBracketUpdate',
-                  bracket: bracketData,
-                  roundComplete: true,
-                  nextRound: tournamentResult.nextRound
-                }));
-                console.log(`📤 Sent bracket update to ${player.user.username}`);
+                try {
+                  player.connection.send(JSON.stringify({
+                    type: 'tournamentBracketUpdate',
+                    bracket: bracketData,
+                    roundComplete: true,
+                    nextRound: tournamentResult.nextRound,
+                    isFirstBracket: isFirstBracket
+                  }));
+                  successfulBroadcasts++;
+                  console.log(`📤 Sent bracket update to ${player.user.username}`);
+                } catch (err) {
+                  failedBroadcasts++;
+                  console.error(`❌ Failed to send bracket to ${player.user.username}:`, err);
+                }
               } else {
-                console.log(`⚠️ Cannot send bracket to ${player.user.username} - connection not ready`);
+                failedBroadcasts++;
+                console.log(`⚠️ Cannot send bracket to ${player.user.username} - connection not ready (state: ${player.connection?.readyState || 'no connection'})`);
               }
             }
+            console.log(`📊 Bracket broadcast: ${successfulBroadcasts} successful, ${failedBroadcasts} failed`);
+            
+            // Continue even if some broadcasts failed - remaining players need to proceed
+            if (successfulBroadcasts === 0) {
+              console.error(`❌ WARNING: No players received bracket update! Tournament may be stuck.`);
+            }
+            
+            // Delay before starting next round matches (give players time to see bracket)
+            console.log(`⏳ Waiting ${bracketDelay/1000} seconds before starting ${tournamentResult.nextRound}...`);
+            setTimeout(() => {
+              console.log(`🚀 Starting ${tournamentResult.nextRound} matches now!`);
+              this.createTournamentMatches(this.tournamentManager.getTournament(gameRoom.tournamentId));
+            }, bracketDelay);
           }
-          
-          // Delay before starting next round matches (give players time to see bracket)
-          console.log(`⏳ Waiting 8 seconds before starting ${tournamentResult.nextRound}...`);
-          setTimeout(() => {
-            console.log(`🚀 Starting ${tournamentResult.nextRound} matches now!`);
-            this.createTournamentMatches(this.tournamentManager.getTournament(gameRoom.tournamentId));
-          }, 8000); // 8 second delay to view bracket
         } else {
           // Not all matches in round complete yet, just wait
           console.log(`⏳ Waiting for other matches in ${tournament.status} to complete...`);

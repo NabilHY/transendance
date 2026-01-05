@@ -168,7 +168,7 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
       justifyContent: 'center',
       minHeight: '100vh',
       background: 'linear-gradient(180deg, #050811 0%, #0a0e1a 100%)',
-      padding: '32px 16px',
+      padding: '20px 12px',
       position: 'relative' as const,
       overflow: 'auto'
     },
@@ -189,10 +189,10 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
     },
     title: {
       fontFamily: '"Orbitron", sans-serif',
-      fontSize: 'clamp(28px, 5vw, 48px)',
+      fontSize: 'clamp(24px, 4vw, 36px)',
       fontWeight: 800,
       color: '#e8f0ff',
-      marginBottom: '16px',
+      marginBottom: '8px',
       textTransform: 'uppercase' as const,
       letterSpacing: '0.15em',
       textShadow: '0 0 20px rgba(0, 240, 255, 0.6), 0 0 40px rgba(183, 68, 255, 0.4)',
@@ -204,48 +204,48 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
       zIndex: 1
     },
     subtitle: {
-      fontSize: 'clamp(14px, 2vw, 18px)',
+      fontSize: 'clamp(12px, 1.5vw, 14px)',
       color: '#8c96b6',
-      marginBottom: '32px',
+      marginBottom: '16px',
       textAlign: 'center' as const,
       zIndex: 1
     },
     bracketContainer: {
       display: 'flex',
-      gap: '48px',
+      gap: '28px',
       alignItems: 'center',
       justifyContent: 'center',
       flexWrap: 'wrap' as const,
-      maxWidth: '1400px',
+      maxWidth: '1200px',
       zIndex: 1,
-      marginBottom: '24px'
+      marginBottom: '16px'
     },
     stage: {
       display: 'flex',
       flexDirection: 'column' as const,
-      gap: '24px',
+      gap: '14px',
       alignItems: 'center'
     },
     stageTitle: {
-      fontSize: 'clamp(16px, 2.5vw, 22px)',
+      fontSize: 'clamp(14px, 2vw, 18px)',
       fontWeight: 700,
       color: '#00f0ff',
       textTransform: 'uppercase' as const,
       letterSpacing: '0.1em',
-      marginBottom: '16px',
+      marginBottom: '10px',
       textShadow: '0 0 12px rgba(0, 240, 255, 0.6)',
       textAlign: 'center' as const
     },
     match: {
       display: 'flex',
       flexDirection: 'column' as const,
-      gap: '12px',
-      padding: '16px',
+      gap: '8px',
+      padding: '12px',
       background: 'rgba(15, 20, 35, 0.8)',
       backdropFilter: 'blur(20px)',
-      borderRadius: '12px',
+      borderRadius: '10px',
       border: '1px solid rgba(0, 240, 255, 0.2)',
-      minWidth: '220px',
+      minWidth: '180px',
       position: 'relative' as const,
       boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
       transition: 'all 0.3s ease'
@@ -257,19 +257,19 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
     },
     matchVs: {
       textAlign: 'center' as const,
-      fontSize: '14px',
+      fontSize: '12px',
       fontWeight: 700,
       color: '#b744ff',
       letterSpacing: '0.1em',
-      padding: '4px 0'
+      padding: '2px 0'
     },
     player: {
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
-      padding: '10px 12px',
+      gap: '8px',
+      padding: '8px 10px',
       background: 'rgba(20, 25, 40, 0.6)',
-      borderRadius: '8px',
+      borderRadius: '6px',
       border: '1px solid rgba(255, 255, 255, 0.1)',
       position: 'relative' as const,
       transition: 'all 0.3s ease'
@@ -298,15 +298,15 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
       zIndex: 1
     },
     playerAvatar: {
-      width: '36px',
-      height: '36px',
+      width: '28px',
+      height: '28px',
       borderRadius: '50%',
       objectFit: 'cover' as const,
       border: '2px solid rgba(0, 240, 255, 0.3)',
       flexShrink: 0
     },
     playerName: {
-      fontSize: '14px',
+      fontSize: '13px',
       fontWeight: 600,
       color: '#e8f0ff',
       flex: 1,
@@ -318,14 +318,14 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '10px 12px',
+      padding: '8px 10px',
       background: 'rgba(20, 25, 40, 0.3)',
-      borderRadius: '8px',
+      borderRadius: '6px',
       border: '1px dashed rgba(255, 255, 255, 0.2)',
-      minHeight: '58px'
+      minHeight: '44px'
     },
     emptyPlayerText: {
-      fontSize: '14px',
+      fontSize: '12px',
       color: '#5a6378',
       fontStyle: 'italic' as const
     },
