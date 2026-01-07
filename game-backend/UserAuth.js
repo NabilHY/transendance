@@ -6,7 +6,12 @@ class UserAuth {
     constructor() {
         this.dbPath = process.env.DATABASE_PATH || '/usr/src/app/db/shared.sqlite';
         this.authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-backend:8005';
-        this.jwtSecret = process.env.JWT_SECRET || 'UJq44uXahz4yd8v9UpLz+rH0EA3ZJ8dhRi/0isY1qhc=';
+        this.jwtSecret = process.env.JWT_SECRET;
+
+        // Fail fast if JWT secret is not configured to avoid inconsistent fallbacks
+        if (!this.jwtSecret) {
+            throw new Error('JWT_SECRET is not set for game-backend. Configure it in your environment to validate tokens.');
+        }
     }
 
     /**
@@ -23,13 +28,18 @@ class UserAuth {
      */
     async verifyToken(token) {
         try {
-            // Use the same JWT verification as auth-backend
+            // Use strict verification matching auth-backend defaults
             const jwt = require('jsonwebtoken');
-            const decoded = jwt.verify(token, this.jwtSecret);
+            const decoded = jwt.verify(token, this.jwtSecret, {
+                algorithms: ['HS256'],
+                // small tolerance to avoid clock skew between containers
+                clockTolerance: 5,
+            });
             return { success: true, user: decoded };
         } catch (error) {
+            const code = error && error.name === 'TokenExpiredError' ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN';
             console.error('JWT verification failed:', error.message);
-            return { success: false, error: 'Invalid token' };
+            return { success: false, error: code };
         }
     }
 
@@ -155,8 +165,10 @@ class UserAuth {
         const cookies = {};
         if (cookieHeader) {
             cookieHeader.split(';').forEach(cookie => {
-                const [name, value] = cookie.trim().split('=');
-                cookies[name] = value;
+                const [name, ...rest] = cookie.trim().split('=');
+                // Re-join in case value itself contains '=' and decode
+                const value = rest.join('=');
+                cookies[name] = decodeURIComponent(value || '');
             });
         }
         return cookies;

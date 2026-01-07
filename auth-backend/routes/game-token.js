@@ -1,5 +1,6 @@
 module.exports = async function (fastify) {
     fastify.get('/game-token', {
+        preHandler: [fastify.authenticate], // Use authenticate middleware which has refresh logic
         schema: {
             description: 'Get access token for game authentication',
             tags: ['Game Integration'],
@@ -37,10 +38,10 @@ module.exports = async function (fastify) {
         }
     }, async (req, reply) => {
         try {
-            // Check if user has valid session
-            const user = await req.jwtVerify();
+            // User is already authenticated via preHandler, get user ID from token
+            const userId = req.user.sub;
             
-            if (!user || !user.sub) {
+            if (!userId) {
                 return reply.code(401).send({ error: 'Not authenticated' });
             }
 
@@ -48,7 +49,7 @@ module.exports = async function (fastify) {
             const userDetails = await new Promise((resolve, reject) => {
                 fastify.db.get(
                     'SELECT id, username, name, email FROM users WHERE id = ?',
-                    [user.sub],
+                    [userId],
                     (err, row) => {
                         if (err) reject(err);
                         else resolve(row);
@@ -60,7 +61,7 @@ module.exports = async function (fastify) {
                 return reply.code(401).send({ error: 'User not found' });
             }
 
-            // Get the access token from cookies
+            // Get the access token from cookies (may have been refreshed)
             const accessToken = req.cookies.accessToken;
             
             if (!accessToken) {

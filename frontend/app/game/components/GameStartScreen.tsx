@@ -90,7 +90,7 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
   console.log('[GameStartScreen] Render - isAuthenticated:', isAuthenticated, 'playerStats:', playerStats);
 
   return (
-    <div className={styles.container}>
+    <>
       <div className={styles.cardHeader} style={{ textAlign: 'center', marginBottom: '32px' }}>
         <h1 className={styles.title}>Pong Game</h1>
         <p className={styles.subtitle}>Choose your game mode and start playing</p>
@@ -99,7 +99,7 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
       {/* Player Statistics Card */}
       {isAuthenticated && !playerStats && statsLoading && (
         <div className={styles.card} style={{ marginBottom: '24px', textAlign: 'center', padding: '40px' }}>
-          <p style={{ color: '#7ab8ff', margin: 0 }}>Loading stats...</p>
+          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Loading stats...</p>
         </div>
       )}
       
@@ -115,12 +115,12 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
             {playerInfo?.username && (
               <div style={{
                 fontSize: "14px", 
-                color: "#7ab8ff",
+                color: "var(--accent-blue)",
                 fontWeight: 600,
                 padding: "6px 12px",
-                background: "rgba(47, 140, 255, 0.15)",
+                background: "rgba(23, 144, 255, 0.08)",
                 borderRadius: "8px",
-                border: "1px solid rgba(47, 140, 255, 0.3)"
+                border: "1px solid rgba(23, 144, 255, 0.2)"
               }}>
                 @{playerInfo.username}
               </div>
@@ -160,18 +160,14 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
             <div className={styles.statCard}>
               <div className={styles.statLabel}>Record</div>
               <div style={{ fontSize: "18px", fontWeight: 600, marginBottom: "6px" }}>
-                <span style={{ color: "var(--neon-green)" }}>{playerStats.games_won}W</span>
+                <span style={{ color: "var(--success-green)" }}>{playerStats.games_won}W</span>
                 <span style={{ color: "#6b7593" }}> - </span>
-                <span style={{ color: "var(--neon-pink)" }}>{playerStats.games_lost || 0}L</span>
+                <span style={{ color: "var(--error-red)" }}>{playerStats.games_lost || 0}L</span>
               </div>
               <div style={{ 
                 fontSize: "24px", 
-                fontWeight: 700, 
-                fontFamily: "'Orbitron', sans-serif",
-                background: "linear-gradient(135deg, var(--neon-blue), var(--neon-purple))",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text"
+                fontWeight: 700,
+                color: "var(--accent-blue)"
               }}>
                 {playerStats.win_rate?.toFixed(1) || 0}% WR
               </div>
@@ -347,6 +343,6 @@ export const GameStartScreen: React.FC<GameStartScreenProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 };

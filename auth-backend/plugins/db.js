@@ -29,7 +29,19 @@ const dbQueriesInFlight = register.getSingleMetric('db_queries_in_flight') || ne
 
 module.exports = fp(async function (fastify) {
     const config = require('../config');
-    const dbPath = process.env.DB_FILE || path.join(__dirname, '..', 'db', 'sqlite.db');
+    /**
+     * IMPORTANT: All services (db-init, auth-backend, usr-manag, game-backend, chat)
+     * must point at the SAME SQLite file so they share the unified `users` table.
+     *
+     * db-init defaults to `/usr/src/app/db/shared.sqlite`, so we mirror that here.
+     * - Prefer explicit DB_FILE (for backwards compatibility / overrides)
+     * - Then DATABASE_PATH (shared with other services)
+     * - Finally fall back to `/usr/src/app/db/shared.sqlite`
+     */
+    const dbPath =
+        process.env.DB_FILE ||
+        process.env.DATABASE_PATH ||
+        '/usr/src/app/db/shared.sqlite';
     const serviceName = config.SERVICE_NAME || 'auth-backend';
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 

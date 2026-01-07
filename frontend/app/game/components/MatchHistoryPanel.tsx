@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { Clock, Users, Trophy, Calendar } from 'lucide-react';
+import Link from 'next/link';
 import { getGameBackendUrl } from '../utils/api';
 import styles from '../styles.module.css';
+import userProfileStyles from '@/app/users/[id]/UserProfile.module.css';
 
 interface MatchHistoryEntry {
   id: number;
@@ -41,9 +43,10 @@ interface MatchHistoryPanelProps {
   userId: number;
   isVisible: boolean;
   refreshTrigger?: number; // Add a refresh trigger
+  isGamePage?: boolean; // Whether this is on the game page or user profile page
 }
 
-export const MatchHistoryPanel: React.FC<MatchHistoryPanelProps> = ({ userId, isVisible, refreshTrigger }) => {
+export const MatchHistoryPanel: React.FC<MatchHistoryPanelProps> = ({ userId, isVisible, refreshTrigger, isGamePage = true }) => {
   const [matches, setMatches] = useState<MatchHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,85 +128,89 @@ export const MatchHistoryPanel: React.FC<MatchHistoryPanelProps> = ({ userId, is
             (userId === match.player1_id || userId === match.player2_id));
   };
 
+  const containerStyles = isGamePage ? styles : userProfileStyles;
+      
   return (
-    <div className={styles.matchHistoryPanel}>
-      <h2 className={styles.matchHistoryTitle}>📜 Match History</h2>
+    <>
+      {loading && <div className={containerStyles.loading}>Loading match history...</div>}
       
-      {loading && <div className={styles.loading}>Loading match history...</div>}
-      
-      {error && <div className={styles.error}>{error}</div>}
+      {error && <div className={containerStyles.error}>{error}</div>}
       
       {!loading && !error && matches.length === 0 && (
-        <div className={styles.noMatches}>No matches played yet. Start playing to build your history!</div>
+        <div className={isGamePage ? styles.noMatches : userProfileStyles.emptyState}>
+          {!isGamePage && (
+            <>
+              <div className={userProfileStyles.emptyStateIcon}>🎮</div>
+              <h3 className={userProfileStyles.emptyStateTitle}>No Matches Yet</h3>
+              <p className={userProfileStyles.emptyStateText}>
+                Start playing matches to build your competitive history and track your progress!
+              </p>
+              <Link href="/game" className={userProfileStyles.emptyStateCta}>
+                Start Playing
+              </Link>
+            </>
+          )}
+          {isGamePage && 'No matches played yet. Start playing to build your history!'}
+        </div>
       )}
       
       {!loading && !error && matches.length > 0 && (
-        <div className={styles.matchHistoryList}>
+        <div className={containerStyles.matchHistoryList}>
           {matches.map((match) => {
             const won = isWinner(match);
+            let pointsChange: number | undefined;
+            
+            if (match.player1_id === userId && match.player1_points_change !== undefined) {
+              pointsChange = match.player1_points_change;
+            } else if (match.player2_id === userId && match.player2_points_change !== undefined) {
+              pointsChange = match.player2_points_change;
+            } else if (match.player3_id === userId && match.player3_points_change !== undefined) {
+              pointsChange = match.player3_points_change;
+            } else if (match.player4_id === userId && match.player4_points_change !== undefined) {
+              pointsChange = match.player4_points_change;
+            }
+            
             return (
               <div 
                 key={match.id} 
-                className={`${styles.matchHistoryEntry} ${won ? styles.matchWon : styles.matchLost}`}
+                className={`${containerStyles.matchHistoryEntry} ${won ? containerStyles.matchWon : containerStyles.matchLost}`}
               >
-                <div className={styles.matchHeader}>
-                  <span className={styles.matchResult}>
+                <div className={containerStyles.matchHeader}>
+                  <span className={containerStyles.matchResult}>
                     {won ? '✅ Victory' : '❌ Defeat'}
                   </span>
-                  <span className={styles.matchType}>
+                  <span className={containerStyles.matchType}>
                     {getGameTypeDisplay(match.game_type, match.tournament_stage)}
                   </span>
                 </div>
                 
-                <div className={styles.matchPlayers}>
+                <div className={containerStyles.matchPlayers}>
                   {getPlayersDisplay(match)}
                 </div>
                 
-                <div className={styles.matchDetails}>
-                  <span className={styles.matchScore}>
+                <div className={containerStyles.matchDetails}>
+                  <span className={containerStyles.matchScore}>
                     <Trophy size={14} /> {match.score_player1} - {match.score_player2}
                   </span>
-                  <span className={styles.matchDuration}>
+                  <span className={containerStyles.matchDuration}>
                     <Clock size={14} /> {formatDuration(match.game_duration)}
                   </span>
-                  <span className={styles.matchDate}>
+                  <span className={containerStyles.matchDate}>
                     <Calendar size={14} /> {formatDate(match.created_at)}
                   </span>
-                  {(() => {
-                    // Determine which player the current user is and show their rank change
-                    let pointsChange: number | undefined;
-                    
-                    if (match.player1_id === userId && match.player1_points_change !== undefined) {
-                      pointsChange = match.player1_points_change;
-                    } else if (match.player2_id === userId && match.player2_points_change !== undefined) {
-                      pointsChange = match.player2_points_change;
-                    } else if (match.player3_id === userId && match.player3_points_change !== undefined) {
-                      pointsChange = match.player3_points_change;
-                    } else if (match.player4_id === userId && match.player4_points_change !== undefined) {
-                      pointsChange = match.player4_points_change;
-                    }
-                    
-                    if (pointsChange !== undefined) {
-                      return (
-                        <span 
-                          className={styles.matchRankChange}
-                          style={{ 
-                            color: pointsChange > 0 ? 'var(--neon-green)' : 'var(--neon-pink)',
-                            fontWeight: 600
-                          }}
-                        >
-                          {pointsChange > 0 ? '+' : ''}{pointsChange} RP
-                        </span>
-                      );
-                    }
-                    return null;
-                  })()}
+                  {pointsChange !== undefined && (
+                    <span 
+                      className={`${containerStyles.matchRankChange} ${pointsChange > 0 ? containerStyles.matchRankChangePositive : containerStyles.matchRankChangeNegative}`}
+                    >
+                      {pointsChange > 0 ? '+' : ''}{pointsChange} RP
+                    </span>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       )}
-    </div>
+    </>
   );
 };

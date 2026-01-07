@@ -13,18 +13,37 @@ module.exports = async function (fastify) {
         const { username, first_name, last_name, profile_pic } = profile;
         const userId = req.user.id;
 
-        const changes = fastify.db.prepare(`
-            UPDATE users SET
-                username = ?,
-                first_name = ?,
-                last_name = ?,
-                profile_pic = ?,
-                updated_at = datetime('now')
-            WHERE id = ?
-        `).run(username, first_name, last_name, profile_pic, userId).changes;
+        // Only update profile_pic if it's explicitly provided in the request
+        // This prevents accidentally clearing the profile picture when updating other fields
+        if (profile_pic !== undefined) {
+            // profile_pic is explicitly provided, update it
+            const changes = fastify.db.prepare(`
+                UPDATE users SET
+                    username = ?,
+                    first_name = ?,
+                    last_name = ?,
+                    profile_pic = ?,
+                    updated_at = datetime('now')
+                WHERE id = ?
+            `).run(username, first_name, last_name, profile_pic, userId).changes;
 
-        if (changes === 0) {
-            return rep.code(404).send({ error: 'Profile not found' });
+            if (changes === 0) {
+                return rep.code(404).send({ error: 'Profile not found' });
+            }
+        } else {
+            // profile_pic is not provided, don't update it - preserve existing value
+            const changes = fastify.db.prepare(`
+                UPDATE users SET
+                    username = ?,
+                    first_name = ?,
+                    last_name = ?,
+                    updated_at = datetime('now')
+                WHERE id = ?
+            `).run(username, first_name, last_name, userId).changes;
+
+            if (changes === 0) {
+                return rep.code(404).send({ error: 'Profile not found' });
+            }
         }
 
         return { success: true };
@@ -151,23 +170,40 @@ module.exports = async function (fastify) {
     });
 
     // Add this endpoint that works without CSRF (for sendBeacon)
+    // Made auth optional to handle expired tokens gracefully during page unload
     fastify.patch('/me/status/unload', { 
-        preHandler: [fastify.authenticate], 
         schema: {
             tags: ['Profile'],
             summary: 'Update online status on page unload',
-            security: [{ bearerAuth: [] }],
-            // No CSRF required for this endpoint
+            // No security requirement - optional auth for graceful handling during unload
         } 
     }, async (request, reply) => {
-        const userId = request.user.id;
+        // Try to get user from token, but don't fail if expired
+        let userId = null;
+        try {
+            const token = request.cookies?.accessToken ||
+                request.headers?.authorization?.replace('Bearer ', '');
+            
+            if (token) {
+                const { validateToken } = require('../utils/validateToken');
+                const result = validateToken(token);
+                if (result.valid) {
+                    userId = result.userId;
+                }
+            }
+        } catch (err) {
+            // Ignore token errors during unload - this is a cleanup endpoint
+        }
         
-        fastify.db.prepare(`
-            UPDATE users SET 
-                is_online = 0,
-                updated_at = datetime('now')
-            WHERE id = ?
-        `).run(userId);
+        // If we have a valid user, update status, otherwise just return success
+        if (userId) {
+            fastify.db.prepare(`
+                UPDATE users SET 
+                    is_online = 0,
+                    updated_at = datetime('now')
+                WHERE id = ?
+            `).run(userId);
+        }
         
         return { success: true, is_online: false };
     });

@@ -30,6 +30,26 @@ fastify.addHook('preHandler', async (request, reply) => {
       /^https?:\/\/196\.119\.125\.6(:\d+)?$/,  // External public IP
       /^https?:\/\/[\d.]+:\d+$/  // Any IP address with port (development mode)
     ];
+
+    // Allow explicit public origins from environment (e.g., ngrok/HTTPS entrypoint)
+    const envOrigins = [process.env.NEXT_PUBLIC_BASE_URL, process.env.PUBLIC_URL]
+      .filter(Boolean)
+      .map(u => {
+        try {
+          // Escape dots in hostname and allow optional port
+          const url = new URL(u);
+          const protocol = url.protocol.replace(':', '');
+          const hostRegex = url.hostname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          return new RegExp(`^${protocol}s?:\\/\\/${hostRegex}(:\\d+)?$`);
+        } catch (_) {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+    if (envOrigins.length) {
+      allowedPatterns.push(...envOrigins);
+    }
     
     isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
     console.log(`[CORS] Origin: ${origin} - Allowed: ${isAllowed}`);
@@ -104,23 +124,35 @@ fastify.get('/test-stats/:userId', async (request, reply) => {
 // Player stats API endpoint
 fastify.get('/api/player-stats', async (request, reply) => {
   try {
-    // Extract JWT token from Authorization header
+    // Extract JWT token from (priority): Authorization header -> cookie -> query param
+    const userAuth = wsHandler.userAuth;
+    let token = null;
+
     const authHeader = request.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return reply.status(401).send({ error: 'Missing or invalid authorization header' });
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
     }
-    
-    const token = authHeader.substring(7);
-    const jwt = require('jsonwebtoken');
-    
-    // Verify JWT token to get user ID
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    } catch (jwtError) {
-      return reply.status(401).send({ error: 'Invalid token' });
+    if (!token && request.headers && request.headers.cookie) {
+      const cookies = userAuth.parseCookies(request.headers.cookie);
+      token = cookies.accessToken || null;
     }
-    
+    if (!token) {
+      const urlObj = new URL(request.url, 'http://localhost');
+      token = urlObj.searchParams.get('token');
+    }
+
+    if (!token) {
+      return reply.status(401).send({ error: 'No authentication token provided' });
+    }
+
+    // Verify JWT token to get user ID (use the same logic as websockets)
+    const verifyResult = await userAuth.verifyToken(token);
+    if (!verifyResult.success) {
+      const err = verifyResult.error === 'TOKEN_EXPIRED' ? 'Token expired' : 'Invalid token';
+      return reply.status(401).send({ error: err });
+    }
+
+    const decoded = verifyResult.user;
     const userId = decoded.sub || decoded.userId;
     if (!userId) {
       return reply.status(401).send({ error: 'Invalid token payload' });
@@ -228,8 +260,7 @@ fastify.get('/api/match-history/:userId', async (request, reply) => {
   }
 });
 
-// Start the game update loop
-wsHandler.startGameUpdateLoop();
+// Game update loop already started inside WebSocketHandler constructor
 
 const port = process.env.GAME_BACKEND_PORT || 4322;
 fastify.listen({ port: parseInt(port), host: "0.0.0.0" }, (err, address) => {

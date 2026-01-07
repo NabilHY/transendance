@@ -20,6 +20,14 @@ const fastify = require('fastify')({
   });
 
 fastify.setErrorHandler(function (err, req, reply) {
+    // Handle rate limit errors specifically
+    if (err.statusCode === 429 || err.code === 429) {
+        return reply.code(429).send({
+            error: 'Rate limit exceeded, retry in 10 seconds',
+            code: 429
+        });
+    }
+    
     // Handle validation errors with custom messages
     if (err.validation) {
         const messages = err.validation.map(validationErr => {
@@ -45,7 +53,7 @@ fastify.setErrorHandler(function (err, req, reply) {
     }
     
     // Preserve the original status code if it exists, otherwise default to 500
-    const statusCode = err.statusCode || 500;
+    const statusCode = err.statusCode || err.code || 500;
     reply.code(statusCode).send({
         error: err.message || 'Internal server error'
     });

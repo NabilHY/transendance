@@ -45,33 +45,26 @@
 }
 
 
-  .container {
-    --neon-blue: #00f0ff;
-    --neon-purple: #b744ff;
-    --neon-pink: #ff006e;
-    --neon-green: #00ff88;
-    --dark-bg: #050811;
-    --darker-bg: #030512;
-    --card-bg: rgba(8, 12, 26, 0.92);
-    --response-bg: #636363;
-    --surface-glow: rgba(0, 240, 255, 0.08);
-    --text-primary: #e8f7ff;
-    --text-secondary: #7dd8ff;
-    --neon-deep-blue: #00BFFF;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    background:
-      radial-gradient(circle at 12% 12%, rgba(183, 68, 255, 0.14), transparent 38%),
-      radial-gradient(circle at 82% 0%, rgba(0, 240, 255, 0.18), transparent 45%),
-      var(--dark-bg);
-    height: 100%;
+.container {
+  --accent-blue: #1790ff;
+  --accent-blue-soft: #3bc9ff;
+  --accent-border: #1b253f;
+  --bg-main: #050b16;
+  --bg-surface: #0b111f;
+  --text-primary: #e4ecff;
+  --text-secondary: #8c96b6;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: var(--bg-main);
+  border-left: 1px solid var(--accent-border);
+  height: 100%;
 }
 
 .header {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--neon-blue);
-  /* background: #0f0f0f; */
+  border-bottom: 1px solid var(--accent-border);
+  background: var(--bg-main);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -82,22 +75,15 @@
 
 .addUserBtn {
   padding: 12px 30px;
-  background: linear-gradient(
-    135deg,
-    rgba(0, 240, 255, 0.18),
-    rgba(183, 68, 255, 0.18)
-  );
-
-  color: var(--text-primary);
-
-  border: 1px solid var(--neon-blue);
-  border-radius: 8px;
-
-  box-shadow:
-    0 0 6px rgba(0, 240, 255, 0.45),
-    inset 0 0 10px rgba(183, 68, 255, 0.25);
-
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-soft));
+  color: #ffffff;
+  border-radius: 12px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(23, 144, 255, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
 .actionsRow {
@@ -121,7 +107,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: var(--card-bg);
+  background: var(--bg-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -172,6 +158,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background: radial-gradient(circle at top, rgba(20, 40, 80, 0.4), transparent 60%), #040912;
 }
 
 .messageWrapper {
@@ -200,20 +187,17 @@
 }
 
 .sent .messageContent {
-  /* background: var(--neon-blue); */
-  /* background: linear-gradient(135deg, rgba(0, 240, 255, 0.8), rgba(183, 68, 255, 0.7)); */
-  background: #00BFFF;
-  background: var(--neon-deep-blue);
-  color: var(--darker-bg);
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-soft));
+  color: #ffffff;
   border-bottom-right-radius: 0.25rem;
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.75), 0 0 18px rgba(183, 68, 255, 0.45), inset 0 0 12px rgba(0, 240, 255, 0.35);
+  box-shadow: 0 4px 10px rgba(23, 144, 255, 0.4);
 }
 
 .received .messageContent {
-  background: var(--response-bg);
+  background: var(--bg-surface);
   color: var(--text-primary);
   border-bottom-left-radius: 0.25rem;
-  box-shadow: 0 0 5px rgba(120, 120, 120, 0.75), 0 0 18px rgba(151, 151, 151, 0.788), inset 0 0 12px rgba(226, 226, 226, 0.35);
+  border: 1px solid var(--accent-border);
 }
 
 .messageTime {
@@ -234,8 +218,8 @@
   display: flex;
   gap: 0.75rem;
   padding: 1rem;
-  background: var(--darker-bg);
-  border-top: 1px solid rgba(0, 240, 255, 0.16);
+  background: var(--bg-main);
+  border-top: 1px solid var(--accent-border);
   margin-bottom: 20px;
 }
 
@@ -244,8 +228,8 @@
 
 .messageInput {
   flex: 1;
-  background: #0a0e1a;
-  border: 1px solid rgba(0, 240, 255, 0.18);
+  background: var(--bg-surface);
+  border: 1px solid #1e2b45;
   border-radius: 1.5rem;
   padding: 0.75rem 1rem;
   color: var(--text-primary);
@@ -253,12 +237,12 @@
 }
 
 .messageInput::placeholder {
-  color: #4fa0cc;
+  color: #5e6788;
 }
 
 .messageInput:focus {
   outline: none;
-  border-color: var(--neon-blue);
+  border-color: var(--accent-blue);
 }
 
 .messageInput:disabled {

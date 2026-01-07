@@ -354,7 +354,6 @@ export default function HomePage() {
 										fontSize: '18px',
 										fontWeight: 600,
 										color: '#e4ecff',
-										marginBottom: '4px'
 									}}>
 										My Profile
 									</h3>

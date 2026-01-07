@@ -1,8 +1,8 @@
 import { UMUser } from '@/lib/api';
-import './ProfileCard.css'
 import CurrentUserProfileNotice from './CurrentUserProfileNotice';
 import { getAvatarUrl, getInitials } from '@/lib/avatar';
 import { useState, useEffect } from 'react';
+import styles from '@/app/users/[id]/UserProfile.module.css';
 
 interface ProfileCardProps {
   profile: UMUser;
@@ -44,109 +44,94 @@ export function ProfileCard({ profile, isCurrentUser, onAddFriend, friendshipSta
   
 
   return (
-    <div className="profile-card">
-      <div className="profile-card-inner">
-        <div className="avatar-wrapper">
+    <div className={styles.profileCard}>
+      <div className={styles.avatarSection}>
+        <div className={styles.avatarWrapper}>
           {avatarUrl && !avatarError ? (
             <img
               src={avatarUrl}
               alt={profile.first_name + ' ' + profile.last_name}
-              className="avatar-image"
+              className={styles.avatarImage}
               onError={() => setAvatarError(true)}
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: '50%',
-                objectFit: 'cover'
-              }}
             />
           ) : (
-            <div style={{
-              width: 80,
-              height: 80,
-              borderRadius: '50%',
-              background: '#ddd',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 24,
-              fontWeight: 'bold',
-              color: '#666'
-            }}>
+            <div className={styles.avatarPlaceholder}>
               {getInitials(profile)}
             </div>
           )}
-          <div className={`${profile.is_online ? 'status-online' : ''}`}></div>
+          <div className={`${styles.statusIndicator} ${profile.is_online ? styles.statusIndicatorOnline : styles.statusIndicatorOffline}`}></div>
         </div>
 
-        <h2 className="profile-name">{profile.first_name + ' ' + profile.last_name}</h2>
-        <p className="profile-username">@{profile.username}</p>
+        <h2 className={styles.profileName}>{profile.first_name + ' ' + profile.last_name}</h2>
+        <p className={styles.profileUsername}>@{profile.username}</p>
 
-        <div className={`profile-stats-row ${friendshipStatus === "blocked" || friendshipStatus === "blocker" ? "no-display" : null }`}>
-          <div className="profile-stat">
-            Status:{' '}
-            <span className={`${profile.is_online ? 'status-online' : 'status-offline'}`}>{profile.is_online ? 'Online' : 'Offline'}</span>
+        {friendshipStatus !== "blocked" && friendshipStatus !== "blocker" && (
+          <div className={`${styles.statusBadge} ${profile.is_online ? styles.statusBadgeOnline : styles.statusBadgeOffline}`}>
+            <span>{profile.is_online ? '●' : '○'}</span>
+            {profile.is_online ? 'Online' : 'Offline'}
           </div>
-        </div>
+        )}
+      </div>
 
-          {invitationReceived && (
-            <>
-              <span className="friend-request-message">You have a friend request</span>
-              <div className="button-grid">
-                <button className="btn-accept" onClick={acceptRequest}>Accept</button>
-                <button className="btn-danger" onClick={rejectRequest}>Reject</button>
-              </div>
-            </>
-          )}
+      <div className={styles.actionButtons}>
+        {invitationReceived && (
+          <>
+            <div className={styles.friendRequestMessage}>You have a friend request</div>
+            <div className={styles.buttonRow}>
+              <button className={styles.btnAccept} onClick={acceptRequest}>Accept</button>
+              <button className={styles.btnDanger} onClick={rejectRequest}>Reject</button>
+            </div>
+          </>
+        )}
 
-        <div style={{width: '100%', marginTop: '10px'}} className={`${isCurrentUser ? "no-display" : ""} ${friendshipStatus === "blocked" || friendshipStatus === "blocker" || friendshipStatus === "pending" ? "no-display" : null }`}>
-          {/* <button className="btn-primary">Invite to Match</button> */}
-          <button style={{width: '100%'}} className="btn-secondary" onClick={handleMessageBtn} >Message</button>
-        </div>
-        {/* for blockers users */}
-        <div className={`button-grid mt-small ${isCurrentUser ? "no-display" : ""} ${friendshipStatus !== "blocker" ? "no-display" : "blocking" }`}>
-          <button className={`btn-danger`} onClick={handleUnblock}>Unblock
-          </button>
-        </div>
-
-        {/* <div className={`button-grid mt-small ${friendshipStatus !== "pending" ? "no-display" : "blocking" }`}>
-          <button className={`btn-secondary`} onClick={rejectRequest}>Cancel Request
-          </button>
-        </div> */}
-
-         {/* for blocked users */}
-        <div className={`button-grid mt-small ${isCurrentUser ? "no-display" : ""} ${friendshipStatus !== "blocked" ? "no-display" : "blocking" }`}>
-          <button className={`btn-danger`} onClick={onAddFriend}>You got blocked
-          </button>
-        </div>
-
-
-        <div className={`button-grid mt-small ${isCurrentUser ? "no-display" : ""} ${friendshipStatus === "blocked" || friendshipStatus === "blocker" ? "no-display" : null }`}>
-          <button className={`
-            ${friendshipStatus === "accepted" ? "btn-accept" : friendshipStatus === "pending" ? "btn-pending" : "btn-secondary"} 
-            ${friendshipStatus !== 'Add Friend' ? 'cursor-not-allowed' : 'cursor-pointer'}`} 
-            disabled={friendshipStatus !== 'Add Friend'} 
-            onClick={onAddFriend}>{friendshipStatus === "accepted" ? "Friends" : (friendshipStatus || 'Add Friend')}</button>
-          <button className="btn-danger" onClick={blockUser}>Block</button>
-        </div>
-
-        <div className="stats-grid">
-          <div className="stat-card">
-            {/* <div className="stat-number">{profile.total_games}</div> */}
-            <div className="stat-number">{playerStats ? playerStats.games_played : '—'}</div>
-            <div className="stat-label">Games</div>
+        {!isCurrentUser && friendshipStatus !== "blocked" && friendshipStatus !== "blocker" && friendshipStatus !== "pending" && (
+          <div className={styles.buttonRowSingle}>
+            <button className={styles.btnSecondary} onClick={handleMessageBtn}>Message</button>
           </div>
-          <div className="stat-card">
-            {/* <div className="stat-number">{profile.total_wins}</div> */}
-            <div className="stat-number">{playerStats ? playerStats.games_won : '—'}</div>
-            <div className="stat-label">Wins</div>
+        )}
+
+        {!isCurrentUser && friendshipStatus === "blocker" && (
+          <div className={styles.buttonRowSingle}>
+            <button className={styles.btnDanger} onClick={handleUnblock}>Unblock</button>
           </div>
-          <div className="stat-card">
-            <div className="stat-number">{playerStats ? playerStats.win_rate : '—'}%</div>
-              {/* {profile.win_rate > 0 ? profile.win_rate.toFixed(0) : '—'}%
-            </div> */}
-            <div className="stat-label">Win Rate</div>
+        )}
+
+        {!isCurrentUser && friendshipStatus === "blocked" && (
+          <div className={styles.buttonRowSingle}>
+            <button className={styles.btnDanger} disabled>You got blocked</button>
           </div>
+        )}
+
+        {!isCurrentUser && friendshipStatus !== "blocked" && friendshipStatus !== "blocker" && (
+          <div className={styles.buttonRow}>
+            <button 
+              className={
+                friendshipStatus === "accepted" ? styles.btnAccept : 
+                friendshipStatus === "pending" ? styles.btnPending : 
+                styles.btnSecondary
+              } 
+              disabled={friendshipStatus !== 'Add Friend' && friendshipStatus !== null} 
+              onClick={onAddFriend}
+            >
+              {friendshipStatus === "accepted" ? "Friends" : (friendshipStatus || 'Add Friend')}
+            </button>
+            <button className={styles.btnDanger} onClick={blockUser}>Block</button>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.statsGrid}>
+        <div className={styles.statCard}>
+          <div className={styles.statNumber}>{playerStats ? playerStats.games_played : '—'}</div>
+          <div className={styles.statLabel}>Games</div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statNumber}>{playerStats ? playerStats.games_won : '—'}</div>
+          <div className={styles.statLabel}>Wins</div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statNumber}>{playerStats ? (playerStats.win_rate?.toFixed(1) || '0.0') : '—'}%</div>
+          <div className={styles.statLabel}>Win Rate</div>
         </div>
       </div>
     </div>

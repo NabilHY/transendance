@@ -3,7 +3,12 @@ module.exports = {
     USR_MANAG_PORT: process.env.USR_MANAG_PORT || 4000,
     SERVICE_NAME: process.env.TARGET_2 || 'usr-manag',
     AUTH_BACKEND_URL: process.env.AUTH_BACKEND_URL || 'http://localhost:8005',
-    DATABASE_PATH: process.env.DATABASE_PATH || './db/sqlite.db',
+    /**
+     * Unified database path
+     * All services should share the same SQLite file so they operate on the same `users` table.
+     * db-init defaults to `/usr/src/app/db/shared.sqlite`, so we mirror that here.
+     */
+    DATABASE_PATH: process.env.DATABASE_PATH || '/usr/src/app/db/shared.sqlite',
     
     // CORS settings
     FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:8080',

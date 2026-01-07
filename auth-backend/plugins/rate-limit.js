@@ -20,7 +20,16 @@ async function rateLimitPlugin(fastify) {
         },
         
         skip: function (request) {
-            return request.url === '/health';
+            // Skip rate limiting for health checks and frequently called endpoints
+            const skipUrls = [
+                '/health',
+                '/api/csrf-token',
+                '/api/auth/me',
+                '/metrics'
+            ];
+            
+            // Check if the URL matches any skip pattern
+            return skipUrls.some(url => request.url === url || request.url.startsWith(url));
         }
     });
 }

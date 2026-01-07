@@ -1,14 +1,18 @@
 'use client';
 
+import styles from './styles.module.css';
+
 export default function ChatPage() {
 
   return (
-    <main style={{display: 'flex', height: '100dvh', justifyContent: 'center', alignItems: 'center'}}>
-      <div>
-        <h1>Select conversation</h1>
+    <div className={styles.emptyStateWrapper}>
+      <div className={styles.emptyStateCard}>
+        <h1 className={styles.emptyStateTitle}>Select a conversation</h1>
+        <p className={styles.emptyStateSubtitle}>
+          Choose a friend or channel from the left sidebar to start chatting.
+        </p>
       </div>
-    </main>
-    
+    </div>
   );
 }
 

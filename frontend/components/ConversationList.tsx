@@ -87,20 +87,19 @@ export default function ConversationsList({
 
   return (
     <div className={`${styles.container} ${collapsed ? styles.containerCollapsed : ""}`}>
-      <div className={styles.collapseHandle}>
-        <button
-          type="button"
-          className={styles.collapseBtn}
-          onClick={() => setCollapsed((v) => !v)}
-          aria-pressed={collapsed}
-          aria-label={collapsed ? "Show conversations" : "Hide conversations"}
-        >
-          {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-        </button>
-      </div>
-
       <div className={styles.header}>
-        <h2 className={styles.title}>Chat</h2>
+        <div className={styles.headerTopRow}>
+          <h2 className={styles.title}>Chat</h2>
+          <button
+            type="button"
+            className={styles.collapseBtn}
+            onClick={() => setCollapsed((v) => !v)}
+            aria-pressed={collapsed}
+            aria-label={collapsed ? "Show conversations" : "Hide conversations"}
+          >
+            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
+        </div>
         
         <div className={styles.actionsRow}>
           <button type="button" className={styles.primaryBtn} onClick={handleCreateGroupClick}>

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
-import { LoadingScreen } from '@/components/LoadingScreen';
 import { User, Settings, Users, Home, LogOut, RefreshCw, Circle } from 'lucide-react';
 import styles from '../login/LoginPage.module.css';
 import { getAvatarUrl, getInitials, type UserWithAvatar } from '@/lib/avatar';
@@ -41,7 +40,13 @@ export default function ProfilePage() {
     }, [profile?.id, profile?.profile_pic, (profile as any)?.avatar_updated_at]);
     
     if (authLoading || loading) {
-        return <LoadingScreen />;
+        return (
+            <main className={styles.page}>
+                <div className={styles.container}>
+                    <div style={{ color: '#8c96b6', fontSize: '15px' }}>Loading...</div>
+                </div>
+            </main>
+        );
     }
 
     const handleRefresh = () => {
@@ -50,7 +55,7 @@ export default function ProfilePage() {
 
     return (
         <main className={styles.page}>
-            <div className={styles.container} style={{ maxWidth: '800px' }}>
+            <div className={styles.container} style={{ maxWidth: '700px', marginTop: '10%' }}>
                 {/* Navigation Header */}
                 <div style={{
                     width: '100%',
@@ -70,7 +75,7 @@ export default function ProfilePage() {
                         color: '#e4ecff',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px'
+                        gap: '10px',
                     }}>
                         <User size={24} />
                         My Profile

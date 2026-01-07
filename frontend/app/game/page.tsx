@@ -250,7 +250,7 @@ export default function GamePage() {
   return (
     <div className={styles.page}>
         {screen === "start" && (
-          <>
+          <div className={styles.container}>
             <GameStartScreen
               isAuthenticated={isAuthenticated}
               playerStats={playerStats}
@@ -270,7 +270,7 @@ export default function GamePage() {
                 refreshTrigger={matchHistoryRefresh}
               />
             )}
-          </>
+          </div>
         )}
 
         {screen === "waiting" && (

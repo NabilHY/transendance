@@ -34,25 +34,57 @@ function parseEndpoint({ endpoint, useSSL, port }) {
 }
 
 /**
- * Download image from URL
+ * Download image from URL (with limited redirect support)
+ *
+ * Google profile picture URLs sometimes respond with redirects (3xx) before
+ * serving the actual image. This helper follows a small number of redirects
+ * to robustly fetch the final image bytes.
  */
-function downloadImage(url) {
+function downloadImage(url, maxRedirects = 5) {
   return new Promise((resolve, reject) => {
-    const protocol = url.startsWith('https:') ? https : http;
-    
-    protocol.get(url, (response) => {
-      if (response.statusCode !== 200) {
-        reject(new Error(`Failed to download image: ${response.statusCode}`));
-        return;
+    const visited = new Set();
+
+    function doRequest(currentUrl, redirectsLeft) {
+      if (!redirectsLeft) {
+        return reject(new Error(`Too many redirects while downloading image from ${currentUrl}`));
       }
 
-      const chunks = [];
-      response.on('data', (chunk) => chunks.push(chunk));
-      response.on('end', () => {
-        resolve(Buffer.concat(chunks));
+      if (visited.has(currentUrl)) {
+        return reject(new Error(`Redirect loop detected while downloading image from ${currentUrl}`));
+      }
+      visited.add(currentUrl);
+
+      const protocol = currentUrl.startsWith('https:') ? https : http;
+
+      const req = protocol.get(currentUrl, (response) => {
+        const { statusCode, headers } = response;
+
+        // Handle redirects (3xx)
+        if (statusCode >= 300 && statusCode < 400 && headers.location) {
+          const location = headers.location;
+          // Support relative redirects by resolving against the current URL
+          const nextUrl = new URL(location, currentUrl).toString();
+          response.resume(); // Discard response data
+          return doRequest(nextUrl, redirectsLeft - 1);
+        }
+
+        if (statusCode !== 200) {
+          response.resume(); // Discard response data
+          return reject(new Error(`Failed to download image: HTTP ${statusCode} for ${currentUrl}`));
+        }
+
+        const chunks = [];
+        response.on('data', (chunk) => chunks.push(chunk));
+        response.on('end', () => {
+          resolve(Buffer.concat(chunks));
+        });
+        response.on('error', reject);
       });
-      response.on('error', reject);
-    }).on('error', reject);
+
+      req.on('error', reject);
+    }
+
+    doRequest(url, maxRedirects);
   });
 }
 
@@ -123,11 +155,13 @@ async function uploadGoogleAvatar(googlePictureUrl, userId, log) {
       return null;
     }
 
-    // Generate unique object key: avatars/{userId}/{timestamp}-{random}.{ext}
+    // Generate unique object key: {userId}/{timestamp}-{random}.{ext}
+    // NOTE: Do not include bucket name in the object key itself; the bucket is
+    // specified separately. This matches the behaviour in usr-manag /media routes.
     const timestamp = Date.now();
     const random = randomBytes(8).toString('hex');
     const ext = detected.ext || 'jpg';
-    const objectKey = `avatars/${userId}/${timestamp}-${random}.${ext}`;
+    const objectKey = `${userId}/${timestamp}-${random}.${ext}`;
 
     // Ensure bucket exists
     const bucketExists = await client.bucketExists(bucket);

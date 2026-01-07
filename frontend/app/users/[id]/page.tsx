@@ -10,12 +10,11 @@ import { useRequireAuth } from '@/hooks/useAuthGuard';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ProfileCard } from '@/components/ProfileCard';
 import { headers } from 'next/dist/client/components/headers';
-import CurrentUserProfileNotice from '@/components/CurrentUserProfileNotice';
 import { handleMessageClick } from '@/lib/chat';
 import { MatchHistoryPanel } from '@/app/game/components/MatchHistoryPanel';
-import '../../game/styles.module.css';
 import { fetchPlayerStats, getAuthToken } from '@/app/game/utils/api';
 import type { PlayerStats } from '@/app/game/types';
+import styles from './UserProfile.module.css';
 
 export default function UserDetailPage() {
     const params = useParams();
@@ -290,23 +289,21 @@ export default function UserDetailPage() {
 
     if (error || !user) {
         return (
-            <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 720, margin: '0 auto' }}>
-                <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1>User Not Found</h1>
-                    <nav style={{ display: 'flex', gap: 12 }}>
-                        <Link href="/users">Back to Users</Link>
-                        <Link href="/">Dashboard</Link>
-                    </nav>
-                </header>
-                
-                <div style={{ 
-                    border: '1px solid #fcc', 
-                    padding: 16, 
-                    borderRadius: 4,
-                    background: '#fee',
-                    marginTop: 24
-                }}>
-                    <p style={{ color: 'crimson', margin: 0 }}>{error}</p>
+            <main className={styles.page}>
+                <div className={styles.container}>
+                    <div className={styles.matchHistoryCard}>
+                        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#e4ecff' }}>User Not Found</h1>
+                            <nav style={{ display: 'flex', gap: 12 }}>
+                                <Link href="/users" style={{ color: '#8c96b6', textDecoration: 'none' }}>Back to Users</Link>
+                                <Link href="/" style={{ color: '#8c96b6', textDecoration: 'none' }}>Dashboard</Link>
+                            </nav>
+                        </header>
+                        
+                        <div className={styles.error}>
+                            <p style={{ margin: 0 }}>{error}</p>
+                        </div>
+                    </div>
                 </div>
             </main>
         );
@@ -315,27 +312,10 @@ export default function UserDetailPage() {
     const isCurrentUser = currentUser?.id === user.id;
 
     return (
-        //   background: radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912;
-        <main
-            style={{
-                padding: 24,
-                fontFamily: 'sans-serif',
-                margin: '0 auto',
-                background: 'radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912',
-                minHeight: '100dvh',
-                // Provide the neon theme variables expected by MatchHistoryPanel styles
-                '--neon-blue': '#00f0ff',
-                '--neon-purple': '#b744ff',
-                '--neon-pink': '#ff006e',
-                '--neon-green': '#00ff88',
-                '--dark-bg': '#0a0e1a',
-                '--darker-bg': '#050811',
-                '--card-bg': 'rgba(15, 20, 35, 0.85)',
-            }}
-        >
+        <main className={styles.page}>
             {user && playerStats !== null && (
-                <>
-                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 24}}>
+                <div className={styles.container}>
+                    <div className={styles.profileSection}>
                         <ProfileCard 
                             profile={user}
                             isCurrentUser={isCurrentUser}
@@ -349,19 +329,20 @@ export default function UserDetailPage() {
                             handleUnblock={handleUnblock}
                             playerStats={playerStats}
                         />
-
-                        <MatchHistoryPanel
-                            userId={typeof user.id === 'number' ? user.id : parseInt(user.id)}
-                            isVisible={true}
-                            isGamePage={false}
-                        />
-
                     </div>
-                
-                    <CurrentUserProfileNotice isCurrentUser={isCurrentUser}/>
-                </>
-            )}
 
+                    <div className={styles.contentSection}>
+                        <div className={styles.matchHistoryCard}>
+                            <h2 className={styles.matchHistoryTitle}>Match History</h2>
+                            <MatchHistoryPanel
+                                userId={typeof user.id === 'number' ? user.id : parseInt(user.id)}
+                                isVisible={true}
+                                isGamePage={false}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

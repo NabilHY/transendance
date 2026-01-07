@@ -38,18 +38,48 @@ export interface GameTokenResponse {
 
 /**
  * Get authentication token from auth backend for game access
+ * Automatically attempts token refresh on 401
  */
 export const getAuthToken = async (): Promise<string | null> => {
   console.log('🔍 Checking authentication with auth backend...');
   
   try {
-    const response = await fetch(`${getAuthBackendUrl()}/api/game-token`, {
+    let response = await fetch(`${getAuthBackendUrl()}/api/game-token`, {
       method: 'GET',
       credentials: 'include', // Include httpOnly cookies
       headers: {
         'Content-Type': 'application/json',
       }
     });
+
+    // If we get 401, try to refresh token and retry
+    if (response.status === 401) {
+      console.log('🔄 Token expired, attempting to refresh...');
+      try {
+        const refreshResponse = await fetch(`${getAuthBackendUrl()}/api/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (refreshResponse.ok) {
+          console.log('✅ Token refreshed successfully, retrying game-token request...');
+          // Retry the original request with fresh token
+          response = await fetch(`${getAuthBackendUrl()}/api/game-token`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+        } else {
+          console.log('❌ Token refresh failed');
+          return null;
+        }
+      } catch (refreshError) {
+        console.log('💥 Error during token refresh:', refreshError);
+        return null;
+      }
+    }
 
     if (response.ok) {
       const data: GameTokenResponse = await response.json();
