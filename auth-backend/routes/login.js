@@ -1,5 +1,6 @@
 const { verifyPassword } = require('../utils/hash');
 const config = require('../config');
+const { parseExpiry } = require('../utils/jwt');
 
 module.exports = async function (fastify) {
     fastify.post('/login', {
@@ -219,9 +220,7 @@ module.exports = async function (fastify) {
         );
         
         // Calculate expiration time for refresh token
-        const refreshExpirySeconds = config.JWT_REFRESH_EXPIRES_IN ? 
-            (parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60) : 
-            (7 * 24 * 60 * 60); // Default to 7 days in seconds
+        const refreshExpirySeconds = parseExpiry(config.JWT_REFRESH_EXPIRES_IN) || (7 * 24 * 60 * 60); // Default to 7 days in seconds
         const expiresAt = Math.floor(Date.now() / 1000) + refreshExpirySeconds;
 
         await new Promise((resolve, reject) => {
@@ -232,22 +231,6 @@ module.exports = async function (fastify) {
         });
         
         // Set cookies with secure options
-        // Parse JWT_ACCESS_EXPIRES_IN which can be "2h", "15m", "7d", etc.
-        const parseExpiry = (timeStr) => {
-            if (!timeStr) return null;
-            const match = timeStr.match(/^(\d+)([smhd])$/);
-            if (!match) return null;
-            const value = parseInt(match[1]);
-            const unit = match[2];
-            switch(unit) {
-                case 's': return value;
-                case 'm': return value * 60;
-                case 'h': return value * 60 * 60;
-                case 'd': return value * 24 * 60 * 60;
-                default: return null;
-            }
-        };
-
         const accessTokenExpiry = parseExpiry(config.JWT_ACCESS_EXPIRES_IN) || (15 * 60); // Default to 15 minutes
 
         // Use SameSite=lax so the cookie is sent on OAuth redirects (Google → backend) for connect mode
@@ -394,21 +377,6 @@ module.exports = async function (fastify) {
             );
 
             // Parse JWT_REFRESH_EXPIRES_IN which can be "7d", "30d", etc.
-            const parseExpiry = (timeStr) => {
-                if (!timeStr) return null;
-                const match = timeStr.match(/^(\d+)([smhd])$/);
-                if (!match) return null;
-                const value = parseInt(match[1]);
-                const unit = match[2];
-                switch(unit) {
-                    case 's': return value;
-                    case 'm': return value * 60;
-                    case 'h': return value * 60 * 60;
-                    case 'd': return value * 24 * 60 * 60;
-                    default: return null;
-                }
-            };
-
             const refreshExpirySeconds = parseExpiry(config.JWT_REFRESH_EXPIRES_IN) || (7 * 24 * 60 * 60); // Default to 7 days
             const expiresAt = Math.floor(Date.now() / 1000) + refreshExpirySeconds;
             

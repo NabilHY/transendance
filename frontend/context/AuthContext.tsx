@@ -69,31 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	
 	const [profileComplete, setProfileComplete] = useState<boolean>(false);
 	const [checkingProfileCompletion, setCheckingProfileCompletion] = useState<boolean>(false);
+	const fetchMeInProgressRef = useRef<boolean>(false);
 	
-	const apiFetch = useCallback(async (path: string, options: RequestInit = {}) => {
-		const url = `${getApiBase()}${path}`;
-		const headers: HeadersInit = new Headers(options.headers);
-		if (csrfToken) {
-			(headers as Headers).set('X-CSRF-Token', csrfToken);
-		}
-		// Only set JSON content type if there is a body
-		if (options.body && !isJsonContentType(headers)) {
-			(headers as Headers).set('Content-Type', 'application/json');
-		}
-		const response = await fetch(url, {
-			credentials: 'include',
-			...options,
-			headers,
-		});
-		let data: any = null;
-		try {
-			data = await response.json();
-		} catch (_e) {
-			// ignore non-JSON
-		}
-		return { response, data } as const;
-	}, [csrfToken]);
-
 	const ensureCsrf = useCallback(async (): Promise<string | null> => {
 		if (csrfToken) return csrfToken;
 		try {
@@ -110,6 +87,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			return null;
 		}
 	}, [csrfToken]);
+	
+	const apiFetch = useCallback(async (path: string, options: RequestInit = {}) => {
+		const url = `${getApiBase()}${path}`;
+		const headers: HeadersInit = new Headers(options.headers);
+		if (csrfToken) {
+			(headers as Headers).set('X-CSRF-Token', csrfToken);
+		}
+		// Only set JSON content type if there is a body
+		if (options.body && !isJsonContentType(headers)) {
+			(headers as Headers).set('Content-Type', 'application/json');
+		}
+		
+		const response = await fetch(url, {
+			credentials: 'include',
+			...options,
+			headers,
+		});
+
+		// If we get a 401 and this isn't already a refresh request, try to refresh token
+		if (response.status === 401 && !path.includes('/auth/refresh') && !path.includes('/auth/login')) {
+			console.log('🔄 Token expired, attempting automatic refresh...');
+			try {
+				const csrf = await ensureCsrf();
+				const refreshRes = await fetch(`${getApiBase()}/api/auth/refresh`, {
+					method: 'POST',
+					credentials: 'include',
+					headers: csrf ? { 'X-CSRF-Token': csrf } : {},
+				});
+				
+				if (refreshRes.ok) {
+					console.log('✅ Token refreshed successfully, retrying original request...');
+					// Retry the original request with fresh token
+					const retryRes = await fetch(url, {
+						credentials: 'include',
+						...options,
+						headers,
+					});
+					
+					let retryData: any = null;
+					try {
+						retryData = await retryRes.json();
+					} catch (_e) {
+						retryData = null;
+					}
+					
+					return { response: retryRes, data: retryData } as const;
+				} else {
+					console.log('❌ Token refresh failed, user needs to login again');
+				}
+			} catch (e) {
+				console.log('💥 Error during token refresh:', e);
+			}
+		}
+
+		let data: any = null;
+		try {
+			data = await response.json();
+		} catch (_e) {
+			// ignore non-JSON
+		}
+		return { response, data } as const;
+	}, [csrfToken, ensureCsrf]);
 	
 	const router = useRouter();
 	
@@ -170,21 +209,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	}, []);
 
 	const fetchMe = useCallback(async () => {
-		console.log('🚀 [OAuth Debug] fetchMe called');
-		
-		// FIRST: Check if we have a pre2faToken (from OAuth flow)
-		// If we do, don't call /api/auth/me since we don't have a valid access token yet
-		if (checkPre2FAToken()) {
-			console.log('🛑 [OAuth Debug] pre2faToken found, skipping /api/auth/me call');
-			const pre2faToken = document.cookie.split(';').find(cookie => 
-				cookie.trim().startsWith('pre2faToken=')
-			)?.split('=')[1];
-			console.log('🛑 [OAuth Debug] pre2faToken:', pre2faToken);
-			return; // Stop here, we're in 2FA flow - NO /api/auth/me call!
+		// Prevent concurrent calls
+		if (fetchMeInProgressRef.current) {
+			console.log('⏳ fetchMe already in progress, skipping...');
+			return;
 		}
-	
-		console.log('📡 [OAuth Debug] No pre2faToken, calling /api/auth/me');
+		
+		fetchMeInProgressRef.current = true;
 		try {
+			console.log('🚀 [OAuth Debug] fetchMe called');
+			
+			// FIRST: Check if we have a pre2faToken (from OAuth flow)
+			// If we do, don't call /api/auth/me since we don't have a valid access token yet
+			if (checkPre2FAToken()) {
+				console.log('🛑 [OAuth Debug] pre2faToken found, skipping /api/auth/me call');
+				const pre2faToken = document.cookie.split(';').find(cookie => 
+					cookie.trim().startsWith('pre2faToken=')
+				)?.split('=')[1];
+				console.log('🛑 [OAuth Debug] pre2faToken:', pre2faToken);
+				return; // Stop here, we're in 2FA flow - NO /api/auth/me call!
+			}
+		
+			console.log('📡 [OAuth Debug] No pre2faToken, calling /api/auth/me');
 			await ensureCsrf();
 			const { response, data } = await apiFetch('/api/auth/me');
 			console.log(' [OAuth Debug] /api/auth/me response:', response.status, data);
@@ -213,6 +259,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			console.log('💥 [OAuth Debug] Error in fetchMe:', e);
 			setIsLoggedIn(false);
 			setUser(null);
+		} finally {
+			fetchMeInProgressRef.current = false;
 		}
 	}, [apiFetch, ensureCsrf, checkPre2FAToken]);
 

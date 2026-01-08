@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const config = require('../config');
 const { default: fastifyRateLimit } = require('@fastify/rate-limit');
 const { uploadGoogleAvatar } = require('../utils/googleAvatar');
+const { parseExpiry } = require('../utils/jwt');
 
 /**
     Route starts the google oauth2.0 login flow
@@ -777,9 +778,7 @@ module.exports = async function (fastify) {
                 { expiresIn: config.JWT_REFRESH_EXPIRES_IN }
             );
             
-            const refreshExpirySeconds = config.JWT_REFRESH_EXPIRES_IN
-                ? parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60
-                : 7 * 24 * 60 * 60; // Default to 7 days in seconds
+            const refreshExpirySeconds = parseExpiry(config.JWT_REFRESH_EXPIRES_IN) || (7 * 24 * 60 * 60); // Default to 7 days in seconds
             const expiresAt = Math.floor(Date.now() / 1000) + refreshExpirySeconds;
             
             await new Promise((resolve, reject) => {
@@ -793,13 +792,8 @@ module.exports = async function (fastify) {
             });
             
              // Set cookies
-            const accessTokenExpiry = config.JWT_ACCESS_EXPIRES_IN
-                ? parseInt(config.JWT_ACCESS_EXPIRES_IN) * 60
-                : 15 * 60; // Default to 15 minutes in seconds
-
-            const refreshTokenExpiry = config.JWT_REFRESH_EXPIRES_IN
-                ? parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60
-                : 7 * 24 * 60 * 60; // Default to 7 days in seconds
+            const accessTokenExpiry = parseExpiry(config.JWT_ACCESS_EXPIRES_IN) || (15 * 60); // Default to 15 minutes in seconds
+            const refreshTokenExpiry = parseExpiry(config.JWT_REFRESH_EXPIRES_IN) || (7 * 24 * 60 * 60); // Default to 7 days in seconds
 
             reply
                 .setCookie('accessToken', accessToken, {

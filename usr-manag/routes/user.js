@@ -38,18 +38,32 @@ module.exports = async function (fastify) {
         }
     } }, async (request, reply) => {
         const { search } = request.query || {};
+        const currentUserId = request.user?.id;
+        if (!currentUserId) {
+            return reply.code(401).send({ error: 'Unauthorized' });
+        }
         
         let sql = `
             SELECT id, username, first_name, last_name, 
                    profile_pic, avatar_updated_at, is_online, created_at
-            FROM users
+            FROM users u
+            WHERE u.id != ?
+              AND NOT EXISTS (
+                SELECT 1 FROM friends f
+                WHERE f.status = 'blocked'
+                  AND (
+                    (f.user_id = ? AND f.friend_id = u.id)
+                    OR
+                    (f.user_id = u.id AND f.friend_id = ?)
+                  )
+              )
         `;
-        let params = [];
+        let params = [currentUserId, currentUserId, currentUserId];
         
         if (search) {
-            sql += ` WHERE username LIKE ? OR first_name LIKE ? OR last_name LIKE ?`;
+            sql += ` AND (u.username LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ?)`;
             const searchTerm = `%${search}%`;
-            params = [searchTerm, searchTerm, searchTerm];
+            params.push(searchTerm, searchTerm, searchTerm);
         }
         
         sql += ` ORDER BY created_at DESC`;

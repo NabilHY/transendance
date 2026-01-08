@@ -333,23 +333,7 @@ export default function ChatWindow({
       {/* <h1>tfooo</h1>    */}
       <div className={styles.header}>
         <div className={styles.userInfo} onClick={() => handleUserInfoClick(conversation)}>
-          <div className={styles.avatarContainer}>
-            {conversation?.avatar ? (
-              <img
-                src={conversation.avatar}
-                alt={conversation.name}
-                className={styles.avatar}
-              />
-            ) : (
-              <div className={styles.placeholderAvatar}>
-                {conversation.name && conversation.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            {conversation?.is_online && (
-              <div className={styles.onlineIndicator}></div>
-            )}
-          </div>
-
+          <div className={`${styles.statusCircle} ${conversation?.is_online ? styles.online : styles.offline}`}></div>
           <div className={styles.userDetails}>
             <h3 className={styles.userName}>{conversation.name}</h3>
             <span className={styles.userStatus}>

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
 import { getAuthToken, fetchPlayerStats, getAuthBackendUrl } from './utils/api';
+import { fetchWithRefresh } from '@/lib/fetch-with-refresh';
 import { useGameWebSocket } from './hooks/useGameWebSocket';
 import { useGameKeyboard } from './hooks/useGameKeyboard';
 import { GameStartScreen } from './components/GameStartScreen';
@@ -87,9 +88,9 @@ export default function GamePage() {
   // Get authentication token with user info
   const getAuthTokenWithUser = async (): Promise<string | null> => {
     try {
-      const response = await fetch(`${getAuthBackendUrl()}/api/game-token`, {
+      // Use fetchWithRefresh which automatically handles token refresh
+      const response = await fetchWithRefresh(`${getAuthBackendUrl()}/api/game-token`, {
         method: 'GET',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' }
       });
 

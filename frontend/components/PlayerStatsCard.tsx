@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { umGetMe } from '@/lib/api';
 
 interface PlayerStats {
   id: number;
@@ -27,7 +28,7 @@ interface RankInfo {
 }
 
 export default function PlayerStatsCard() {
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, ensureCsrf } = useAuth();
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [rankInfo, setRankInfo] = useState<RankInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,25 +48,33 @@ export default function PlayerStatsCard() {
       setLoading(true);
       setError(null);
 
-      // Fetch player stats from auth backend (which has the unified users table)
-      const response = await fetch(`http://localhost:3001/api/auth/me`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // Fetch player stats from user management service (which has the unified users table)
+      const csrfToken = await ensureCsrf();
+      const response = await umGetMe(csrfToken);
 
-      if (!response.ok) {
+      if (!response.ok || !response.data) {
         throw new Error('Failed to fetch player stats');
       }
 
-      const data = await response.json();
-      setStats(data.user);
+      const userData = response.data as any;
+      setStats({
+        id: userData.id,
+        username: userData.username,
+        player_level: userData.player_level || 1,
+        experience_points: userData.experience_points || 0,
+        rank_points: userData.rank_points || 0,
+        rank_tier: userData.rank_tier || 'Iron',
+        games_played: userData.games_played || 0,
+        games_won: userData.games_won || 0,
+        games_lost: userData.games_lost || 0,
+        win_rate: userData.win_rate || 0,
+        current_streak: userData.current_streak || 0,
+        is_online: userData.is_online || false,
+      });
 
       // Calculate rank info based on rank points
-      if (data.user?.rank_points !== undefined) {
-        const rankInfo = calculateRankInfo(data.user.rank_points);
+      if (userData?.rank_points !== undefined) {
+        const rankInfo = calculateRankInfo(userData.rank_points);
         setRankInfo(rankInfo);
       }
     } catch (err) {

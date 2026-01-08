@@ -1,6 +1,7 @@
 import { User } from "@/app/settings/page";
 import { exitCode } from "process";
 import { getUserMgmtBase } from "./api-config";
+import { fetchWithRefresh } from "./fetch-with-refresh";
 // import { useRouter } from "next/navigation";
 
 export interface Message {
@@ -28,6 +29,13 @@ export interface Conversation {
   last_message_sender: string;
   last_message_time: string;
   is_online?: boolean;
+  // For private chats: peer (other member) info for avatar rendering
+  peer_user_id?: string | number | null;
+  peer_username?: string | null;
+  peer_first_name?: string | null;
+  peer_last_name?: string | null;
+  peer_profile_pic?: string | null;
+  peer_avatar_updated_at?: number | null;
 }
 
 export interface Friend {
@@ -43,9 +51,8 @@ export interface Friend {
 export const getReceivers = async (channelId: string, userId: string) => {
     try {
       const baseUrl = getUserMgmtBase();
-      const res = await fetch(`${baseUrl}/channel/${channelId}/members`, {
+      const res = await fetchWithRefresh(`${baseUrl}/channel/${channelId}/members`, {
         method: "GET",
-        credentials: "include",
       });
       if (!res.ok)
         throw new Error(`Server error: ${res.status}`);
@@ -94,19 +101,23 @@ export const getReceivers = async (channelId: string, userId: string) => {
 
 export const getConversation = async (id: string) => {
   try {
+
     const baseUrl = getUserMgmtBase();
-    const conversation = await fetch(`${baseUrl}/channel/${id}`, {
+    const conversation = await fetchWithRefresh(`${baseUrl}/channel/${id}`, {
       method: "GET",
-      credentials: "include",
     });
     if (!conversation.ok)
         throw new Error(`Server error: ${conversation.status}`);
     const data = await conversation.json();
+
+
     if(data.is_private) {
       data.name = await getChannelName(data.id);
       data.is_online = (await getReceiverStatus(data.id)).status === "online" ? true : false;
       console.log("* DATA FETCHED: ", data);
     }
+
+
     return data;
   } catch (err) {
     console.error("Failed to fetch channel info:", err);
@@ -117,9 +128,8 @@ export const getConversation = async (id: string) => {
 export const getChannelName = async (channelId: string) => {
   try {
     const baseUrl = getUserMgmtBase();
-    const res = await fetch(`${baseUrl}/channel/${channelId}/name`, {
+    const res = await fetchWithRefresh(`${baseUrl}/channel/${channelId}/name`, {
       method: "GET",
-      credentials: "include",
     });
     if(!res.ok)
       throw new Error(`Server error: ${res.status}`);
@@ -137,9 +147,8 @@ export const getReceiverId = async (conversation: Conversation) => {
   if(conversation.is_private) {
     try {
       const baseUrl = getUserMgmtBase();
-      const res = await fetch(`${baseUrl}/channel/${conversation.id}/receiverId`, {
+      const res = await fetchWithRefresh(`${baseUrl}/channel/${conversation.id}/receiverId`, {
         method: "GET",
-        credentials: "include",
       });
       if(!res.ok)
         throw new Error(`Server error: ${res.status}`);
@@ -157,10 +166,9 @@ export const getReceiverId = async (conversation: Conversation) => {
 export const handleMessageClick = async (userId: string) => {
   try {
     const baseUrl = getUserMgmtBase();
-    const res = await fetch(`${baseUrl}/chat/direct/${userId}`, {
+    const res = await fetchWithRefresh(`${baseUrl}/chat/direct/${userId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
     });
 
     const data = await res.json();
@@ -173,10 +181,9 @@ export const handleMessageClick = async (userId: string) => {
             console.log("conversation found not found: ", data.conversationId);
             try {
                 const baseUrl = getUserMgmtBase();
-                const createRes = await fetch(`${baseUrl}/chat/direct`, {
+                const createRes = await fetchWithRefresh(`${baseUrl}/chat/direct`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    credentials: "include",
                     body: JSON.stringify({ targetUserId: userId }),
                 });
                 const conv = await createRes.json();
@@ -196,9 +203,8 @@ export const handleMessageClick = async (userId: string) => {
 export const getConversations = async (id: string) => {
     try {
       const baseUrl = getUserMgmtBase();
-      const res = await fetch(`${baseUrl}/conversations/${id}`, {
+      const res = await fetchWithRefresh(`${baseUrl}/conversations/${id}`, {
         method: "GET",
-        credentials: "include",
       });
       if (!res.ok)
         throw new Error(`Server error: ${res.status}`);
@@ -215,9 +221,8 @@ export const getConversations = async (id: string) => {
     export const getReceiverStatus = async (channelId: string) => {
       try {
         const baseUrl = getUserMgmtBase();
-        const res = await fetch(`${baseUrl}/channel/${channelId}/status`, {
+        const res = await fetchWithRefresh(`${baseUrl}/channel/${channelId}/status`, {
           method: "GET",
-          credentials: "include",
         });
         if (!res.ok)
           throw new Error(`Server error: ${res.status}`);

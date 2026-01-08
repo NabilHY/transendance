@@ -14,6 +14,7 @@ import { handleMessageClick } from '@/lib/chat';
 import { MatchHistoryPanel } from '@/app/game/components/MatchHistoryPanel';
 import { fetchPlayerStats, getAuthToken } from '@/app/game/utils/api';
 import type { PlayerStats } from '@/app/game/types';
+import { getUserMgmtBase } from '@/lib/api-config';
 import styles from './UserProfile.module.css';
 
 export default function UserDetailPage() {
@@ -30,6 +31,7 @@ export default function UserDetailPage() {
     const [statsError, setStatsError] = useState<string | null>(null);
     const router = useRouter();
     const { user: currentUser, ensureCsrf } = useAuth();
+    const usrManagBase = getUserMgmtBase();
 
 
     useEffect(() => {
@@ -73,7 +75,7 @@ export default function UserDetailPage() {
         if(currentUser == null || user == null)
             return;
         try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser.id}/friends/${user.id}/invitation`, {
+            const result = await fetch(`${usrManagBase}/users/${currentUser.id}/friends/${user.id}/invitation`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -97,7 +99,7 @@ export default function UserDetailPage() {
 
         // console.log(currentUser?.id + " trying to accept friend request from: " + user.id);
         try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/accept`, {
+            const result = await fetch(`${usrManagBase}/users/${currentUser?.id}/friends/accept`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -120,7 +122,7 @@ export default function UserDetailPage() {
         if (!user) return;
 
         try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/reject`, {
+            const result = await fetch(`${usrManagBase}/users/${currentUser?.id}/friends/reject`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -148,7 +150,7 @@ export default function UserDetailPage() {
             return;
         } 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser.id}/friends/${user.id}`, {
+            const response = await fetch(`${usrManagBase}/users/${currentUser.id}/friends/${user.id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -196,7 +198,7 @@ export default function UserDetailPage() {
 
         setActionLoading(true);
         try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/unblock`, {
+            const result = await fetch(`${usrManagBase}/users/${userId}/unblock`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -217,7 +219,7 @@ export default function UserDetailPage() {
 
         setActionLoading(true);
         try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/friend`, {
+            const result = await fetch(`${usrManagBase}/users/${userId}/friend`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -230,7 +232,7 @@ export default function UserDetailPage() {
             if( result.ok ) {
                 setFriendshipStatus("pending");
                 
-                await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/friend-request`, {
+                await fetch(`${usrManagBase}/notifications/friend-request`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -259,7 +261,7 @@ export default function UserDetailPage() {
 
         setActionLoading(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/block`, {
+            const response = await fetch(`${usrManagBase}/users/${userId}/block`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -269,6 +271,12 @@ export default function UserDetailPage() {
             });
             
             const result = await response.json();
+            if (response.ok) {
+                // Immediately reflect "unlisted" behavior by returning to the directory.
+                // The backend now filters blocked users out of /users and private conversations.
+                router.push('/users');
+                router.refresh();
+            }
             
             // console.log("trying to block a user: ", result);
             

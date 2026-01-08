@@ -11,6 +11,7 @@ import { User } from "../settings/page";
 // import { getConversations, getChannelName } from "@/lib/chat";
 import ChatDataContext from "./ChatDataContext";
 import { getChatWsUrl, getUserMgmtBase } from "@/lib/api-config";
+import { getAvatarUrl, type UserWithAvatar } from "@/lib/avatar";
 // import { getReceiverStatus } from "@/lib/chat";
 import { ChatLoadingScreen } from "./ChatLoadingScreen";
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -143,10 +144,25 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         const name = await getChannelName(conv.id);
         const status = await getReceiverStatus(conv.id);
         console.log("receiver status ===> ", status);
+        // Try to compute peer avatar URL (if backend provided peer object key + timestamp)
+        let avatar: string | null | undefined = conv.avatar;
+        if (conv.peer_user_id && conv.peer_profile_pic) {
+          const peerUser: UserWithAvatar = {
+            id: Number(conv.peer_user_id),
+            profile_pic: conv.peer_profile_pic,
+            avatar_updated_at: conv.peer_avatar_updated_at ?? 0,
+            username: conv.peer_username ?? undefined,
+            first_name: conv.peer_first_name ?? undefined,
+            last_name: conv.peer_last_name ?? undefined,
+          };
+          avatar = await getAvatarUrl(peerUser, { fallback: null });
+        }
+
         return {
           ...conv,
           name: name || "Private Chat",
           is_online: status.status === "online" ? true : false,
+          avatar: avatar ?? conv.avatar,
         };
       }
       return {
@@ -190,21 +206,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
   if (initError) {
     return (
-      <main
-        style={{
-          height: "100dvh",
-          display: "grid",
-          placeItems: "center",
-          padding: 24,
-        }}
-      >
-        <div style={{ maxWidth: 720 }}>
-          <h2>Chat unavailable</h2>
-          <p>{initError}</p>
-          <p style={{ opacity: 0.8 }}>
-            If you see requests like <code>/undefined/me</code> in your logs, set{" "}
-            <code>NEXT_PUBLIC_USR_MANAG_URL</code> (e.g.{" "}
-            <code>http://localhost:4000</code>) and restart/rebuild the frontend.
+      <main className={styles.errorContainer}>
+        <div className={styles.errorCard}>
+          <h2 className={styles.errorTitle}>Chat unavailable</h2>
+          <p className={styles.errorMessage}>{initError}</p>
+          <p className={styles.errorHint}>
+            Chat services are unavailable. Try refreshing the page.
           </p>
         </div>
       </main>

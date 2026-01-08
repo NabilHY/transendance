@@ -1,4 +1,5 @@
 const config = require('../config');
+const { parseExpiry } = require('../utils/jwt');
 
 module.exports = async function (fastify) {
     fastify.post('/refresh', {
@@ -100,29 +101,14 @@ module.exports = async function (fastify) {
             });
         });
         
-        const expiresAt = Math.floor(Date.now() / 1000) + (parseInt(config.JWT_REFRESH_EXPIRES_IN) || 7 * 24 * 60 * 60);
+        const refreshExpirySeconds = parseExpiry(config.JWT_REFRESH_EXPIRES_IN) || (7 * 24 * 60 * 60);
+        const expiresAt = Math.floor(Date.now() / 1000) + refreshExpirySeconds;
         await new Promise((resolve, reject) => {
             fastify.db.run('INSERT INTO refresh_tokens(user_id, token, expires_at) VALUES (?, ?, ?)', [user.id, newRefreshToken, expiresAt], (err) => {
                 if (err) reject(err);
                 else resolve();
             });
         });
-
-        // Parse JWT expiry which can be "2h", "15m", "7d", etc.
-        const parseExpiry = (timeStr) => {
-            if (!timeStr) return null;
-            const match = timeStr.match(/^(\d+)([smhd])$/);
-            if (!match) return null;
-            const value = parseInt(match[1]);
-            const unit = match[2];
-            switch(unit) {
-                case 's': return value;
-                case 'm': return value * 60;
-                case 'h': return value * 60 * 60;
-                case 'd': return value * 24 * 60 * 60;
-                default: return null;
-            }
-        };
 
         reply.setCookie('accessToken', newAccessToken, {
             httpOnly: true,

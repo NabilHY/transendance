@@ -1,7 +1,8 @@
 // Custom hook for game authentication
 
 import { useState, useEffect } from 'react';
-import { getAuthToken, fetchPlayerStats } from '../utils/api';
+import { getAuthToken, fetchPlayerStats, getAuthBackendUrl } from '../utils/api';
+import { fetchWithRefresh } from '@/lib/fetch-with-refresh';
 import type { PlayerInfo, PlayerStats } from '../types';
 
 interface UseGameAuthReturn {
@@ -44,14 +45,9 @@ export const useGameAuth = (isLoggedIn: boolean, authLoading: boolean): UseGameA
       
       if (authToken) {
         try {
-          const apiBase =
-            process.env.NEXT_PUBLIC_BASE_URL ||
-            process.env.NEXT_PUBLIC_API_BASE ||
-            'http://localhost:8005';
-
-          const response = await fetch(`${apiBase}/api/game-token`, {
+          // Use fetchWithRefresh which automatically handles token refresh
+          const response = await fetchWithRefresh(`${getAuthBackendUrl()}/api/game-token`, {
             method: 'GET',
-            credentials: 'include',
             headers: { 'Content-Type': 'application/json' }
           });
           

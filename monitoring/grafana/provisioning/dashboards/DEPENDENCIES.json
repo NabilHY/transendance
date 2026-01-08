@@ -10,11 +10,24 @@
       "list": [
         {
           "name": "service",
-          "type": "query",
+          "type": "custom",
           "datasource": "Prometheus",
           "refresh": 1,
-          "query": "label_values(http_request_duration_seconds_count, service)",
-          "sort": 1
+          "multi": false,
+          "includeAll": false,
+          "options": [
+            { "text": "auth-backend", "value": "auth-backend", "selected": false },
+            { "text": "usr-manag", "value": "usr-manag", "selected": false },
+            { "text": "frontend", "value": "frontend", "selected": false },
+            { "text": "chat", "value": "chat", "selected": false },
+            { "text": "game-backend", "value": "game-backend", "selected": false },
+            { "text": "db-init", "value": "db-init", "selected": false }
+          ],
+          "current": {
+            "text": "auth-backend",
+            "value": "auth-backend"
+          },
+          "query": "auth-backend,usr-manag,frontend,chat,game-backend,db-init"
         }
       ]
     },

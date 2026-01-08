@@ -4,7 +4,11 @@ module.exports = async function (fastify) {
 
     fastify.get('/conversations/:id', { preHandler: [fastify.authenticate] }, async (req, reply) => {
 
-    const { id } = req.params;
+    // Always use the authenticated user id for listing conversations
+    const userId = req.user?.id;
+    if (!userId) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+    }
 
     try {
         const channels = fastify.db.prepare(`
@@ -21,13 +25,46 @@ module.exports = async function (fastify) {
             m.id AS last_message_id,
             m.content AS last_message_content,
             m.sender_id AS last_message_sender,
-            m.sent_at AS last_message_time
-        FROM Channels c
-        JOIN channel_members cm ON cm.channel_id = c.id
-        LEFT JOIN messages m ON c.last_message_id = m.id
-        WHERE cm.user_id = ?
+            m.sent_at AS last_message_time,
+            -- Private chat peer (null for group channels)
+            cm_other.user_id AS peer_user_id,
+            u_peer.username AS peer_username,
+            u_peer.first_name AS peer_first_name,
+            u_peer.last_name AS peer_last_name,
+            u_peer.profile_pic AS peer_profile_pic,
+            u_peer.avatar_updated_at AS peer_avatar_updated_at
+        FROM channels c
+        JOIN channel_members cm_self
+          ON cm_self.channel_id = c.id
+         AND cm_self.user_id = ?
+        LEFT JOIN messages m
+          ON c.last_message_id = m.id
+        -- For private conversations, identify the other member
+        LEFT JOIN channel_members cm_other
+          ON cm_other.channel_id = c.id
+         AND c.is_private = 1
+         AND cm_other.user_id != cm_self.user_id
+        LEFT JOIN users u_peer
+          ON u_peer.id = cm_other.user_id
+        WHERE
+          (
+            c.is_private = 0
+            OR
+            (
+              cm_other.user_id IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM friends f
+                WHERE f.status = 'blocked'
+                  AND (
+                    (f.user_id = ? AND f.friend_id = cm_other.user_id)
+                    OR
+                    (f.user_id = cm_other.user_id AND f.friend_id = ?)
+                  )
+              )
+            )
+          )
         ORDER BY m.sent_at DESC
-    `).all(id);
+    `).all(userId, userId, userId);
         if(!channels) {
             console.log("* ERROR: channels are empty");
             return reply.send([]);

@@ -1,6 +1,7 @@
 const fp = require('fastify-plugin');
 const crypto = require('crypto');
 const config = require('../config');
+const { parseExpiry } = require('../utils/jwt');
 
 async function jwtPlugin(fastify) {
     // Register the JWT plugin and wait for it to be fully loaded
@@ -83,7 +84,8 @@ async function jwtPlugin(fastify) {
             });
         });
         
-        const expiresAt = Math.floor(Date.now() / 1000) + (parseInt(config.JWT_REFRESH_EXPIRES_IN) || 7 * 24 * 60 * 60);
+        const refreshExpirySeconds = parseExpiry(config.JWT_REFRESH_EXPIRES_IN) || (7 * 24 * 60 * 60);
+        const expiresAt = Math.floor(Date.now() / 1000) + refreshExpirySeconds;
         await new Promise((resolve, reject) => {
             fastify.db.run('INSERT INTO refresh_tokens(user_id, token, expires_at) VALUES (?, ?, ?)', 
                 [user.id, newRefreshToken, expiresAt], 
@@ -95,13 +97,8 @@ async function jwtPlugin(fastify) {
         });
 
         // Set new cookies
-        const accessTokenExpiry = config.JWT_ACCESS_EXPIRES_IN ? 
-            (parseInt(config.JWT_ACCESS_EXPIRES_IN) * 60) : 
-            (15 * 60); // Default to 15 minutes in seconds
-        
-        const refreshTokenExpiry = config.JWT_REFRESH_EXPIRES_IN ? 
-            (parseInt(config.JWT_REFRESH_EXPIRES_IN) * 24 * 60 * 60) : 
-            (7 * 24 * 60 * 60); // Default to 7 days in seconds
+        const accessTokenExpiry = parseExpiry(config.JWT_ACCESS_EXPIRES_IN) || (15 * 60); // Default to 15 minutes in seconds
+        const refreshTokenExpiry = parseExpiry(config.JWT_REFRESH_EXPIRES_IN) || (7 * 24 * 60 * 60); // Default to 7 days in seconds
 
         rep.setCookie('accessToken', newAccessToken, {
             httpOnly: true,

@@ -32,6 +32,7 @@ function FetchInterceptor({ children }: { children?: React.ReactNode }) {
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return;
+
 		if (!originalFetchRef.current) {
 			originalFetchRef.current = window.fetch.bind(window);
 			window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {

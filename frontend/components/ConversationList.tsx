@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { handleMessageClick } from "@/lib/chat";
 import { useChatData } from "@/app/chat/ChatDataContext";
 import { getAvatarUrl, getInitials, type UserWithAvatar } from "@/lib/avatar";
+import { getUserMgmtBase } from "@/lib/api-config";
 
 interface ConversationsListProps {
   currentUser: {id: string; name: string; avatar?: string } | null;
@@ -47,7 +48,8 @@ export default function ConversationsList({
       e.preventDefault();
       if (!groupName.trim()) return;
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/group/create`, {
+        const baseUrl = getUserMgmtBase();
+        const res = await fetch(`${baseUrl}/channel/group/create`, {
           method: "POST",
           credentials: "include",
           headers: {
