@@ -10,6 +10,15 @@ import { Users, Home, Settings, LogOut, Search, X, UserPlus, UserX, User as User
 import baseStyles from '../login/LoginPage.module.css';
 import styles from './UsersPage.module.css';
 import { getAvatarUrl, getInitials, type UserWithAvatar } from '@/lib/avatar';
+import type { UMUser } from '@/lib/api';
+import {
+    fetchFriendshipStatus,
+    handleAddFriend as addFriendAction,
+    handleBlockUser as blockUserAction,
+    acceptRequest,
+    rejectRequest,
+    invitationsReceived,
+} from '@/lib/friends';
 
 function UserAvatar({ user }: { user: any }) {
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -67,14 +76,14 @@ export default function UsersPage() {
         error, 
         fetchUsers, 
         searchUsers, 
-        addFriend, 
-        blockUser, 
         clearError 
     } = useUser();
 
     const { user: currentUser, logout } = useAuth();
     const { loading: authLoading } = useRequireAuth();
     const [actionLoading, setActionLoading] = useState<number | null>(null);
+    const [friendshipStatusByUserId, setFriendshipStatusByUserId] = useState<Record<number, string | null>>({});
+    const [invitationsReceivedByUserId, setInvitationsReceivedByUserId] = useState<Record<number, boolean>>({});
 
     useEffect(() => {
         if (!authLoading) {
@@ -82,29 +91,61 @@ export default function UsersPage() {
         }
     }, [authLoading, fetchUsers]);
 
-    // Poll for online status updates every 5 seconds
+    // Keep a lightweight friendship-status cache for the list UI.
     useEffect(() => {
-        if (authLoading) return;
+        if (!currentUser || users.length === 0) return;
 
-        // Only poll if we have users and we're not currently loading
-        if (users.length === 0) return;
+        let cancelled = false;
 
-        const pollInterval = setInterval(() => {
-            // Only poll if not currently performing an operation
-            if (usersLoading) return;
+        const loadStatuses = async () => {
+            const missing = users.filter(u => Number(currentUser.id) !== u.id && friendshipStatusByUserId[u.id] === undefined);
+            if (missing.length === 0) return;
 
-            // Refresh users list to get updated online status
-            // If there's a search query, re-run the search to preserve results
-            if (searchQuery.trim()) {
-                searchUsers(searchQuery);
-            } else {
-                fetchUsers();
-            }
-        }, 5000); // Poll every 5 seconds
+            await Promise.all(
+                missing.map(async (u) => {
+                    await fetchFriendshipStatus(u, currentUser, (status) => {
+                        if (cancelled) return;
+                        setFriendshipStatusByUserId(prev => ({ ...prev, [u.id]: status }));
+                    });
+                    await invitationsReceived(u, currentUser, (received) => {
+                        if (cancelled) return;
+                        setInvitationsReceivedByUserId(prev => ({ ...prev, [u.id]: received }));
+                    });
+                })
+            );
+        };
 
-        // Cleanup interval on unmount or when dependencies change
-        return () => clearInterval(pollInterval);
-    }, [authLoading, users.length, usersLoading, searchQuery, fetchUsers, searchUsers]);
+        loadStatuses();
+        return () => {
+            cancelled = true;
+        };
+        // Intentionally *not* depending on friendshipStatusByUserId to avoid re-fetch loops.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentUser, users]);
+
+    // Poll for online status updates every 5 seconds
+    // useEffect(() => {
+    //     if (authLoading) return;
+
+    //     // Only poll if we have users and we're not currently loading
+    //     if (users.length === 0) return;
+
+    //     const pollInterval = setInterval(() => {
+    //         // Only poll if not currently performing an operation
+    //         if (usersLoading) return;
+
+    //         // Refresh users list to get updated online status
+    //         // If there's a search query, re-run the search to preserve results
+    //         if (searchQuery.trim()) {
+    //             searchUsers(searchQuery);
+    //         } else {
+    //             fetchUsers();
+    //         }
+    //     }, 5000); // Poll every 5 seconds
+
+    //     // Cleanup interval on unmount or when dependencies change
+    //     return () => clearInterval(pollInterval);
+    // }, [authLoading, users.length, usersLoading, searchQuery, fetchUsers, searchUsers]);
 
     // Also poll when page becomes visible (user switches back to tab)
     useEffect(() => {
@@ -137,39 +178,77 @@ export default function UsersPage() {
         }
     };
 
-    const handleAddFriend = async (userId: number) => {
-        setActionLoading(userId);
+    const handleAddFriend = async (targetUser: UMUser) => {
+        if (!currentUser) return;
+        console.log("target user: ", targetUser);
+        console.log("id: ", currentUser.id);
+        console.log("current user: ", currentUser);
+
+        setActionLoading(targetUser.id);
         try {
-            const result = await addFriend(userId);
-            if (result.success) {
-                alert(result.message);
-            } else {
-                alert(result.message);
-            }
+            await addFriendAction(
+                targetUser,
+                String(targetUser.id),
+                currentUser,
+                (loading) => setActionLoading(loading ? targetUser.id : null),
+                (status) => setFriendshipStatusByUserId(prev => ({ ...prev, [targetUser.id]: status })),
+            );
         } finally {
             setActionLoading(null);
         }
     };
 
-    const handleBlockUser = async (userId: number) => {
-        if (!confirm('Are you sure you want to block this user?')) {
-            return;
-        }
-        
-        setActionLoading(userId);
+    const handleBlockUser = async (targetUser: UMUser) => {
+        if (!currentUser) return;
+
+        setActionLoading(targetUser.id);
         try {
-            const result = await blockUser(userId);
-            if (result.success) {
-                alert(result.message);
-                await fetchUsers();
-            } else {
-                alert(result.message);
-            }
+            await blockUserAction(
+                targetUser,
+                String(currentUser.id),
+                (loading) => setActionLoading(loading ? targetUser.id : null),
+            );
+
+            // Keep behavior consistent with previous implementation: refresh the list after blocking.
+            await fetchUsers();
+            setFriendshipStatusByUserId({});
         } finally {
             setActionLoading(null);
         }
     };
-    
+
+    const handleAcceptRequest = async (targetUser: UMUser) => {
+        if (!currentUser) return;
+
+        setActionLoading(targetUser.id);
+        try {
+            await acceptRequest(
+                targetUser,
+                currentUser,
+                (status) => setFriendshipStatusByUserId(prev => ({ ...prev, [targetUser.id]: status })),
+                (received) => setInvitationsReceivedByUserId(prev => ({ ...prev, [targetUser.id]: received })),
+            );
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleRejectRequest = async (targetUser: UMUser) => {
+        if (!currentUser) return;
+
+        setActionLoading(targetUser.id);
+        try {
+            await rejectRequest(
+                targetUser,
+                currentUser,
+                (status) => setFriendshipStatusByUserId(prev => ({ ...prev, [targetUser.id]: status })),
+                (received) => setInvitationsReceivedByUserId(prev => ({ ...prev, [targetUser.id]: received })),
+            );
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     if (authLoading) {
         return <LoadingScreen />;
     }
@@ -308,6 +387,12 @@ export default function UsersPage() {
                         <div className={styles.usersGrid}>
                             {users.map((user) => {
                                 const isCurrentUser = currentUser && Number(currentUser.id) === user.id;
+                                const status = friendshipStatusByUserId[user.id];
+                                const hasInvitation = invitationsReceivedByUserId[user.id] === true;
+                                const isPending = status === 'pending' || status === 'Pending';
+                                const isBlocked = status === 'blocked' || status === 'Blocked' || status === 'blocker';
+                                const isAlreadyFriend = status === 'accepted' || status === 'Friends';
+                                const canAddFriend = !isCurrentUser && !isAlreadyFriend && !isPending && !isBlocked && !hasInvitation && (status === undefined || status === null || status === 'Add Friend');
                                 return (
                                     <div key={user.id} className={styles.userCard}>
                                         <UserAvatar user={user} />
@@ -353,23 +438,65 @@ export default function UsersPage() {
                                         
                                             {!isCurrentUser && (
                                             <>
-                                                <button
-                                                    onClick={() => handleAddFriend(user.id)}
-                                                    disabled={actionLoading === user.id}
+                                                {hasInvitation && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleAcceptRequest(user)}
+                                                            disabled={actionLoading === user.id}
+                                                            className={styles.addFriendBtn}
+                                                        >
+                                                            <UserPlus size={14} />
+                                                            {actionLoading === user.id ? 'Accepting...' : 'Accept'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleRejectRequest(user)}
+                                                            disabled={actionLoading === user.id}
+                                                            className={styles.blockBtn}
+                                                        >
+                                                            <UserX size={14} />
+                                                            {actionLoading === user.id ? 'Rejecting...' : 'Reject'}
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {!hasInvitation && canAddFriend && (
+                                                    <button
+                                                        onClick={() => handleAddFriend(user)}
+                                                        disabled={actionLoading === user.id}
                                                         className={styles.addFriendBtn}
                                                     >
                                                         <UserPlus size={14} />
-                                                    {actionLoading === user.id ? 'Sending...' : 'Add Friend'}
-                                                </button>
+                                                        {actionLoading === user.id ? 'Sending...' : 'Add Friend'}
+                                                    </button>
+                                                )}
+                                                {!hasInvitation && isPending && (
+                                                    <button
+                                                        disabled
+                                                        className={styles.addFriendBtn}
+                                                    >
+                                                        <UserPlus size={14} />
+                                                        Pending
+                                                    </button>
+                                                )}
+                                                {!hasInvitation && isBlocked && (
+                                                    <button
+                                                        disabled
+                                                        className={styles.addFriendBtn}
+                                                    >
+                                                        <UserX size={14} />
+                                                        Blocked
+                                                    </button>
+                                                )}
                                                 
-                                                <button
-                                                    onClick={() => handleBlockUser(user.id)}
-                                                    disabled={actionLoading === user.id}
+                                                {!hasInvitation && (
+                                                    <button
+                                                        onClick={() => handleBlockUser(user)}
+                                                        disabled={actionLoading === user.id}
                                                         className={styles.blockBtn}
                                                     >
                                                         <UserX size={14} />
-                                                    {actionLoading === user.id ? 'Blocking...' : 'Block'}
-                                                </button>
+                                                        {actionLoading === user.id ? 'Blocking...' : 'Block'}
+                                                    </button>
+                                                )}
                                             </>
                                         )}
                                     </div>

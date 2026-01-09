@@ -249,6 +249,10 @@ module.exports = async function (fastify) {
     const targetId = parseInt(request.params.id);
     const userId = request.user.id;
 
+
+    console.log("userId: ", userId, " trying to add friend ", targetId);
+    
+
     if (userId === targetId) {
         return reply.code(400).send({ error: 'You cannot friend yourself' });
     }
@@ -296,45 +300,44 @@ module.exports = async function (fastify) {
     }
 
     if (reverse?.status === 'pending') {
-      fastify.db
-        .prepare(`UPDATE friends SET status = 'accepted' WHERE id = ?`)
-        .run(reverse.id);
+        fastify.db
+            .prepare(`UPDATE friends SET status = 'accepted' WHERE id = ?`)
+            .run(reverse.id);
 
-      return reply.code(200).send({
-        success: true,
-        message: 'Friend request accepted',
-        requestId: reverse.id,
-      });
+        return reply.code(200).send({
+            success: true,
+            message: 'Friend request accepted',
+            requestId: reverse.id,
+        });
     }
 
     if (existing) {
-      if (existing.status === 'pending') {
-        return reply
-          .code(400)
-          .send({ error: 'Friend request already sent' });
-      }
-
-      if (existing.status === 'accepted') {
-        return reply
+        if (existing.status === 'pending') {
+            return reply
             .code(400)
-            .send({ error: 'You are already friends' });
-      }
+            .send({ error: 'Friend request already sent' });
+        }
+
+        if (existing.status === 'accepted') {
+            return reply
+                .code(400)
+                .send({ error: 'You are already friends' });
+        }
     }
 
     const requestId = crypto.randomUUID();
+        fastify.db.prepare(`
+        INSERT INTO friends (id, user_id, friend_id, status, created_at)
+        VALUES (?, ?, ?, 'pending', datetime('now'))
+        `).run(requestId, userId, targetId);
 
-    fastify.db.prepare(`
-      INSERT INTO friends (id, user_id, friend_id, status, created_at)
-      VALUES (?, ?, ?, 'pending', datetime('now'))
-    `).run(requestId, userId, targetId);
-
-    return reply.code(201).send({
-      success: true,
-      message: 'Friend request sent',
-      requestId,
-    });
-  }
-);
+        return reply.code(201).send({
+        success: true,
+        message: 'Friend request sent',
+        requestId,
+        });
+    }
+    );
 
     fastify.post('/users/:id/unblock', { preHandler: [fastify.authenticate], 
         schema: {

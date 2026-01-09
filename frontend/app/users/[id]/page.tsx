@@ -16,6 +16,15 @@ import { MatchHistoryPanel } from '@/app/game/components/MatchHistoryPanel';
 import '../../game/styles.module.css';
 import { fetchPlayerStats, getAuthToken } from '@/app/game/utils/api';
 import type { PlayerStats } from '@/app/game/types';
+import {
+    invitationsReceived,
+    acceptRequest,
+    rejectRequest,
+    fetchFriendshipStatus,
+    handleUnblock,
+    handleAddFriend,
+    handleBlockUser
+} from '@/lib/friends';
 
 export default function UserDetailPage() {
     const params = useParams();
@@ -36,8 +45,8 @@ export default function UserDetailPage() {
     useEffect(() => {
         // console.log("---------------->");
         // console.log("Fetching friendship status for user id: ", user?.id);
-        fetchFriendshipStatus();
-        invitationsReceived();
+        fetchFriendshipStatus(user, currentUser, setFriendshipStatus);
+        invitationsReceived(user, currentUser, setInvitationReceived);
         // console.log("Invitation received status: ", invitationReceived);        
         // console.log("current friendship status: ", friendshipStatus);
 
@@ -69,220 +78,57 @@ export default function UserDetailPage() {
         }
     }, [authLoading]);
 
-    const invitationsReceived = async () => {
-        // console.log("Fetching invitations received...");
-        if(currentUser == null || user == null)
-            return;
-        try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser.id}/friends/${user.id}/invitation`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-            });
-            const data = await result.json();
-            if (result.ok) {
-                setInvitationReceived(data.status === 'false' ? false : true);
-                // console.log("Invitations received: ", data);
-            } else {
-                console.warn("Failed to fetch invitations received:", data.message);
-            }
-        } catch (err) {
-            console.error("Error fetching invitations received:", err);
-        }
-    };
-
-    const acceptRequest = async () => {
-        if (!user) return;
-
-        // console.log(currentUser?.id + " trying to accept friend request from: " + user.id);
-        try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/accept`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ friendId: user.id }),
-            });
-            
-            const data = await result.json();
-            if (result.ok) {
-                setFriendshipStatus("Friends");
-                setInvitationReceived(false);
-            }
-        } catch (err) {
-            console.error("Failed to accept friend request:", err);
-        }
-    }
-
-    const rejectRequest = async () => {
-        if (!user) return;
-
-        try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/reject`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ friendId: user.id }),
-            });
-
-            const data = await result.json();
-            if (result.ok) {
-                setFriendshipStatus("Add Friend");
-                setInvitationReceived(false);
-            }
-        } catch (err) {
-            console.error("Failed to accept friend request:", err);
-        }
-    };
-
-    const fetchFriendshipStatus = async () => {
-        // console.log("Fetching friendship status...");
-        if(!currentUser || !user) {
-            // console.log("No current user or user to fetch friendship status for.");
-            // console.log("currentUser ===> " + currentUser);
-            // console.log("user ===> " + user);
-            return;
-        } 
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser.id}/friends/${user.id}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-            });
-            const data = await response.json();
-            if (response.ok) {
-                console.log("* success");
-                setFriendshipStatus(data.status);
-            } else {
-                console.warn("Failed to fetch friendship status:", data.message);
-            }
-        } catch (err) {
-            console.error("Error fetching friendship status:", err);
-        }
-    };
 
     const fetchUser = async () => {
-        if (!userId) return;
+    if (!userId) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+        const csrfToken = await ensureCsrf();
+        const response = await umGetUser(userId, csrfToken);
         
-        setLoading(true);
-        setError(null);
-        
-        try {
-            const csrfToken = await ensureCsrf();
-            const response = await umGetUser(userId, csrfToken);
+        if (response.ok) {
             
-            if (response.ok) {
-                
-                setUser(response.data as UMUser);
-            } else {
-                setError('User not found');
-            }
-        } catch (err) {
-            setError('Failed to fetch user');
-            console.error('User fetch error:', err);
-        } finally {
-            setLoading(false);
+            setUser(response.data as UMUser);
+        } else {
+            setError('User not found');
         }
-    };
+    } catch (err) {
+        setError('Failed to fetch user');
+        console.error('User fetch error:', err);
+    } finally {
+        setLoading(false);
+    }
+};
 
-    const handleUnblock = async () => {
-        if (!user) return;
-
-        setActionLoading(true);
-        try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/unblock`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ id: user?.id }),
-            });
-            const data = await result.json();
-            if( result.ok )
-                setFriendshipStatus("accepted");
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    const handleAddFriend = async () => {
-        if (!user) return;
-
-        setActionLoading(true);
-        try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/friend`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ id: user?.id }),
-            });
-            const data = await result.json();
-            // console.log("* CLIENT ---> requested: ", data);
-            if( result.ok ) {
-                setFriendshipStatus("pending");
-                
-                await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/friend-request`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({ 
-                        recipientId: user.id,
-                        senderId: currentUser?.id 
-                    }),
-                });
-            }
-            
-        } catch (err) {
-            console.error("Failed to add friend:", err);
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    const handleBlockUser = async () => {
-        if (!user) return;
-
-        if (!confirm('Are you sure you want to block this user?')) {
-            return;
-        }
-
-        setActionLoading(true);
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/block`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ id: user.id }),
-            });
-            
-            const result = await response.json();
-            
-            // console.log("trying to block a user: ", result);
-            
-        } finally {
-            setActionLoading(false);
-        }
-    };
 
     const handleMessageBtn = async (userId: string) => {
         const chatURL = await handleMessageClick(userId);
         if(chatURL)
             router.push(chatURL);
     }
+
+    const acceptRequestHandler = async () => {
+        await acceptRequest(user, currentUser, setFriendshipStatus, setInvitationReceived);
+    };
+
+    const rejectRequestHandler = async () => {
+        await rejectRequest(user, currentUser, setFriendshipStatus, setInvitationReceived);
+    };
+
+    const handleUnblockHandler = async () => {
+        await handleUnblock(user, userId, setActionLoading, setFriendshipStatus);
+    };
+
+    const handleAddFriendHandler = async () => {
+        await handleAddFriend(user, userId, currentUser, setActionLoading, setFriendshipStatus);
+    };
+
+    const handleBlockUserHandler = async () => {
+        await handleBlockUser(user, userId, setActionLoading);
+    };
 
     if (authLoading) {
         return <LoadingScreen />;
@@ -339,14 +185,14 @@ export default function UserDetailPage() {
                         <ProfileCard 
                             profile={user}
                             isCurrentUser={isCurrentUser}
-                            onAddFriend={handleAddFriend}
+                            onAddFriend={handleAddFriendHandler}
                             friendshipStatus={friendshipStatus} 
-                            acceptRequest={acceptRequest}
+                            acceptRequest={acceptRequestHandler}
                             invitationReceived={invitationReceived}
-                            blockUser={handleBlockUser}
-                            rejectRequest={rejectRequest}
+                            blockUser={handleBlockUserHandler}
+                            rejectRequest={rejectRequestHandler}
                             handleMessageBtn={() => handleMessageBtn(user.id.toString())}
-                            handleUnblock={handleUnblock}
+                            handleUnblock={handleUnblockHandler}
                             playerStats={playerStats}
                         />
 
