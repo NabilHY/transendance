@@ -4,7 +4,7 @@
 // UseRequireGuest - redirect to home if authenticated
 // userRequireProfileComplete - redirect to complete profile if profile is not complete
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {umProfileComplete} from '@/lib/api';
@@ -18,23 +18,69 @@ type AuthGuardResult = {
 
 // hook for pages that require authentication.
 export function useRequireAuth(): AuthGuardResult {
-    const { isLoggedIn, loading, ensureCsrf } = useAuth();
+    const { isLoggedIn, loading, ensureCsrf, refresh } = useAuth();
     const router = useRouter();
     const [isProfileCompleted, setIsProfileCompleted] = useState<boolean>(false);
     const [profileLoading, setProfileLoading] = useState<boolean>(false);
+    const [refreshAttempted, setRefreshAttempted] = useState<boolean>(false);
+    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
     
+    // Attempt token refresh when not logged in
+    // First check if we have accessToken, if not then try refreshToken
     useEffect(() => {
-        if (!loading && !isLoggedIn) {
-            router.replace('/login');
+        if (loading || isLoggedIn || refreshAttempted || isRefreshing) {
             return;
         }
         
-        if (!loading && isLoggedIn) {
-            checkProfileCompletion();
+        // First check if accessToken exists - give fetchMe a chance to validate it
+        const hasAccessToken = typeof document !== 'undefined' 
+            ? document.cookie.split(';').some(cookie => cookie.trim().startsWith('accessToken='))
+            : false;
+        
+        // If we have accessToken, wait a bit for fetchMe to complete validation
+        // The AuthContext fetchMe will attempt refresh if accessToken is invalid
+        if (hasAccessToken) {
+            const timeoutId = setTimeout(() => {
+                if (!isLoggedIn && !refreshAttempted) {
+                    attemptRefresh();
+                }
+            }, 500);
+            return () => clearTimeout(timeoutId);
+        } else {
+            // No accessToken, check for refreshToken and attempt refresh
+            attemptRefresh();
         }
-    }, [loading, isLoggedIn, router]);
+        
+        function attemptRefresh() {
+            const hasRefreshToken = typeof document !== 'undefined' 
+                ? document.cookie.split(';').some(cookie => cookie.trim().startsWith('refreshToken='))
+                : false;
+            
+            if (hasRefreshToken) {
+                setRefreshAttempted(true);
+                setIsRefreshing(true);
+                refresh()
+                    .then(() => {
+                        setIsRefreshing(false);
+                    })
+                    .catch(() => {
+                        setIsRefreshing(false);
+                    });
+            } else {
+                // No refreshToken, mark as attempted so we can redirect
+                setRefreshAttempted(true);
+            }
+        }
+    }, [loading, isLoggedIn, refresh, refreshAttempted, isRefreshing]);
     
-    const checkProfileCompletion = async () => {
+    // Redirect to login if refresh failed or no refreshToken available
+    useEffect(() => {
+        if (!loading && !isRefreshing && refreshAttempted && !isLoggedIn) {
+            router.replace('/login');
+        }
+    }, [loading, isRefreshing, refreshAttempted, isLoggedIn, router]);
+    
+    const checkProfileCompletion = useCallback(async () => {
         setProfileLoading(true);
         try {
             const crsfToken = await ensureCsrf();
@@ -47,10 +93,17 @@ export function useRequireAuth(): AuthGuardResult {
         } finally {
             setProfileLoading(false);
         }
-    }
+    }, [ensureCsrf]);
+    
+    // Check profile completion when logged in
+    useEffect(() => {
+        if (!loading && isLoggedIn) {
+            checkProfileCompletion();
+        }
+    }, [loading, isLoggedIn, checkProfileCompletion]);
     
     return {
-        loading: loading || profileLoading,
+        loading: loading || profileLoading || isRefreshing,
         isAuthenticated: isLoggedIn,
         isProfileComplete: isProfileCompleted,
     }
@@ -77,30 +130,69 @@ export function useRequireGuest(): AuthGuardResult {
 
 // hook for pages that require a complete profile.
 export function useRequireProfileComplete(): AuthGuardResult {
-    const { isLoggedIn, loading, ensureCsrf } = useAuth();
+    const { isLoggedIn, loading, ensureCsrf, refresh } = useAuth();
     const router = useRouter();
     const [ isProfileComplete, setIsProfileComplete ] = useState<boolean>(false);
     const [ profileLoading, setProfileLoading ] = useState<boolean>(false);
+    const [ refreshAttempted, setRefreshAttempted ] = useState<boolean>(false);
+    const [ isRefreshing, setIsRefreshing ] = useState<boolean>(false);
     
+    // Attempt token refresh when not logged in
+    // First check if we have accessToken, if not then try refreshToken
     useEffect(() => {
-        if (!loading && !isLoggedIn) {
-            router.replace('/login');
+        if (loading || isLoggedIn || refreshAttempted || isRefreshing) {
             return;
         }
         
-        if (!loading && isLoggedIn) {
-            checkProfileCompletion();
+        // First check if accessToken exists - give fetchMe a chance to validate it
+        const hasAccessToken = typeof document !== 'undefined' 
+            ? document.cookie.split(';').some(cookie => cookie.trim().startsWith('accessToken='))
+            : false;
+        
+        // If we have accessToken, wait a bit for fetchMe to complete validation
+        // The AuthContext fetchMe will attempt refresh if accessToken is invalid
+        if (hasAccessToken) {
+            const timeoutId = setTimeout(() => {
+                if (!isLoggedIn && !refreshAttempted) {
+                    attemptRefresh();
+                }
+            }, 500);
+            return () => clearTimeout(timeoutId);
+        } else {
+            // No accessToken, check for refreshToken and attempt refresh
+            attemptRefresh();
         }
-    }, [loading, isLoggedIn, router]);
+        
+        function attemptRefresh() {
+            const hasRefreshToken = typeof document !== 'undefined' 
+                ? document.cookie.split(';').some(cookie => cookie.trim().startsWith('refreshToken='))
+                : false;
+            
+            if (hasRefreshToken) {
+                setRefreshAttempted(true);
+                setIsRefreshing(true);
+                refresh()
+                    .then(() => {
+                        setIsRefreshing(false);
+                    })
+                    .catch(() => {
+                        setIsRefreshing(false);
+                    });
+            } else {
+                // No refreshToken, mark as attempted so we can redirect
+                setRefreshAttempted(true);
+            }
+        }
+    }, [loading, isLoggedIn, refresh, refreshAttempted, isRefreshing]);
     
-    // Separate useEffect to handle redirect when profile is incomplete
+    // Redirect to login if refresh failed or no refreshToken available
     useEffect(() => {
-        if (!loading && !profileLoading && isLoggedIn && !isProfileComplete) {
-            router.replace('/complete-profile');
+        if (!loading && !isRefreshing && refreshAttempted && !isLoggedIn) {
+            router.replace('/login');
         }
-    }, [loading, profileLoading, isLoggedIn, isProfileComplete, router]);
+    }, [loading, isRefreshing, refreshAttempted, isLoggedIn, router]);
     
-    const checkProfileCompletion = async () => {
+    const checkProfileCompletion = useCallback(async () => {
         setProfileLoading(true);
         try {
             const crsfToken = await ensureCsrf();
@@ -113,10 +205,24 @@ export function useRequireProfileComplete(): AuthGuardResult {
         } finally {
             setProfileLoading(false);
         }
-    }
+    }, [ensureCsrf]);
+    
+    // Check profile completion when logged in
+    useEffect(() => {
+        if (!loading && isLoggedIn) {
+            checkProfileCompletion();
+        }
+    }, [loading, isLoggedIn, checkProfileCompletion]);
+    
+    // Separate useEffect to handle redirect when profile is incomplete
+    useEffect(() => {
+        if (!loading && !profileLoading && isLoggedIn && !isProfileComplete) {
+            router.replace('/complete-profile');
+        }
+    }, [loading, profileLoading, isLoggedIn, isProfileComplete, router]);
     
     return {
-        loading: loading || profileLoading,
+        loading: loading || profileLoading || isRefreshing,
         isAuthenticated: isLoggedIn,
         isProfileComplete,
     }

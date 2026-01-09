@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { getReceiverId, Message } from "@/lib/chat";
 import { useChatSocket } from "@/app/chat/ChatSocketContext";
 import { useChatData } from "@/app/chat/ChatDataContext";
+import { getUserMgmtBase } from "@/lib/api-config";
 
 interface ChatWindowProps {
   conversation: Conversation;
@@ -57,7 +58,7 @@ export default function ChatWindow({
       if (conversation.is_private === 1 && currentUser?.id) {
         try {
           const receiverId = await getReceiverId(conversation);
-          const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/${receiverId}`, {
+          const res = await fetch(`${getUserMgmtBase()}/users/${currentUser?.id}/friends/${receiverId}`, {
             method: "GET",
             credentials: "include",
           });
@@ -138,7 +139,7 @@ export default function ChatWindow({
     if (!usernameToAdd.trim()) return;
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/${conversation.id}/add-member`, {
+      const res = await fetch(`${getUserMgmtBase()}/channel/${conversation.id}/add-member`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -171,7 +172,7 @@ export default function ChatWindow({
       const receiverId = await getReceiverId(conversation);
       if (!receiverId) return;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/match-invite`, {
+      const response = await fetch(`${getUserMgmtBase()}/notifications/match-invite`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -303,7 +304,7 @@ export default function ChatWindow({
 
   const handleLeaveConfirm = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/channel/${conversation.id}/leave`, {
+      const res = await fetch(`${getUserMgmtBase()}/channel/${conversation.id}/leave`, {
         method: "DELETE",
         credentials: "include",
         headers: {

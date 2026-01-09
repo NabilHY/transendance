@@ -59,21 +59,7 @@ export default function NewSidebar() {
                     </div>
                 </div>
                 <div className={styles.headerControls}>
-                    {isLoggedIn && <NotificationCenter userId={user?.id || 0} />}
-                    <button
-                        type="button"
-                        className={styles.controlBtn}
-                        aria-label="Collapse sidebar"
-                    >
-                        «
-                    </button>
-                    <button
-                        type="button"
-                        className={styles.controlBtn}
-                        aria-label="Sidebar menu"
-                    >
-                        ⋮
-                    </button>
+                    {isLoggedIn && user?.id && <NotificationCenter userId={Number(user.id)} />}
                 </div>
             </div>
 
@@ -93,9 +79,6 @@ export default function NewSidebar() {
                                         {active && '•'}
                                     </span>
                                     <span>{item.label}</span>
-                                </div>
-                                <div className={styles.navItemRight}>
-                                    <span className={styles.ellipsisIcon}>⋯</span>
                                 </div>
                             </button>
                         </div>
