@@ -16,6 +16,7 @@ import { MatchHistoryPanel } from '@/app/game/components/MatchHistoryPanel';
 import '../../game/styles.module.css';
 import { fetchPlayerStats, getAuthToken } from '@/app/game/utils/api';
 import type { PlayerStats } from '@/app/game/types';
+import { getUserMgmtBase } from '@/lib/api-config';
 
 export default function UserDetailPage() {
     const params = useParams();
@@ -74,7 +75,7 @@ export default function UserDetailPage() {
         if(currentUser == null || user == null)
             return;
         try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser.id}/friends/${user.id}/invitation`, {
+            const result = await fetch(`${getUserMgmtBase()}/users/${currentUser.id}/friends/${user.id}/invitation`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -98,7 +99,7 @@ export default function UserDetailPage() {
 
         // console.log(currentUser?.id + " trying to accept friend request from: " + user.id);
         try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/accept`, {
+            const result = await fetch(`${getUserMgmtBase()}/users/${currentUser?.id}/friends/accept`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -121,7 +122,7 @@ export default function UserDetailPage() {
         if (!user) return;
 
         try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/reject`, {
+            const result = await fetch(`${getUserMgmtBase()}/users/${currentUser?.id}/friends/reject`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -149,7 +150,7 @@ export default function UserDetailPage() {
             return;
         } 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser.id}/friends/${user.id}`, {
+            const response = await fetch(`${getUserMgmtBase()}/users/${currentUser.id}/friends/${user.id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -197,7 +198,7 @@ export default function UserDetailPage() {
 
         setActionLoading(true);
         try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/unblock`, {
+            const result = await fetch(`${getUserMgmtBase()}/users/${userId}/unblock`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -218,7 +219,7 @@ export default function UserDetailPage() {
 
         setActionLoading(true);
         try {
-            const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/friend`, {
+            const result = await fetch(`${getUserMgmtBase()}/users/${userId}/friend`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -231,7 +232,7 @@ export default function UserDetailPage() {
             if( result.ok ) {
                 setFriendshipStatus("pending");
                 
-                await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/friend-request`, {
+                await fetch(`${getUserMgmtBase()}/notifications/friend-request`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -260,7 +261,7 @@ export default function UserDetailPage() {
 
         setActionLoading(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/block`, {
+            const response = await fetch(`${getUserMgmtBase()}/users/${userId}/block`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

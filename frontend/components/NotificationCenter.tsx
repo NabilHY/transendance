@@ -5,7 +5,7 @@ import { Bell, X, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import styles from './NotificationCenter.module.css';
 
-import { getNotificationWsUrl } from '@/lib/api-config';
+import { getNotificationWsUrl, getUserMgmtBase } from '@/lib/api-config';
 
 interface Notification {
     id: number;
@@ -39,7 +39,7 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
         console.log("getting notifications....");
         
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications`, {
+            const response = await fetch(`${getUserMgmtBase()}/notifications`, {
                 credentials: 'include'
             });
 
@@ -57,7 +57,7 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
 
     const markAsRead = async (notificationId: number) => {
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/${notificationId}/read`, {
+            await fetch(`${getUserMgmtBase()}/notifications/${notificationId}/read`, {
                 method: 'PATCH',
                 credentials: 'include'
             });
@@ -106,7 +106,7 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
 
     const dismissNotification = async (notificationId: number) => {
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/${notificationId}/dismiss`, {
+            await fetch(`${getUserMgmtBase()}/notifications/${notificationId}/dismiss`, {
                 method: 'PATCH',
                 credentials: 'include'
             });
@@ -119,7 +119,7 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
 
     const markAllAsRead = async () => {
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/mark-all-read`, {
+            await fetch(`${getUserMgmtBase()}/notifications/mark-all-read`, {
                 method: 'PATCH',
                 credentials: 'include'
             });
