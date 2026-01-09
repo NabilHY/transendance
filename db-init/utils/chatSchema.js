@@ -123,10 +123,9 @@ const initializeChatSchema = (db) => {
                         });
                             })
 
-                       
                     });
                 });
-            // });
+            });
         });
     });
 };
