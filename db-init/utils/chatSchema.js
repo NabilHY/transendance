@@ -79,6 +79,18 @@ const initializeChatSchema = (db) => {
                                 )`, (err) => {
                                 if (err) return reject(err);
 
+                                db.run(`
+                                    CREATE TABLE IF NOT EXISTS active_viewers (
+                                        user_id TEXT NOT NULL,
+                                        channel_id TEXT NOT NULL,
+                                        last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                        PRIMARY KEY (user_id, channel_id),
+                                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                        FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
+                                    )
+                                `, (err) => {
+                                    if (err) return reject(err);
+
                                 const indexes = [
                                 'CREATE INDEX IF NOT EXISTS idx_messages_channel_id ON messages(channel_id)',
                                 'CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id)',
@@ -86,38 +98,10 @@ const initializeChatSchema = (db) => {
                                 'CREATE INDEX IF NOT EXISTS idx_channel_members_channel_id ON channel_members(channel_id)',
                                 'CREATE INDEX IF NOT EXISTS idx_channel_members_user_id ON channel_members(user_id)',
                                 'CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id)',
-                                'CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id)'
+                                'CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id)',
+                                'CREATE INDEX IF NOT EXISTS idx_active_viewers_user_id ON active_viewers(user_id)',
+                                'CREATE INDEX IF NOT EXISTS idx_active_viewers_channel_id ON active_viewers(channel_id)'
                             ];
-
-                            let i = 0;
-                            const createNextIndex = () => {
-                                if (i >= indexes.length) {
-                                    console.log('✅ Chat database schema initialized successfully');
-                                    resolve();
-                                    return;
-                                }
-
-                                db.run(indexes[i], (err) => {
-                                    if (err) return reject(err);
-                                    i++;
-                                    createNextIndex();
-                                });
-                            };
-
-                            createNextIndex();
-                              });
-
-                            // Create indexes for optimization
-                            db.serialize(() => {
-                                const indexes = [
-                                    'CREATE INDEX IF NOT EXISTS idx_messages_channel_id ON messages(channel_id)',
-                                    'CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id)',
-                                    'CREATE INDEX IF NOT EXISTS idx_messages_receiver_id ON messages(receiver_id)',
-                                    'CREATE INDEX IF NOT EXISTS idx_channel_members_channel_id ON channel_members(channel_id)',
-                                    'CREATE INDEX IF NOT EXISTS idx_channel_members_user_id ON channel_members(user_id)',
-                                    'CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id)',
-                                    'CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id)'
-                                ];
 
                                 let i = 0;
                                 const createNextIndex = () => {
@@ -127,22 +111,21 @@ const initializeChatSchema = (db) => {
                                         return;
                                     }
 
-                                    db.run(indexes[i], (err) => {
-                                        if (err) return reject(err);
-                                        i++;
-                                        createNextIndex();
-                                    });
-                                };
+                                db.run(indexes[i], (err) => {
+                                    if (err) return reject(err);
+                                    i++;
+                                    createNextIndex();
+                                });
+                            };
 
-                                createNextIndex();
+                            createNextIndex();
                             });
                         });
                             })
 
-                       
                     });
                 });
-            // });
+            });
         });
     });
 };

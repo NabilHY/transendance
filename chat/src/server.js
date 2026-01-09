@@ -81,8 +81,29 @@ function getChannelMembers(channel_id, db) {
   return members.map(member => member.user_id);
 }
 
-async function sendMessageNotification(senderId, receiverId, messagePreview, channelId) {
+function isUserViewingConversation(userId, channelId, db) {
   try {
+    // Check if user is actively viewing this conversation (within last 10 seconds)
+    const viewer = db.prepare(
+      `SELECT * FROM active_viewers 
+       WHERE user_id = ? AND channel_id = ? 
+       AND datetime(last_seen) >= datetime('now', '-10 seconds')`
+    ).get(userId, channelId);
+    return !!viewer;
+  } catch (err) {
+    console.error('Error checking viewer status:', err);
+    return false;
+  }
+}
+
+async function sendMessageNotification(senderId, receiverId, messagePreview, channelId, db) {
+  try {
+    // Check if receiver is actively viewing the conversation
+    if (isUserViewingConversation(receiverId, channelId, db)) {
+      console.log(`Skipping notification: User ${receiverId} is viewing channel ${channelId}`);
+      return;
+    }
+
     // Generate a service token for authentication
     const serviceToken = jwt.sign(
       { sub: senderId, type: 'access', service: 'chat' },
@@ -178,6 +199,53 @@ function isPrivateChannel(channelId, db) {
   }
 }
 
+fastify.post('/conversation/viewing', {
+  schema: {
+    tags: ['Chat'],
+    summary: 'Update conversation viewing status',
+    body: {
+      type: 'object',
+      required: ['userId', 'channelId', 'isViewing'],
+      properties: {
+        userId: { type: 'string' },
+        channelId: { type: 'string' },
+        isViewing: { type: 'boolean' }
+      }
+    },
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean' }
+        }
+      }
+    }
+  }
+}, async (request, reply) => {
+  const { userId, channelId, isViewing } = request.body;
+  
+  try {
+    if (isViewing) {
+      // Insert or update viewer status
+      fastify.db.prepare(
+        `INSERT INTO active_viewers (user_id, channel_id, last_seen)
+         VALUES (?, ?, datetime('now'))
+         ON CONFLICT(user_id, channel_id) DO UPDATE SET last_seen = datetime('now')`
+      ).run(userId, channelId);
+    } else {
+      // Remove viewer status
+      fastify.db.prepare(
+        'DELETE FROM active_viewers WHERE user_id = ? AND channel_id = ?'
+      ).run(userId, channelId);
+    }
+    
+    return { success: true };
+  } catch (err) {
+    console.error('Error updating viewing status:', err);
+    return reply.code(500).send({ success: false, error: err.message });
+  }
+});
+
 fastify.get('/health', {
   schema: {
     tags: ['System'],
@@ -235,7 +303,7 @@ fastify.get("/ws", { websocket: true }, (socket, req) => {
           sendToReceiver(msg, fastify.db, 0);
 
           // Send notification for private message
-          sendMessageNotification(msg.sender_id, msg.receiver_id, msg.content, msg.channel_id);
+          sendMessageNotification(msg.sender_id, msg.receiver_id, msg.content, msg.channel_id, fastify.db);
         } else if (msg.receiver_id && !not_blocked(msg.sender_id, msg.receiver_id, fastify.db)) {
           console.log("* PRIVATE CHANNEL: user_id  ", msg.receiver_id, "blocked the user ", msg.sender_id);
           socket.send(JSON.stringify({ error: "You are blocked by the user." })); 
