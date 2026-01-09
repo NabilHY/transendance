@@ -73,8 +73,49 @@ export default function ChatWindow({
       }
     };
 
+    // Notify backend that user is viewing this conversation
+    const notifyViewing = async (isViewing: boolean) => {
+      if (!currentUser?.id) return;
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_CHAT_URL}/conversation/viewing`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            userId: currentUser.id.toString(),
+            channelId: conversation.id,
+            isViewing,
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to update viewing status:', err);
+      }
+    };
+
+    // Handle visibility change (tab switching)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        notifyViewing(false);
+      } else {
+        notifyViewing(true);
+      }
+    };
+
+    // Mark as viewing when component mounts or conversation changes
+    notifyViewing(true);
     checkBlockStatus();
     console.log("ChatWindow: ", conversation);
+
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup: mark as not viewing when component unmounts or conversation changes
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      notifyViewing(false);
+    };
   }, [conversation, currentUser]);
 
   // ! handle blocked users
