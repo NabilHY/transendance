@@ -188,6 +188,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			await ensureCsrf();
 			const { response, data } = await apiFetch('/api/auth/me');
 			console.log(' [OAuth Debug] /api/auth/me response:', response.status, data);
+			
+			// If we get 401, try to refresh token before giving up
+			if (response.status === 401) {
+				console.log('🔄 [OAuth Debug] Got 401, attempting token refresh...');
+				const refreshToken = typeof document !== 'undefined' 
+					? document.cookie.split(';').find(cookie => cookie.trim().startsWith('refreshToken='))
+					: null;
+				
+				if (refreshToken) {
+					try {
+						const csrf = await ensureCsrf();
+						const refreshResponse = await apiFetch('/api/auth/refresh', {
+							method: 'POST',
+						});
+						
+						if (refreshResponse.response.ok) {
+							console.log('✅ [OAuth Debug] Token refreshed successfully, retrying /api/auth/me');
+							// Retry the /api/auth/me call after successful refresh
+							const retryResponse = await apiFetch('/api/auth/me');
+							if (retryResponse.response.ok && retryResponse.data?.userId != null) {
+								console.log('✅ [OAuth Debug] User authenticated after refresh, setting logged in');
+								setUser({ id: retryResponse.data.userId });
+								setIsLoggedIn(true);
+								setRequires2FA(false);
+								
+								// Set user online when authenticated
+								try {
+									const csrf = await ensureCsrf();
+									await umUpdateStatus(true, csrf);
+								} catch (err) {
+									console.error('Failed to set online status in fetchMe:', err);
+								}
+								return;
+							}
+						} else {
+							console.log('❌ [OAuth Debug] Token refresh failed');
+						}
+					} catch (refreshError) {
+						console.log('💥 [OAuth Debug] Error during token refresh:', refreshError);
+					}
+				} else {
+					console.log('❌ [OAuth Debug] No refreshToken available');
+				}
+			}
+			
 			if (response.ok && data?.userId != null) {
 				console.log('✅ [OAuth Debug] User authenticated, setting logged in');
 				setUser({ id: data.userId });
@@ -205,12 +250,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				
 				return;
 			}
-			// Not logged in or missing CSRF
+			// Not logged in or missing CSRF - only set logged out if refresh also failed
 			console.log('❌ [OAuth Debug] Not authenticated, setting logged out');
 			setIsLoggedIn(false);
 			setUser(null);
 		} catch (e: any) {
 			console.log('💥 [OAuth Debug] Error in fetchMe:', e);
+			// Only set logged out if we've exhausted all refresh attempts
 			setIsLoggedIn(false);
 			setUser(null);
 		}
