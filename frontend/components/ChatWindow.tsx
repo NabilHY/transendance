@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { getReceiverId, Message } from "@/lib/chat";
 import { useChatSocket } from "@/app/chat/ChatSocketContext";
 import { useChatData } from "@/app/chat/ChatDataContext";
-import { getUserMgmtBase } from "@/lib/api-config";
+import { getApiUrls, getUserMgmtBase } from "@/lib/api-config";
 
 interface ChatWindowProps {
   conversation: Conversation;
@@ -75,47 +75,48 @@ export default function ChatWindow({
     };
 
     // Notify backend that user is viewing this conversation
-    const notifyViewing = async (isViewing: boolean) => {
-      if (!currentUser?.id) return;
-      try {
-        await fetch(`${process.env.NEXT_PUBLIC_CHAT_URL}/conversation/viewing`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            userId: currentUser.id.toString(),
-            channelId: conversation.id,
-            isViewing,
-          }),
-        });
-      } catch (err) {
-        console.error('Failed to update viewing status:', err);
-      }
-    };
+    // const notifyViewing = async (isViewing: boolean) => {
+    //   if (!currentUser?.id) return;
+    //   try {
+    //     const base = process.env.NEXT_PUBLIC_CHAT_URL ?? getApiUrls().chat;
+    //     await fetch(`${base}/conversation/viewing`, {
+    //       method: 'POST',
+    //       headers: {
+    //         'Content-Type': 'application/json',
+    //       },
+    //       credentials: 'include',
+    //       body: JSON.stringify({
+    //         userId: currentUser.id.toString(),
+    //         channelId: conversation.id,
+    //         isViewing,
+    //       }),
+    //     });
+    //   } catch (err) {
+    //     console.error('Failed to update viewing status:', err);
+    //   }
+    // };
 
     // Handle visibility change (tab switching)
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        notifyViewing(false);
-      } else {
-        notifyViewing(true);
-      }
-    };
+    // const handleVisibilityChange = () => {
+    //   if (document.hidden) {
+    //     notifyViewing(false);
+    //   } else {
+    //     notifyViewing(true);
+    //   }
+    // };
 
     // Mark as viewing when component mounts or conversation changes
-    notifyViewing(true);
+    // notifyViewing(true);
     checkBlockStatus();
     console.log("ChatWindow: ", conversation);
 
     // Listen for visibility changes
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Cleanup: mark as not viewing when component unmounts or conversation changes
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      notifyViewing(false);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // notifyViewing(false);
     };
   }, [conversation, currentUser]);
 
@@ -126,7 +127,6 @@ export default function ChatWindow({
       alert("You cannot message this user because they have blocked you or you have blocked them.");
       return;
     }
-    
     try {
       let receivers: string[] = await getReceivers(conversation.id, currentUser?.id.toString() || '');
 

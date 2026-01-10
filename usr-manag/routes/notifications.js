@@ -240,7 +240,11 @@ module.exports = async function (fastify) {
 
     fastify.post('/notifications/message', {preHandler: fastify.authenticate} , async (request, reply) => {
         try {
-            const { recipientId, senderId, messagePreview, conversation } = request.body;
+            const { recipientId, senderId, messagePreview, conversation, channelId } = request.body;
+
+            const resolvedChannelId =
+                channelId ??
+                (conversation && (conversation.channelId ?? conversation.channel_id));
 
             if (!recipientId || !senderId) {
                 return reply.code(400).send({ message: 'recipientId and senderId required' });
@@ -273,7 +277,11 @@ module.exports = async function (fastify) {
                     senderUsername: sender.username,
                     senderName: `${sender.first_name} ${sender.last_name}`,
                     messagePreview: messagePreview || '',
-                    conversation: conversation || {}
+                    channelId: resolvedChannelId,
+                    conversation: {
+                        ...(conversation || {}),
+                        channelId: resolvedChannelId,
+                    }
                 }),
                 expiresAt
             );
@@ -288,7 +296,12 @@ module.exports = async function (fastify) {
                 data: {
                     senderUsername: sender.username,
                     senderName: `${sender.first_name} ${sender.last_name}`,
-                    messagePreview: messagePreview || ''
+                    messagePreview: messagePreview || '',
+                    channelId: resolvedChannelId,
+                    conversation: {
+                        ...(conversation || {}),
+                        channelId: resolvedChannelId,
+                    }
                 },
                 is_read: 0,
                 is_dismissed: 0,

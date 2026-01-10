@@ -9,6 +9,25 @@ import { User } from '@/app/settings/page';
 import { useChatSocket } from '../ChatSocketContext';
 import { getUserMgmtBase } from '@/lib/api-config';
 
+const getMessageKey = (msg: Partial<Message>) => {
+  const anyMsg = msg as any;
+  if (anyMsg?.id) return `id:${String(anyMsg.id)}`;
+  if (anyMsg?.uuid) return `uuid:${String(anyMsg.uuid)}`;
+  return `sig:${String(anyMsg?.sender_id ?? '')}|${String(anyMsg?.sent_at ?? '')}|${String(anyMsg?.content ?? '')}`;
+};
+
+const dedupeMessages = (items: Message[]) => {
+  const seen = new Set<string>();
+  const result: Message[] = [];
+  for (const item of items) {
+    const key = getMessageKey(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+  return result;
+};
+
 const Page = () => {
   const { id } = useParams() as { id: string };
   const { socket } = useChatSocket();
@@ -36,8 +55,8 @@ const Page = () => {
 
     const data = await res.json();
     // console.log("messges fetched: ", data);
-    
-    setMessages(res.ok ? data : []);
+
+    setMessages(res.ok ? dedupeMessages(data) : []);
   };
 
   useEffect(() => {
@@ -46,8 +65,12 @@ const Page = () => {
     socket.onmessage = (event: any) => {
       const msg: Message = JSON.parse(event.data);
 
-      if (msg.channel_id === id) {
-        setMessages(prev => [...prev, msg]);
+      if (String((msg as any)?.channel_id) === String(id)) {
+        setMessages((prev) => {
+          const incomingKey = getMessageKey(msg);
+          if (prev.some((m) => getMessageKey(m) === incomingKey)) return prev;
+          return [...prev, msg];
+        });
       }
     };
   }, [socket, id]);

@@ -95,6 +95,8 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                     router.push(`/chat/${notification.data.gameData.channelId}`);
                 }
             } else if (notification.type === 'message') {
+                console.log("message: ", notification.data);
+                
                 console.log("it is a message", notification.data?.conversation?.channelId);
 
                 if (notification.data?.conversation?.channelId) {
