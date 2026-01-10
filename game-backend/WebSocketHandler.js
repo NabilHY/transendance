@@ -160,6 +160,66 @@ class WebSocketHandler {
                 console.log(`⏳ ${user.username} added to matchmaking queue`);
               }
               
+            } else if (gameMode === 'direct') {
+              const result = await this.gameManager.addAuthenticatedDirectPlayer(
+                connection.socket,
+                user,
+                data.directInvite
+              );
+
+              if (result && result.error) {
+                connection.socket.send(JSON.stringify({
+                  type: 'directMatchError',
+                  error: result.error
+                }));
+                return;
+              }
+
+              if (result.player1 && result.player2) {
+                const player1 = result.player1;
+                const player2 = result.player2;
+
+                console.log(`🎮 Direct match created! P1: ${player1.user.username} (${player1.connectionId}) P2: ${player2.user.username} (${player2.connectionId})`);
+
+                await this.userAuth.setUserGameStatus(player1.user.id, 'in_game');
+                await this.userAuth.setUserGameStatus(player2.user.id, 'in_game');
+
+                if (player1.connection) {
+                  player1.connection.send(JSON.stringify({
+                    type: 'gameJoined',
+                    playerRole: player1.role,
+                    roomId: player1.roomId,
+                    opponent: player1.opponent,
+                    gameState: player1.gameState
+                  }));
+                }
+
+                if (player2.connection) {
+                  player2.connection.send(JSON.stringify({
+                    type: 'gameJoined',
+                    playerRole: player2.role,
+                    roomId: player2.roomId,
+                    opponent: player2.opponent,
+                    gameState: player2.gameState
+                  }));
+                }
+
+                if (player1.connection === connection.socket) {
+                  playerInfo = player1;
+                } else if (player2.connection === connection.socket) {
+                  playerInfo = player2;
+                }
+              } else {
+                // Waiting for opponent to join same inviteId
+                playerInfo = result;
+                await this.userAuth.setUserGameStatus(user.id, 'in_queue');
+                connection.socket.send(JSON.stringify({
+                  type: 'waitingForOpponent',
+                  playerRole: result.role,
+                  roomId: result.roomId
+                }));
+              }
+
             } else if (gameMode === 'solo' || gameMode === 'ai') {
               // Create solo/AI game with authentication
               const aiDifficulty = data.aiDifficulty || 'medium';
@@ -323,7 +383,11 @@ class WebSocketHandler {
             // Handle matchmaking cancellation
             console.log(`🚫 User ${user.username} (${user.id}) cancelled matchmaking`);
             // Remove player from matchmaking queue and any games
-            await this.gameManager.removePlayer(connection.id);
+            const found = this.gameManager.findPlayerByUserId(user.id);
+            const toRemoveId = playerInfo?.connectionId || found?.connectionId;
+            if (toRemoveId) {
+              await this.gameManager.removePlayer(toRemoveId);
+            }
             
             // Reset user's game_status back to 'online'
             await this.userAuth.setUserGameStatus(user.id, 'online');
@@ -349,8 +413,12 @@ class WebSocketHandler {
           // Set user offline
           await this.userAuth.setUserOnlineStatus(user.id, false);
           
-          // Remove player from game using connection.id
-          await this.gameManager.removePlayer(connection.id);
+          // Remove player from game using the GameManager connectionId
+          const found = this.gameManager.findPlayerByUserId(user.id);
+          const toRemoveId = playerInfo?.connectionId || found?.connectionId;
+          if (toRemoveId) {
+            await this.gameManager.removePlayer(toRemoveId);
+          }
           
           // Also remove from quad pong if they were in quad mode
           if (playerInfo && playerInfo.gameType === 'quad') {

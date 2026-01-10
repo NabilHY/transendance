@@ -124,7 +124,7 @@ export default function GamePage() {
     const mode = searchParams.get('mode');
     const opponentId = searchParams.get('opponentId');
     const inviteId = searchParams.get('inviteId');
-    
+
     if (mode === 'direct' && opponentId && inviteId) {
       console.log(`🎮 Direct game invite detected: opponentId=${opponentId}, inviteId=${inviteId}`);
       setDirectGameInfo({ opponentId, inviteId });

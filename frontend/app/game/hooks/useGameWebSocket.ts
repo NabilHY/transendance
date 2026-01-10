@@ -7,7 +7,7 @@ import type { GameState, QuadGameState, PlayerInfo, GameMode, AIDifficulty, Game
 interface UseGameWebSocketReturn {
   wsRef: React.MutableRefObject<WebSocket | null>;
   isConnected: boolean;
-  connect: (gameMode: GameMode, aiDifficulty?: AIDifficulty) => Promise<void>;
+  connect: (gameMode: GameMode, aiDifficulty?: AIDifficulty, directGameInfo?: { opponentId: string; inviteId: string }) => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: any) => void;
 }
@@ -57,7 +57,7 @@ export const useGameWebSocket = (
     }
   }, []);
 
-  const connect = useCallback(async (gameMode: GameMode, aiDifficulty?: AIDifficulty) => {
+  const connect = useCallback(async (gameMode: GameMode, aiDifficulty?: AIDifficulty, directGameInfo?: { opponentId: string; inviteId: string }) => {
     // Close existing connection if any
     disconnect();
 
@@ -75,11 +75,16 @@ export const useGameWebSocket = (
     setAuthError(null);
 
     // Dynamic WebSocket URL:
-    // - Prod (behind nginx TLS): NEXT_PUBLIC_WS_URL should be like "wss://10.32.110.187" and we connect via /api/game/ws
-    // - Dev: connect directly to game-backend on :4322/ws
+    // - If NEXT_PUBLIC_WS_URL is set, use it and proxy via nginx at /api/game/ws
+    // - Otherwise, if we're on a public origin (80/443/no explicit port), use same-origin /api/game/ws
+    // - Otherwise (local dev), connect directly to :4322/ws
+    const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const isPublicOrigin = !window.location.port || window.location.port === '80' || window.location.port === '443';
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL
       ? `${process.env.NEXT_PUBLIC_WS_URL}/api/game/ws?token=${encodeURIComponent(token)}`
-      : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:4322/ws?token=${encodeURIComponent(token)}`;
+      : isPublicOrigin
+        ? `${wsScheme}://${window.location.host}/api/game/ws?token=${encodeURIComponent(token)}`
+        : `${wsScheme}://${window.location.hostname}:4322/ws?token=${encodeURIComponent(token)}`;
     
     console.log(`🔗 Connecting to WebSocket: ${wsUrl.replace(/token=[^&]+/, 'token=***')}`);
     const ws = new WebSocket(wsUrl);
@@ -125,10 +130,30 @@ export const useGameWebSocket = (
         if (gameMode === 'ai' && aiDifficulty) {
           joinMessage.aiDifficulty = aiDifficulty;
         }
+
+        if (gameMode === 'direct') {
+          if (!directGameInfo?.inviteId || !directGameInfo?.opponentId) {
+            setAuthError('Invalid direct match link.');
+            setIsConnected(false);
+            ws.close();
+            return;
+          }
+          joinMessage.directInvite = {
+            inviteId: directGameInfo.inviteId,
+            opponentId: parseInt(directGameInfo.opponentId, 10)
+          };
+        }
         ws.send(JSON.stringify(joinMessage));
       } else if (message.type === 'waiting' || message.type === 'waitingForOpponent') {
         setScreen("waiting");
         setPlayerInfo({ ...message, user: message.user });
+      } else if ((message as any).type === 'directMatchError') {
+        const err = (message as any).error || 'Failed to start direct match.';
+        console.error('❌ Direct match error:', err);
+        setAuthError(err);
+        setIsConnected(false);
+        ws.close();
+        return;
       } else if (message.type === 'gameJoined') {
         // Show match ready screen first
         setScreen("matchReady");

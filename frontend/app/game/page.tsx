@@ -25,6 +25,7 @@ export default function GamePage() {
   const { loading: authLoading, isAuthenticated: isLoggedIn } = useRequireAuth();
   const tournamentWaitingTimeoutRef = useRef<any>(null);
   const matchReadyCountdownRef = useRef<any>(null);
+  const directAutoConnectRef = useRef(false);
   
   // Game state
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -43,6 +44,7 @@ export default function GamePage() {
   const [quadWaitingInfo, setQuadWaitingInfo] = useState<QuadWaitingInfo | null>(null);
   const [quadWinScreenData, setQuadWinScreenData] = useState<QuadWinScreenData | null>(null);
   const [matchHistoryRefresh, setMatchHistoryRefresh] = useState<number>(0);
+  const [directGameInfo, setDirectGameInfo] = useState<{ opponentId: string; inviteId: string } | null>(null);
 
   // WebSocket connection
   const {
@@ -135,6 +137,32 @@ export default function GamePage() {
     };
     checkAuth();
   }, [isLoggedIn, authLoading]);
+
+  // Detect direct match link: /game?mode=direct&opponentId=...&inviteId=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    const opponentId = params.get('opponentId');
+    const inviteId = params.get('inviteId');
+
+    if (mode === 'direct' && opponentId && inviteId) {
+      setDirectGameInfo({ opponentId, inviteId });
+      setGameMode('direct');
+    } else {
+      setDirectGameInfo(null);
+    }
+  }, []);
+
+  // Auto-connect for direct matches once auth is ready
+  useEffect(() => {
+    if (directAutoConnectRef.current) return;
+    if (authLoading || !isLoggedIn) return;
+    if (!directGameInfo) return;
+
+    directAutoConnectRef.current = true;
+    console.log('🎯 Auto-connecting direct match:', directGameInfo);
+    connectWebSocket('direct', undefined, directGameInfo);
+  }, [authLoading, isLoggedIn, directGameInfo, connectWebSocket]);
 
   // Handle page refresh/close - disconnect from websocket
   useEffect(() => {
