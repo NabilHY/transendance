@@ -1,4 +1,5 @@
 import { UMUser } from "./api";
+import { getApiUrls } from "./api-config";
 
 type Setter<T> = (value: T) => void;
 
@@ -10,8 +11,11 @@ export const invitationsReceived = async (
     // console.log("Fetching invitations received...");
     if(currentUser == null || user == null)
         return;
+
+    const base = process.env.NEXT_PUBLIC_USR_MANAG_URL ?? getApiUrls().usrManag;
+
     try {
-        const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser.id}/friends/${user.id}/invitation`, {
+        const result = await fetch(`${base}/users/${currentUser.id}/friends/${user.id}/invitation`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -38,9 +42,11 @@ export const acceptRequest = async (
 ) => {
     if (!user) return;
 
+    const base = process.env.NEXT_PUBLIC_USR_MANAG_URL ?? getApiUrls().usrManag;
+
     // console.log(currentUser?.id + " trying to accept friend request from: " + user.id);
     try {
-        const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/accept`, {
+        const result = await fetch(`${base}/users/${currentUser?.id}/friends/accept`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -67,8 +73,10 @@ export const rejectRequest = async (
 ) => {
     if (!user) return;
 
+    const base = process.env.NEXT_PUBLIC_USR_MANAG_URL ?? getApiUrls().usrManag;
+
     try {
-        const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser?.id}/friends/reject`, {
+        const result = await fetch(`${base}/users/${currentUser?.id}/friends/reject`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -98,9 +106,12 @@ export const fetchFriendshipStatus = async (
         // console.log("currentUser ===> " + currentUser);
         // console.log("user ===> " + user);
         return;
-    } 
+    }
+
+    const base = process.env.NEXT_PUBLIC_USR_MANAG_URL ?? getApiUrls().usrManag;
+
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${currentUser.id}/friends/${user.id}`, {
+        const response = await fetch(`${base}/users/${currentUser.id}/friends/${user.id}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -127,9 +138,11 @@ export const handleUnblock = async (
 ) => {
     if (!user) return;
 
+    const base = process.env.NEXT_PUBLIC_USR_MANAG_URL ?? getApiUrls().usrManag;
+
     setActionLoading(true);
     try {
-        const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/unblock`, {
+        const result = await fetch(`${base}/users/${userId}/unblock`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -154,9 +167,11 @@ export const handleAddFriend = async (
 ) => {
     if (!user) return;
 
+    const base = process.env.NEXT_PUBLIC_USR_MANAG_URL ?? getApiUrls().usrManag;
+
     setActionLoading(true);
     try {
-        const result = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/friend`, {
+        const result = await fetch(`${base}/users/${userId}/friend`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -169,7 +184,7 @@ export const handleAddFriend = async (
         if( result.ok ) {
             setFriendshipStatus("pending");
             
-            await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/notifications/friend-request`, {
+            await fetch(`${base}/notifications/friend-request`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -197,13 +212,15 @@ export const handleBlockUser = async (
 ) => {
     if (!user) return;
 
+    const base = process.env.NEXT_PUBLIC_USR_MANAG_URL ?? getApiUrls().usrManag;
+
     if (!confirmFn('Are you sure you want to block this user?')) {
         return;
     }
 
     setActionLoading(true);
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_USR_MANAG_URL}/users/${userId}/block`, {
+        const response = await fetch(`${base}/users/${userId}/block`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
