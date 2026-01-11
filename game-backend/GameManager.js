@@ -33,6 +33,9 @@ class GameManager {
     this.games = new Map(); // roomId -> { gameState, gameLoop, players: Set(), spectators: Set() }
     this.players = new Map(); // connectionId -> { roomId, role, connection }
     this.waitingPlayers = []; // Players waiting to be matched
+    // Direct-invite waiting area (inviteId -> { createdAt, player })
+    // This is isolated from normal matchmaking to avoid impacting other game modes.
+    this.directInviteWaiting = new Map();
     this.nextGameId = 1;
     
     // Track processed games globally to prevent ANY duplicates
@@ -45,6 +48,128 @@ class GameManager {
     
     // Initialize tournament manager
     this.tournamentManager = new TournamentManager();
+  }
+
+  // Add an authenticated user to a direct invite match (paired by inviteId).
+  // Returns either a waiting-player object (same shape as matchmaking waiting)
+  // or a match result (same shape as createMultiplayerGameAuth).
+  async addAuthenticatedDirectInvite(connection, user, opponentId, inviteId) {
+    // Check if user is already connected
+    const existingPlayer = this.findPlayerByUserId(user.id);
+    if (existingPlayer) {
+      console.log(`User ${user.username} is already connected, disconnecting old connection`);
+      await this.removePlayer(existingPlayer.connectionId);
+    }
+
+    const connectionId = this.generateConnectionId();
+    return this.addToDirectInviteAuth(connection, connectionId, user, opponentId, inviteId);
+  }
+
+  addToDirectInviteAuth(connection, connectionId, user, opponentId, inviteId) {
+    const normalizedInviteId = typeof inviteId === 'string' ? inviteId.trim() : '';
+    const normalizedOpponentId = typeof opponentId === 'string' ? parseInt(opponentId, 10) : opponentId;
+
+    if (!normalizedInviteId) {
+      return { error: 'Missing inviteId' };
+    }
+    if (!Number.isFinite(normalizedOpponentId)) {
+      return { error: 'Invalid opponentId' };
+    }
+    if (user.id === normalizedOpponentId) {
+      return { error: 'Invalid direct invite (self invite)' };
+    }
+
+    // Expire stale invites (10 minutes)
+    const existing = this.directInviteWaiting.get(normalizedInviteId);
+    if (existing && Date.now() - existing.createdAt > 10 * 60 * 1000) {
+      this.directInviteWaiting.delete(normalizedInviteId);
+    }
+
+    const entry = this.directInviteWaiting.get(normalizedInviteId);
+    if (!entry) {
+      // First player arrives
+      this.directInviteWaiting.set(normalizedInviteId, {
+        createdAt: Date.now(),
+        player: {
+          connection,
+          connectionId,
+          user,
+          expectedOpponentId: normalizedOpponentId
+        }
+      });
+
+      this.players.set(connectionId, {
+        roomId: null,
+        role: 'waiting',
+        connection,
+        user
+      });
+
+      console.log(`🎟️ Direct invite ${normalizedInviteId}: ${user.username} waiting for opponent ${normalizedOpponentId}`);
+
+      return {
+        connectionId,
+        roomId: null,
+        role: 'waiting',
+        user,
+        gameType: 'multiplayer',
+        gameState: null,
+        directInvite: { inviteId: normalizedInviteId, opponentId: normalizedOpponentId }
+      };
+    }
+
+    // Second player arrives (or someone tries to hijack)
+    const first = entry.player;
+
+    // If the same user reconnects, replace the stored connection
+    if (first.user && first.user.id === user.id) {
+      entry.player = {
+        connection,
+        connectionId,
+        user,
+        expectedOpponentId: first.expectedOpponentId
+      };
+      entry.createdAt = Date.now();
+      this.directInviteWaiting.set(normalizedInviteId, entry);
+
+      this.players.set(connectionId, {
+        roomId: null,
+        role: 'waiting',
+        connection,
+        user
+      });
+
+      console.log(`🎟️ Direct invite ${normalizedInviteId}: ${user.username} reconnected, still waiting`);
+
+      return {
+        connectionId,
+        roomId: null,
+        role: 'waiting',
+        user,
+        gameType: 'multiplayer',
+        gameState: null,
+        directInvite: { inviteId: normalizedInviteId, opponentId: first.expectedOpponentId }
+      };
+    }
+
+    // Validate pairing: both sides must point at each other
+    const firstExpectedOpponent = first.expectedOpponentId;
+    const firstUserId = first.user?.id;
+    if (firstExpectedOpponent !== user.id || normalizedOpponentId !== firstUserId) {
+      console.log(`❌ Direct invite ${normalizedInviteId} mismatch: first expected ${firstExpectedOpponent}, got ${user.id}; second expected ${normalizedOpponentId}, first user ${firstUserId}`);
+      return { error: 'Direct invite mismatch' };
+    }
+
+    // Create a normal authenticated multiplayer game between these two users
+    const result = this.createMultiplayerGameAuth(
+      { connection: first.connection, connectionId: first.connectionId, user: first.user },
+      { connection, connectionId, user }
+    );
+
+    // Remove invite entry once we attempt to create a game
+    this.directInviteWaiting.delete(normalizedInviteId);
+
+    return result;
   }
 
   // Generate unique connection ID
@@ -978,6 +1103,15 @@ class GameManager {
 
     // Remove from waiting queue if present
     this.waitingPlayers = this.waitingPlayers.filter(p => p.connectionId !== connectionId);
+
+    // Remove from direct-invite waiting if present
+    for (const [inviteId, entry] of this.directInviteWaiting.entries()) {
+      if (entry?.player?.connectionId === connectionId) {
+        this.directInviteWaiting.delete(inviteId);
+        console.log(`🧹 Removed ${connectionId} from direct invite ${inviteId}`);
+        break;
+      }
+    }
 
     // Remove from tournament queue if present
     if (player.user && player.user.id) {

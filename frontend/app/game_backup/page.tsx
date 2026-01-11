@@ -134,7 +134,7 @@ export default function GamePage() {
   // Check authentication on mount
   useEffect(() => {
     if (!isLoggedIn || authLoading) return;
-    
+
     const checkAuth = async () => {
       const token = await getAuthTokenWithUser();
       if (token) {
@@ -165,7 +165,7 @@ export default function GamePage() {
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       disconnectWebSocket();

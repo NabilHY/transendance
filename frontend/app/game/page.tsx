@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useAuthGuard';
+import { useSearchParams } from 'next/navigation';
 import { getAuthToken, fetchPlayerStats, getAuthBackendUrl } from './utils/api';
 import { useGameWebSocket } from './hooks/useGameWebSocket';
 import { useGameKeyboard } from './hooks/useGameKeyboard';
@@ -23,8 +24,10 @@ import type { GameScreen as GameScreenType, GameMode, AIDifficulty, GameState, Q
 export default function GamePage() {
   const { user } = useAuth();
   const { loading: authLoading, isAuthenticated: isLoggedIn } = useRequireAuth();
+  const searchParams = useSearchParams();
   const tournamentWaitingTimeoutRef = useRef<any>(null);
   const matchReadyCountdownRef = useRef<any>(null);
+  const directInviteAutoStartRef = useRef(false);
   
   // Game state
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -137,6 +140,26 @@ export default function GamePage() {
     };
     checkAuth();
   }, [isLoggedIn, authLoading]);
+
+  // Auto-start direct invite games when arriving from chat invitation
+  useEffect(() => {
+    if (!isLoggedIn || authLoading) return;
+    if (directInviteAutoStartRef.current) return;
+
+    const mode = searchParams.get('mode');
+    const opponentId = searchParams.get('opponentId');
+    const inviteId = searchParams.get('inviteId');
+
+    if (mode === 'direct' && opponentId && inviteId) {
+      directInviteAutoStartRef.current = true;
+      console.log(`🎮 Direct invite URL detected: opponentId=${opponentId}, inviteId=${inviteId}`);
+
+      // Direct invites are multiplayer games; keep existing game modes unchanged.
+      setGameMode('matchmaking');
+      setScreen('waiting');
+      connectWebSocket('matchmaking', undefined, { opponentId, inviteId });
+    }
+  }, [isLoggedIn, authLoading, searchParams, connectWebSocket]);
 
   // Handle page refresh/close - disconnect from websocket
   useEffect(() => {

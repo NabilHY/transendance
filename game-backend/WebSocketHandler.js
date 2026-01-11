@@ -84,6 +84,90 @@ class WebSocketHandler {
           if (data.type === "join") {
             // Player wants to join a game with authentication
             const gameMode = data.gameMode || 'matchmaking';
+            const directInvite = data.directInvite;
+
+            // Direct invite join (isolated path; does not affect other modes)
+            if (directInvite && directInvite.inviteId && directInvite.opponentId != null) {
+              const result = await this.gameManager.addAuthenticatedDirectInvite(
+                connection.socket,
+                user,
+                directInvite.opponentId,
+                directInvite.inviteId
+              );
+
+              if (result && result.error) {
+                connection.socket.send(JSON.stringify({
+                  type: 'directInviteError',
+                  error: result.error
+                }));
+                return;
+              }
+
+              // Check if result is null (failed to create game)
+              if (result === null) {
+                console.log(`⚠️ Failed to create direct match for ${user.username}, waiting...`);
+                connection.socket.send(JSON.stringify({
+                  type: 'waitingForOpponent',
+                  playerRole: 'waiting',
+                  roomId: null
+                }));
+                return;
+              }
+
+              if (result.player1 && result.player2) {
+                const player1 = result.player1;
+                const player2 = result.player2;
+
+                console.log(`🎯 Direct match created! P1: ${player1.user.username} (${player1.connectionId}) P2: ${player2.user.username} (${player2.connectionId})`);
+
+                await this.userAuth.setUserGameStatus(player1.user.id, 'in_game');
+                await this.userAuth.setUserGameStatus(player2.user.id, 'in_game');
+
+                if (player1.connection) {
+                  player1.connection.send(JSON.stringify({
+                    type: 'gameJoined',
+                    playerRole: player1.role,
+                    roomId: player1.roomId,
+                    user: player1.user,
+                    opponent: player1.opponent,
+                    gameState: player1.gameState,
+                    gameType: player1.gameType
+                  }));
+                }
+
+                if (player2.connection) {
+                  player2.connection.send(JSON.stringify({
+                    type: 'gameJoined',
+                    playerRole: player2.role,
+                    roomId: player2.roomId,
+                    user: player2.user,
+                    opponent: player2.opponent,
+                    gameState: player2.gameState,
+                    gameType: player2.gameType
+                  }));
+                }
+
+                if (player1.connection === connection.socket) {
+                  playerInfo = player1;
+                } else if (player2.connection === connection.socket) {
+                  playerInfo = player2;
+                }
+
+                return;
+              }
+
+              // Waiting for opponent
+              playerInfo = result;
+              await this.userAuth.setUserGameStatus(user.id, 'in_queue');
+
+              connection.socket.send(JSON.stringify({
+                type: 'waitingForOpponent',
+                playerRole: result.role,
+                roomId: result.roomId
+              }));
+              console.log(`🎟️ ${user.username} waiting in direct invite queue ${directInvite.inviteId}`);
+              return;
+            }
             
             if (gameMode === 'matchmaking') {
               // Use authenticated matchmaking
@@ -341,7 +425,7 @@ class WebSocketHandler {
             // Handle matchmaking cancellation
             console.log(`🚫 User ${user.username} (${user.id}) cancelled matchmaking`);
             // Remove player from matchmaking queue and any games
-            await this.gameManager.removePlayer(connection.id);
+            await this.gameManager.removePlayer(playerInfo?.connectionId || connection.id);
             
             // Reset user's game_status back to 'online'
             await this.userAuth.setUserGameStatus(user.id, 'online');
@@ -368,7 +452,7 @@ class WebSocketHandler {
           await this.userAuth.setUserOnlineStatus(user.id, false);
           
           // Remove player from game using connection.id
-          await this.gameManager.removePlayer(connection.id);
+          await this.gameManager.removePlayer(playerInfo?.connectionId || connection.id);
           
           // Also remove from quad pong if they were in quad mode
           if (playerInfo && playerInfo.gameType === 'quad') {

@@ -19,6 +19,7 @@ interface ProfileCardProps {
     games_played: number;
     games_won: number;
     win_rate: number;
+    
   };
 }
 

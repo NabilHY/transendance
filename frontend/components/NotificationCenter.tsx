@@ -90,18 +90,13 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                 router.push(`/users/${notification.sender_id}`);
             } else if (notification.type === 'match_invite') {
                 console.log("it is a match invite", notification.data?.conversation_id);
-
-                if (notification.data?.gameData?.channelId) {
+                if (notification.data?.gameData?.channelId)
                     router.push(`/chat/${notification.data.gameData.channelId}`);
-                }
             } else if (notification.type === 'message') {
                 console.log("message: ", notification.data);
-                
                 console.log("it is a message", notification.data?.conversation?.channelId);
-
-                if (notification.data?.conversation?.channelId) {
+                if (notification.data?.conversation?.channelId)
                     router.push(`/chat/${notification.data.conversation.channelId}`);
-                }
             }
         });
     };
@@ -125,7 +120,6 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
                 method: 'PATCH',
                 credentials: 'include'
             });
-            
             setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
             setUnreadCount(0);
         } catch (err) {
