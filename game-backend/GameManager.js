@@ -526,7 +526,9 @@ class GameManager {
         playerRole: 'player1',
         opponent: {
           id: player2Data.user.id,
-          username: player2Data.user.username
+          username: player2Data.user.username,
+          profile_pic: player2Data.user.profilePic,
+          avatar_updated_at: player2Data.user.avatar_updated_at
         }
       }));
     }
@@ -537,7 +539,9 @@ class GameManager {
         playerRole: 'player2',
         opponent: {
           id: player1Data.user.id,
-          username: player1Data.user.username
+          username: player1Data.user.username,
+          profile_pic: player1Data.user.profilePic,
+          avatar_updated_at: player1Data.user.avatar_updated_at
         }
       }));
     }
@@ -694,6 +698,8 @@ class GameManager {
           id: player2Data.user.id,
           username: player2Data.user.username,
           name: player2Data.user.name,
+          profile_pic: player2Data.user.profilePic,
+          avatar_updated_at: player2Data.user.avatar_updated_at,
           level: player2Data.user.gameStats?.level || 1,
           rankTier: player2Data.user.gameStats?.rankTier || 'Bronze'
         }
@@ -710,6 +716,8 @@ class GameManager {
           id: player1Data.user.id,
           username: player1Data.user.username,
           name: player1Data.user.name,
+          profile_pic: player1Data.user.profilePic,
+          avatar_updated_at: player1Data.user.avatar_updated_at,
           level: player1Data.user.gameStats?.level || 1,
           rankTier: player1Data.user.gameStats?.rankTier || 'Bronze'
         }

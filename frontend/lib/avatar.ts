@@ -78,8 +78,18 @@ export async function getAvatarUrl(
 ): Promise<string | null> {
   const { isCurrentUser = false, useCache = true, fallback = DEFAULT_AVATAR } = options;
 
+  console.log('🔍 getAvatarUrl called:', {
+    userId: user.id,
+    username: user.username,
+    hasProfilePic: !!user.profile_pic,
+    profilePic: user.profile_pic,
+    isCurrentUser,
+    fallback
+  });
+
   // If user has no avatar object key, return fallback
   if (!user.profile_pic) {
+    console.log('⚠️ No profile_pic found, returning fallback');
     return fallback;
   }
 

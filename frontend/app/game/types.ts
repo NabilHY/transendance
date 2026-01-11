@@ -64,12 +64,16 @@ export interface PlayerInfo {
   opponent?: {
     username: string;
     id: number;
+    profile_pic?: string | null;
+    avatar_updated_at?: number | null;
   };
   user?: {
     id: number;
     username: string;
     name?: string;
     email?: string;
+    profile_pic?: string | null;
+    avatar_updated_at?: number | null;
   };
   username?: string;
   tournamentId?: string;
@@ -79,10 +83,14 @@ export interface PlayerInfo {
   teammates?: Array<{
     username: string;
     id: number;
+    profile_pic?: string | null;
+    avatar_updated_at?: number | null;
   }>;
   opponents?: Array<{
     username: string;
     id: number;
+    profile_pic?: string | null;
+    avatar_updated_at?: number | null;
   }>;
 }
 

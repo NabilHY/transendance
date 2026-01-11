@@ -134,12 +134,25 @@ export const useGameWebSocket = (
         const isSoloGame = message.gameMode === 'solo' || message.gameMode === 'ai';
         
         // Use user data from gameJoined message (backend sends complete user object)
+        // Transform profilePic to profile_pic for consistency with frontend
+        const user = message.user ? {
+          ...message.user,
+          profile_pic: message.user.profilePic || message.user.profile_pic,
+          avatar_updated_at: message.user.avatar_updated_at
+        } : undefined;
+        
+        const opponent = message.opponent ? {
+          ...message.opponent,
+          profile_pic: message.opponent.profile_pic,
+          avatar_updated_at: message.opponent.avatar_updated_at
+        } : undefined;
+        
         setPlayerInfo({
           role: message.playerRole,
           roomId: message.roomId,
           gameType: message.gameType || message.gameMode || 'multiplayer',
-          opponent: message.opponent,
-          user: message.user // Use user data from backend
+          opponent: opponent,
+          user: user
         });
         setGameState(message.gameState);
         
@@ -325,6 +338,25 @@ export const useGameWebSocket = (
       } else if (message.type === 'quadGameJoined') {
         console.log('[QUAD] Game joined:', message);
         
+        // Transform profilePic to profile_pic for consistency
+        const user = message.user ? {
+          ...message.user,
+          profile_pic: message.user.profilePic || message.user.profile_pic,
+          avatar_updated_at: message.user.avatar_updated_at
+        } : undefined;
+        
+        const teammates = message.teammates ? message.teammates.map((t: any) => ({
+          ...t,
+          profile_pic: t.profilePic || t.profile_pic,
+          avatar_updated_at: t.avatar_updated_at
+        })) : [];
+        
+        const opponents = message.opponents ? message.opponents.map((o: any) => ({
+          ...o,
+          profile_pic: o.profilePic || o.profile_pic,
+          avatar_updated_at: o.avatar_updated_at
+        })) : [];
+        
         // Show match ready screen first for quad games
         setScreen("matchReady");
         setPlayerInfo({
@@ -332,9 +364,9 @@ export const useGameWebSocket = (
           team: message.team,
           roomId: message.roomId,
           gameType: 'quad',
-          teammates: message.teammates,
-          opponents: message.opponents,
-          user: message.user
+          teammates: teammates,
+          opponents: opponents,
+          user: user
         });
         setQuadGameState(message.gameState);
         

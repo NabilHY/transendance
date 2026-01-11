@@ -612,7 +612,13 @@ class QuadPongManager {
       const gameRoom = this.quadGames.get(player.roomId);
       if (gameRoom) {
         const disconnectedTeam = player.team;
+        
+        console.log(`🔍 [QUAD] Before removal - gameRoom.players size: ${gameRoom.players.size}`);
+        console.log(`🔍 [QUAD] Disconnecting player: ${player.user?.username}, team: ${disconnectedTeam}, connectionId: ${connectionId}`);
+        
         gameRoom.players.delete(connectionId);
+        
+        console.log(`🔍 [QUAD] After removal - gameRoom.players size: ${gameRoom.players.size}`);
         
         // Count remaining players per team
         let team1Count = 0;
@@ -620,6 +626,7 @@ class QuadPongManager {
         
         for (const remainingId of gameRoom.players) {
           const remainingPlayer = this.quadPlayers.get(remainingId);
+          console.log(`🔍 [QUAD] Checking remaining player: ${remainingId}, found: ${!!remainingPlayer}, team: ${remainingPlayer?.team}`);
           if (remainingPlayer) {
             if (remainingPlayer.team === 'team1') team1Count++;
             if (remainingPlayer.team === 'team2') team2Count++;

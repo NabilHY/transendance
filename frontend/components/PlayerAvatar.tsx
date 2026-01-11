@@ -53,6 +53,14 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
       last_name: user.last_name,
     };
 
+    console.log('🔍 PlayerAvatar - Fetching avatar for user:', {
+      userId: user.id,
+      username: user.username,
+      hasProfilePic: !!user.profile_pic,
+      profilePic: user.profile_pic,
+      avatarUpdatedAt: user.avatar_updated_at
+    });
+
     getAvatarUrl(userData, { isCurrentUser: false, fallback: null })
       .then(url => {
         if (!cancelled) {

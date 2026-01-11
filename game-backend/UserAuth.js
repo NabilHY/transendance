@@ -41,7 +41,7 @@ class UserAuth {
             const db = this.getDb();
             db.get(`
                 SELECT id, email, username, name, first_name, last_name, 
-                       profile_pic, is_online, player_level, experience_points,
+                       profile_pic, avatar_updated_at, is_online, player_level, experience_points,
                        rank_points, rank_tier, games_played, games_won, games_lost,
                        win_rate, current_streak, profile_completed
                 FROM users 
@@ -123,6 +123,7 @@ class UserAuth {
                     username: user.username || `User${user.id}`,
                     name: user.name || user.first_name || 'Unknown',
                     profilePic: user.profile_pic,
+                    avatar_updated_at: user.avatar_updated_at,
                     profileCompleted: user.profile_completed,
                     gameStats: {
                         level: user.player_level,
