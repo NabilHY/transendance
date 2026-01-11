@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getAvatarUrl, type UserWithAvatar } from '@/lib/avatar';
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { umGetUser, type UMUser } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Swords } from 'lucide-react';
@@ -37,6 +38,10 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({ playerIn
   const currentPlayer = playerInfo.user;
   const opponent = playerInfo.opponent;
   const isQuadMode = playerInfo.gameType === 'quad';
+
+  console.log('🎮 GameMatchReadyScreen - Full playerInfo:', JSON.stringify(playerInfo, null, 2));
+  console.log('🎮 GameMatchReadyScreen - currentPlayer:', currentPlayer);
+  console.log('🎮 GameMatchReadyScreen - opponent:', opponent);
 
   // Fetch current player avatar (only for 1v1)
   useEffect(() => {
@@ -218,20 +223,22 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({ playerIn
       zIndex: 1
     }),
     avatar: (bgGradient: string, borderColor: string, boxShadow: string) => ({
-      width: 'clamp(70px, 12vw, 100px)',
-      height: 'clamp(70px, 12vw, 100px)',
+      width: 'clamp(100px, 16vw, 130px)',
+      height: 'clamp(100px, 16vw, 130px)',
       borderRadius: '50%',
       background: bgGradient,
       border: `3px solid ${borderColor}`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: 'clamp(24px, 5vw, 36px)',
+      fontSize: 'clamp(36px, 6vw, 48px)',
       fontWeight: 900,
-      color: '#ffffff',
+      color: '#FFFFFF',
       boxShadow,
-      textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
-      zIndex: 1
+      textShadow: '0 2px 8px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 255, 255, 0.3)',
+      letterSpacing: '2px',
+      zIndex: 1,
+      WebkitTextStroke: '1px rgba(0, 0, 0, 0.3)'
     }),
     username: (textShadow: string) => ({
       fontFamily: '"Rajdhani", sans-serif',
@@ -296,6 +303,18 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({ playerIn
 
   // For quad mode, show simplified screen
   if (isQuadMode) {
+    // Determine team sides: team1 = left, team2 = right
+    const currentPlayerTeam = playerInfo.team; // 'team1' or 'team2'
+    const isTeam1 = currentPlayerTeam === 'team1';
+    
+    // Get teammates and opponents based on team
+    const teammate = playerInfo.teammates && playerInfo.teammates.length > 0 ? playerInfo.teammates[0] : null;
+    const opponent1 = playerInfo.opponents && playerInfo.opponents.length >= 1 ? playerInfo.opponents[0] : null;
+    const opponent2 = playerInfo.opponents && playerInfo.opponents.length >= 2 ? playerInfo.opponents[1] : null;
+    
+    // Determine which side to show your team (always match paddle side)
+    // Team1 = LEFT side (blue), Team2 = RIGHT side (green)
+    
     return (
       <div style={styles.container}>
         <div style={styles.backgroundPattern} />
@@ -313,7 +332,7 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({ playerIn
           zIndex: 1,
           marginBottom: '32px'
         }}>
-          {/* Team 1 Card */}
+          {/* LEFT SIDE - Team 1 (Blue) */}
           <div style={{
             flex: 1,
             display: 'flex',
@@ -324,13 +343,16 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({ playerIn
             background: 'linear-gradient(135deg, rgba(0, 240, 255, 0.08) 0%, rgba(15, 20, 35, 0.95) 100%)',
             backdropFilter: 'blur(20px)',
             borderRadius: '20px',
-            border: '2px solid rgba(0, 240, 255, 0.4)',
+            border: isTeam1 ? '2px solid rgba(0, 240, 255, 0.6)' : '2px solid rgba(0, 240, 255, 0.3)',
             minWidth: '280px',
             maxWidth: '400px',
-            boxShadow: `
-              0 0 40px rgba(0, 240, 255, 0.2),
+            boxShadow: isTeam1 ? `
+              0 0 40px rgba(0, 240, 255, 0.4),
               0 8px 32px rgba(0, 0, 0, 0.4),
               inset 0 1px 0 rgba(255, 255, 255, 0.1)
+            ` : `
+              0 0 20px rgba(0, 240, 255, 0.2),
+              0 8px 32px rgba(0, 0, 0, 0.4)
             `,
             animation: 'slideInLeft 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
             position: 'relative' as const,
@@ -353,114 +375,189 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({ playerIn
               fontSize: 'clamp(14px, 2vw, 16px)',
               letterSpacing: '0.2em',
               padding: '8px 20px',
-              background: 'rgba(0, 240, 255, 0.15)',
+              background: isTeam1 ? 'rgba(0, 240, 255, 0.2)' : 'rgba(0, 240, 255, 0.1)',
               borderRadius: '20px',
               border: '1px solid rgba(0, 240, 255, 0.4)',
               zIndex: 1
-            }}>YOUR TEAM</div>
+            }}>{isTeam1 ? 'YOUR TEAM (LEFT)' : 'OPPONENT TEAM (LEFT)'}</div>
             
-            {/* Current player */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-              zIndex: 1
-            }}>
-              <div style={{
-                position: 'relative',
-                borderRadius: '50%',
-                padding: '4px',
-                background: 'linear-gradient(135deg, #00f0ff, #0088cc)',
-                boxShadow: getRankGlow(currentPlayer.rankTier)
-              }}>
-                <img
-                  src={currentPlayerAvatar || '/default-avatar.png'}
-                  alt={currentPlayer.username}
-                  style={{
-                    width: 'clamp(60px, 10vw, 80px)',
-                    height: 'clamp(60px, 10vw, 80px)',
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: '3px solid rgba(10, 14, 26, 0.9)'
-                  }}
-                />
-                <div style={{
-                  position: 'absolute',
-                  bottom: '-4px',
-                  right: '-4px',
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #00f0ff, #00a8ff)',
-                  border: '2px solid #0a0e1a',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: '#fff',
-                  boxShadow: '0 0 12px rgba(0, 240, 255, 0.6)'
-                }}>★</div>
-              </div>
-              <div style={{
-                fontSize: 'clamp(20px, 3.5vw, 28px)',
-                fontWeight: 800,
-                color: '#00f0ff',
-                textAlign: 'center',
-                textShadow: '0 0 20px rgba(0, 240, 255, 0.6)',
-                letterSpacing: '0.05em'
-              }}>
-                {currentPlayer.username}
-              </div>
-              <div style={{
-                fontSize: 'clamp(12px, 2vw, 14px)',
-                color: getRankColor(currentPlayer.rankTier),
-                fontWeight: 700,
-                textTransform: 'uppercase' as const,
-                letterSpacing: '0.1em',
-                textShadow: `0 0 12px ${getRankColor(currentPlayer.rankTier)}80`
-              }}>
-                {currentPlayer.rankTier || 'Bronze'}
-              </div>
-            </div>
-
-            {/* Teammate */}
-            {playerInfo.teammates && playerInfo.teammates.length > 0 && (
+            {/* Show your team or opponent team based on who's on team1 */}
+            {isTeam1 ? (
               <>
-                <div style={{
-                  width: '80%',
-                  height: '1px',
-                  background: 'linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.3), transparent)',
-                  zIndex: 1
-                }} />
+                {/* Current player */}
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '8px',
-                  opacity: 0.9,
+                  gap: '12px',
                   zIndex: 1
                 }}>
                   <div style={{
-                    fontSize: 'clamp(16px, 3vw, 22px)',
-                    fontWeight: 700,
-                    color: '#8cd5ff',
-                    textAlign: 'center',
-                    letterSpacing: '0.05em'
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}>
-                    {playerInfo.teammates[0].username}
+                    <div style={{
+                      padding: '4px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #00f0ff, #0088cc)',
+                      boxShadow: '0 0 20px rgba(0, 240, 255, 0.6), 0 0 40px rgba(0, 240, 255, 0.4)'
+                    }}>
+                      <PlayerAvatar 
+                        user={currentPlayer} 
+                        size="large"
+                      />
+                    </div>
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-4px',
+                      right: '-4px',
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #00f0ff, #00a8ff)',
+                      border: '2px solid #0a0e1a',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: '#fff',
+                      boxShadow: '0 0 12px rgba(0, 240, 255, 0.6)'
+                    }}>★</div>
                   </div>
                   <div style={{
-                    fontSize: 'clamp(11px, 1.8vw, 13px)',
-                    color: '#6ba8cc',
-                    fontWeight: 600,
+                    fontSize: 'clamp(20px, 3.5vw, 28px)',
+                    fontWeight: 800,
+                    color: '#00f0ff',
+                    textAlign: 'center',
+                    textShadow: '0 0 20px rgba(0, 240, 255, 0.6)',
+                    letterSpacing: '0.05em'
+                  }}>
+                    {currentPlayer?.username || 'You'}
+                  </div>
+                  <div style={{
+                    fontSize: 'clamp(12px, 2vw, 14px)',
+                    color: '#8cd5ff',
+                    fontWeight: 700,
                     textTransform: 'uppercase' as const,
                     letterSpacing: '0.1em'
                   }}>
-                    Teammate
+                    YOU
                   </div>
                 </div>
+
+                {/* Teammate */}
+                {teammate && (
+                  <>
+                    <div style={{
+                      width: '80%',
+                      height: '1px',
+                      background: 'linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.3), transparent)',
+                      zIndex: 1
+                    }} />
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '12px',
+                      opacity: 0.9,
+                      zIndex: 1
+                    }}>
+                      <PlayerAvatar 
+                        user={teammate} 
+                        size="medium"
+                      />
+                      <div style={{
+                        fontSize: 'clamp(16px, 3vw, 22px)',
+                        fontWeight: 700,
+                        color: '#8cd5ff',
+                        textAlign: 'center',
+                        letterSpacing: '0.05em'
+                      }}>
+                        {teammate?.username || 'Teammate'}
+                      </div>
+                      <div style={{
+                        fontSize: 'clamp(11px, 1.8vw, 13px)',
+                        color: '#6ba8cc',
+                        fontWeight: 600,
+                        textTransform: 'uppercase' as const,
+                        letterSpacing: '0.1em'
+                      }}>
+                        Teammate
+                      </div>
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Opponent team players */}
+                {opponent1 && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '12px',
+                    zIndex: 1
+                  }}>
+                    <div style={{
+                      padding: '4px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #00f0ff, #0088cc)',
+                      boxShadow: '0 0 20px rgba(0, 240, 255, 0.4)'
+                    }}>
+                      <PlayerAvatar 
+                        user={opponent1} 
+                        size="large"
+                      />
+                    </div>
+                    <div style={{
+                      fontSize: 'clamp(20px, 3.5vw, 28px)',
+                      fontWeight: 800,
+                      color: '#00f0ff',
+                      textAlign: 'center',
+                      textShadow: '0 0 20px rgba(0, 240, 255, 0.4)',
+                      letterSpacing: '0.05em'
+                    }}>
+                      {opponent1?.username || 'Opponent'}
+                    </div>
+                  </div>
+                )}
+                
+                {opponent2 && (
+                  <>
+                    <div style={{
+                      width: '80%',
+                      height: '1px',
+                      background: 'linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.3), transparent)',
+                      zIndex: 1
+                    }} />
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '12px',
+                      opacity: 0.9,
+                      zIndex: 1
+                    }}>
+                      <PlayerAvatar 
+                        user={opponent2} 
+                        size="medium"
+                      />
+                      <div style={{
+                        fontSize: 'clamp(16px, 3vw, 22px)',
+                        fontWeight: 700,
+                        color: '#8cd5ff',
+                        textAlign: 'center',
+                        letterSpacing: '0.05em'
+                      }}>
+                        {opponent2?.username || 'Opponent'}
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -482,7 +579,7 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({ playerIn
             animation: 'spin 4s linear infinite, pulse 2s ease-in-out infinite'
           }}>VS</div>
 
-          {/* Team 2 Card */}
+          {/* RIGHT SIDE - Team 2 (Green) */}
           <div style={{
             flex: 1,
             display: 'flex',
@@ -490,16 +587,19 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({ playerIn
             alignItems: 'center',
             gap: '20px',
             padding: 'clamp(24px, 3vw, 32px)',
-            background: 'linear-gradient(135deg, rgba(255, 0, 110, 0.08) 0%, rgba(15, 20, 35, 0.95) 100%)',
+            background: 'linear-gradient(135deg, rgba(52, 206, 87, 0.08) 0%, rgba(15, 20, 35, 0.95) 100%)',
             backdropFilter: 'blur(20px)',
             borderRadius: '20px',
-            border: '2px solid rgba(255, 0, 110, 0.4)',
+            border: !isTeam1 ? '2px solid rgba(52, 206, 87, 0.6)' : '2px solid rgba(52, 206, 87, 0.3)',
             minWidth: '280px',
             maxWidth: '400px',
-            boxShadow: `
-              0 0 40px rgba(255, 0, 110, 0.2),
+            boxShadow: !isTeam1 ? `
+              0 0 40px rgba(52, 206, 87, 0.4),
               0 8px 32px rgba(0, 0, 0, 0.4),
               inset 0 1px 0 rgba(255, 255, 255, 0.1)
+            ` : `
+              0 0 20px rgba(52, 206, 87, 0.2),
+              0 8px 32px rgba(0, 0, 0, 0.4)
             `,
             animation: 'slideInRight 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
             position: 'relative' as const,
@@ -512,89 +612,199 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({ playerIn
               right: '-50%',
               width: '200%',
               height: '200%',
-              background: 'radial-gradient(circle, rgba(255, 0, 110, 0.15) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(52, 206, 87, 0.15) 0%, transparent 70%)',
               pointerEvents: 'none',
               animation: 'pulse 3s ease-in-out infinite 0.5s'
             }} />
             
             <div style={{
-              ...styles.label('#ff006e'),
+              ...styles.label('#34ce57'),
               fontSize: 'clamp(14px, 2vw, 16px)',
               letterSpacing: '0.2em',
               padding: '8px 20px',
-              background: 'rgba(255, 0, 110, 0.15)',
+              background: !isTeam1 ? 'rgba(52, 206, 87, 0.2)' : 'rgba(52, 206, 87, 0.1)',
               borderRadius: '20px',
-              border: '1px solid rgba(255, 0, 110, 0.4)',
+              border: '1px solid rgba(52, 206, 87, 0.4)',
               zIndex: 1
-            }}>OPPONENT TEAM</div>
+            }}>{!isTeam1 ? 'YOUR TEAM (RIGHT)' : 'OPPONENT TEAM (RIGHT)'}</div>
             
-            {playerInfo.opponents && playerInfo.opponents.length >= 2 && (
+            {/* Show your team or opponent team based on who's on team2 */}
+            {!isTeam1 ? (
               <>
-                {/* Opponent 1 */}
+                {/* Current player */}
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '12px',
                   zIndex: 1
                 }}>
+                  <div style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <div style={{
+                      padding: '4px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #34ce57, #28a745)',
+                      boxShadow: '0 0 20px rgba(52, 206, 87, 0.6), 0 0 40px rgba(52, 206, 87, 0.4)'
+                    }}>
+                      <PlayerAvatar 
+                        user={currentPlayer} 
+                        size="large"
+                      />
+                    </div>
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-4px',
+                      right: '-4px',
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #34ce57, #28a745)',
+                      border: '2px solid #0a0e1a',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: '#fff',
+                      boxShadow: '0 0 12px rgba(52, 206, 87, 0.6)'
+                    }}>★</div>
+                  </div>
                   <div style={{
                     fontSize: 'clamp(20px, 3.5vw, 28px)',
                     fontWeight: 800,
-                    color: '#ff006e',
+                    color: '#34ce57',
                     textAlign: 'center',
-                    textShadow: '0 0 20px rgba(255, 0, 110, 0.6)',
+                    textShadow: '0 0 20px rgba(52, 206, 87, 0.6)',
                     letterSpacing: '0.05em'
                   }}>
-                    {playerInfo.opponents[0].username}
+                    {currentPlayer?.username || 'You'}
                   </div>
                   <div style={{
                     fontSize: 'clamp(12px, 2vw, 14px)',
-                    color: '#ff5599',
+                    color: '#7dd99d',
                     fontWeight: 700,
                     textTransform: 'uppercase' as const,
                     letterSpacing: '0.1em'
                   }}>
-                    Opponent
+                    YOU
                   </div>
                 </div>
 
-                {/* Separator */}
-                <div style={{
-                  width: '80%',
-                  height: '1px',
-                  background: 'linear-gradient(90deg, transparent, rgba(255, 0, 110, 0.3), transparent)',
-                  zIndex: 1
-                }} />
-
-                {/* Opponent 2 */}
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '8px',
-                  opacity: 0.9,
-                  zIndex: 1
-                }}>
+                {/* Teammate */}
+                {teammate && (
+                  <>
+                    <div style={{
+                      width: '80%',
+                      height: '1px',
+                      background: 'linear-gradient(90deg, transparent, rgba(52, 206, 87, 0.3), transparent)',
+                      zIndex: 1
+                    }} />
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '12px',
+                      opacity: 0.9,
+                      zIndex: 1
+                    }}>
+                      <PlayerAvatar 
+                        user={teammate} 
+                        size="medium"
+                      />
+                      <div style={{
+                        fontSize: 'clamp(16px, 3vw, 22px)',
+                        fontWeight: 700,
+                        color: '#7dd99d',
+                        textAlign: 'center',
+                        letterSpacing: '0.05em'
+                      }}>
+                        {teammate?.username || 'Teammate'}
+                      </div>
+                      <div style={{
+                        fontSize: 'clamp(11px, 1.8vw, 13px)',
+                        color: '#5cb575',
+                        fontWeight: 600,
+                        textTransform: 'uppercase' as const,
+                        letterSpacing: '0.1em'
+                      }}>
+                        Teammate
+                      </div>
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Opponent team players */}
+                {opponent1 && (
                   <div style={{
-                    fontSize: 'clamp(16px, 3vw, 22px)',
-                    fontWeight: 700,
-                    color: '#ff5599',
-                    textAlign: 'center',
-                    letterSpacing: '0.05em'
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '12px',
+                    zIndex: 1
                   }}>
-                    {playerInfo.opponents[1].username}
+                    <div style={{
+                      padding: '4px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #34ce57, #28a745)',
+                      boxShadow: '0 0 20px rgba(52, 206, 87, 0.4)'
+                    }}>
+                      <PlayerAvatar 
+                        user={opponent1} 
+                        size="large"
+                      />
+                    </div>
+                    <div style={{
+                      fontSize: 'clamp(20px, 3.5vw, 28px)',
+                      fontWeight: 800,
+                      color: '#34ce57',
+                      textAlign: 'center',
+                      textShadow: '0 0 20px rgba(52, 206, 87, 0.4)',
+                      letterSpacing: '0.05em'
+                    }}>
+                      {opponent1?.username || 'Opponent'}
+                    </div>
                   </div>
-                  <div style={{
-                    fontSize: 'clamp(11px, 1.8vw, 13px)',
-                    color: '#cc4477',
-                    fontWeight: 600,
-                    textTransform: 'uppercase' as const,
-                    letterSpacing: '0.1em'
-                  }}>
-                    Opponent
-                  </div>
-                </div>
+                )}
+                
+                {opponent2 && (
+                  <>
+                    <div style={{
+                      width: '80%',
+                      height: '1px',
+                      background: 'linear-gradient(90deg, transparent, rgba(52, 206, 87, 0.3), transparent)',
+                      zIndex: 1
+                    }} />
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '12px',
+                      opacity: 0.9,
+                      zIndex: 1
+                    }}>
+                      <PlayerAvatar 
+                        user={opponent2} 
+                        size="medium"
+                      />
+                      <div style={{
+                        fontSize: 'clamp(16px, 3vw, 22px)',
+                        fontWeight: 700,
+                        color: '#7dd99d',
+                        textAlign: 'center',
+                        letterSpacing: '0.05em'
+                      }}>
+                        {opponent2?.username || 'Opponent'}
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -683,71 +893,101 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({ playerIn
       <h1 style={styles.title}>Match Ready!</h1>
 
       <div style={styles.playersContainer}>
-        <div style={styles.playerCard(true)}>
-          <div style={styles.label('#00f0ff')}>YOU</div>
-          {currentPlayerAvatar ? (
-            <img 
-              src={currentPlayerAvatar}
-              alt={currentPlayer.username || 'You'}
-              style={{
-                width: 'clamp(90px, 16vw, 130px)',
-                height: 'clamp(90px, 16vw, 130px)',
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '3px solid rgba(0, 240, 255, 0.4)',
-                boxShadow: '0 0 30px rgba(0, 240, 255, 0.4), inset 0 0 20px rgba(0, 240, 255, 0.1)',
-                zIndex: 1
-              }}
-            />
-          ) : (
-            <div style={styles.avatar(
-              'linear-gradient(135deg, #00d9ff 0%, #0066ff 100%)',
-              'rgba(0, 217, 255, 0.6)',
-              '0 0 30px rgba(0, 217, 255, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.2)'
-            )}>
-              {currentPlayer.username?.substring(0, 2).toUpperCase() || 'ME'}
+        {/* Left side - Player 1 (always show player1 on left, player2 on right) */}
+        {playerInfo.role === 'player1' ? (
+          // Current player is player1, show on left
+          <div style={styles.playerCard(true)}>
+            <div style={styles.label('#00f0ff')}>YOU (LEFT PADDLE)</div>
+            <div style={{ 
+              width: 'clamp(90px, 16vw, 130px)', 
+              height: 'clamp(90px, 16vw, 130px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <PlayerAvatar 
+                user={currentPlayer} 
+                size="large"
+              />
             </div>
-          )}
-          <div style={styles.username('0 0 10px rgba(0, 217, 255, 0.5)')}>
-            {currentPlayer.username || 'You'}
+            <div style={styles.username('0 0 10px rgba(0, 217, 255, 0.5)')}>
+              {currentPlayer.username || 'You'}
+            </div>
+            <div style={styles.rank('#00d9ff')}>Bronze • Level 1</div>
           </div>
-          <div style={styles.rank('#00d9ff')}>Bronze • Level 1</div>
-        </div>
+        ) : (
+          // Current player is player2, show opponent (player1) on left
+          <div style={styles.playerCard(false)}>
+            <div style={styles.label(getRankColor(opponent.rankTier))}>OPPONENT (LEFT PADDLE)</div>
+            <div style={{ 
+              width: 'clamp(90px, 16vw, 130px)', 
+              height: 'clamp(90px, 16vw, 130px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <PlayerAvatar 
+                user={opponent} 
+                size="large"
+              />
+            </div>
+            <div style={styles.username(`0 0 10px ${getRankColor(opponent.rankTier)}50`)}>
+              {opponent.username || 'Opponent'}
+            </div>
+            <div style={styles.rank(getRankColor(opponent.rankTier))}>
+              {opponent.rankTier || 'Bronze'} • Level {opponent.level || 1}
+            </div>
+          </div>
+        )}
 
         <div style={styles.vsBadge}>VS</div>
 
-        <div style={styles.playerCard(false)}>
-          <div style={styles.label(getRankColor(opponent.rankTier))}>OPPONENT</div>
-          {opponentAvatar ? (
-            <img 
-              src={opponentAvatar}
-              alt={opponent.username || 'Opponent'}
-              style={{
-                width: 'clamp(90px, 16vw, 130px)',
-                height: 'clamp(90px, 16vw, 130px)',
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: `3px solid ${getRankColor(opponent.rankTier)}40`,
-                boxShadow: `${getRankGlow(opponent.rankTier)}, inset 0 0 20px rgba(0, 0, 0, 0.3)`,
-                zIndex: 1
-              }}
-            />
-          ) : (
-            <div style={styles.avatar(
-              `linear-gradient(135deg, ${getRankColor(opponent.rankTier)} 0%, ${getRankColor(opponent.rankTier)}80 100%)`,
-              getRankColor(opponent.rankTier),
-              getRankGlow(opponent.rankTier) + ', inset 0 0 20px rgba(0, 0, 0, 0.3)'
-            )}>
-              {opponent.username?.substring(0, 2).toUpperCase() || 'OP'}
+        {/* Right side - Player 2 (always show player1 on left, player2 on right) */}
+        {playerInfo.role === 'player2' ? (
+          // Current player is player2, show on right
+          <div style={styles.playerCard(true)}>
+            <div style={styles.label('#00f0ff')}>YOU (RIGHT PADDLE)</div>
+            <div style={{ 
+              width: 'clamp(90px, 16vw, 130px)', 
+              height: 'clamp(90px, 16vw, 130px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <PlayerAvatar 
+                user={currentPlayer} 
+                size="large"
+              />
             </div>
-          )}
-          <div style={styles.username(`0 0 10px ${getRankColor(opponent.rankTier)}50`)}>
-            {opponent.username || 'Opponent'}
+            <div style={styles.username('0 0 10px rgba(0, 217, 255, 0.5)')}>
+              {currentPlayer.username || 'You'}
+            </div>
+            <div style={styles.rank('#00d9ff')}>Bronze • Level 1</div>
           </div>
-          <div style={styles.rank(getRankColor(opponent.rankTier))}>
-            {opponent.rankTier || 'Bronze'} • Level {opponent.level || 1}
+        ) : (
+          // Current player is player1, show opponent (player2) on right
+          <div style={styles.playerCard(false)}>
+            <div style={styles.label(getRankColor(opponent.rankTier))}>OPPONENT (RIGHT PADDLE)</div>
+            <div style={{ 
+              width: 'clamp(90px, 16vw, 130px)', 
+              height: 'clamp(90px, 16vw, 130px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <PlayerAvatar 
+                user={opponent} 
+                size="large"
+              />
+            </div>
+            <div style={styles.username(`0 0 10px ${getRankColor(opponent.rankTier)}50`)}>
+              {opponent.username || 'Opponent'}
+            </div>
+            <div style={styles.rank(getRankColor(opponent.rankTier))}>
+              {opponent.rankTier || 'Bronze'} • Level {opponent.level || 1}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div style={styles.startingText}>

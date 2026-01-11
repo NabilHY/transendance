@@ -33,7 +33,6 @@ class GameManager {
     this.games = new Map(); // roomId -> { gameState, gameLoop, players: Set(), spectators: Set() }
     this.players = new Map(); // connectionId -> { roomId, role, connection }
     this.waitingPlayers = []; // Players waiting to be matched
-    this.directInviteWaiting = new Map(); // inviteId -> { connection, connectionId, user, opponentId, createdAt }
     this.nextGameId = 1;
     
     // Track processed games globally to prevent ANY duplicates
@@ -46,76 +45,6 @@ class GameManager {
     
     // Initialize tournament manager
     this.tournamentManager = new TournamentManager();
-  }
-
-  // Add a new authenticated player connection for a direct invite
-  async addAuthenticatedDirectPlayer(connection, user, directInvite) {
-    const existingPlayer = this.findPlayerByUserId(user.id);
-    if (existingPlayer) {
-      console.log(`User ${user.username} is already connected, disconnecting old connection`);
-      await this.removePlayer(existingPlayer.connectionId);
-    }
-
-    const connectionId = this.generateConnectionId();
-    return this.addToDirectInvite(connection, connectionId, user, directInvite);
-  }
-
-  // Pair players using an inviteId and opponentId (direct match)
-  addToDirectInvite(connection, connectionId, user, directInvite) {
-    const inviteId = directInvite?.inviteId;
-    const opponentId = Number(directInvite?.opponentId);
-
-    if (!inviteId || !Number.isFinite(opponentId)) {
-      return { error: 'Invalid direct invite payload (missing inviteId/opponentId).' };
-    }
-
-    const existing = this.directInviteWaiting.get(inviteId);
-    if (!existing) {
-      this.directInviteWaiting.set(inviteId, {
-        connection,
-        connectionId,
-        user,
-        opponentId,
-        createdAt: Date.now()
-      });
-
-      this.players.set(connectionId, {
-        roomId: null,
-        role: 'direct_waiting',
-        connection,
-        user,
-        directInviteId: inviteId,
-        directOpponentId: opponentId
-      });
-
-      console.log(`🎯 Direct invite ${inviteId}: ${user.username} waiting for opponent ${opponentId}`);
-
-      return {
-        connectionId,
-        roomId: null,
-        role: 'waiting',
-        user,
-        gameType: 'multiplayer',
-        gameState: null,
-        directInviteId: inviteId
-      };
-    }
-
-    if (existing.user?.id === user.id) {
-      return { error: 'Direct match error: same user joined twice.' };
-    }
-
-    const firstOpponentOk = existing.opponentId === user.id;
-    const secondOpponentOk = opponentId === existing.user.id;
-    if (!firstOpponentOk || !secondOpponentOk) {
-      return { error: 'Direct match error: opponent mismatch.' };
-    }
-
-    this.directInviteWaiting.delete(inviteId);
-    return this.createMultiplayerGameAuth(
-      { connection: existing.connection, connectionId: existing.connectionId, user: existing.user },
-      { connection, connectionId, user }
-    );
   }
 
   // Generate unique connection ID
@@ -250,8 +179,20 @@ class GameManager {
       user
     });
 
-    // Initialize the game
-    gameState.resetBall();
+    // Initialize the game state but don't start countdown yet
+    const initialState = gameState.getState();
+    initialState.ball.dx = 0;
+    initialState.ball.dy = 0;
+    initialState.countdown = -1;
+    initialState.gameActive = false;
+
+    // Start the countdown after a brief delay to allow frontend to load
+    setTimeout(() => {
+      if (this.games.has(roomId)) {
+        console.log(`⏰ Starting countdown for ${gameType} game ${roomId}`);
+        gameState.resetBall();
+      }
+    }, 1000);
 
     console.log(`Created ${gameType} game ${roomId} for user ${user.username} (${user.id})`);
     
@@ -302,8 +243,21 @@ class GameManager {
     // Check if there's a waiting player
     if (this.waitingPlayers.length > 0) {
       console.log(`🎮 Found waiting player, attempting to create match...`);
-      // Match with waiting player
+      
+      // Get waiting player and validate their connection
       const waitingPlayer = this.waitingPlayers.shift();
+      
+      // Validate that waiting player's connection is still valid
+      if (!waitingPlayer.connection || waitingPlayer.connection.readyState !== 1) {
+        console.log(`⚠️ Waiting player ${waitingPlayer.user.username} has invalid connection, removing and checking next...`);
+        
+        // Remove invalid player from players map
+        this.players.delete(waitingPlayer.connectionId);
+        
+        // Try again with the next player (recursive call)
+        return this.addToMatchmakingAuth(connection, connectionId, user);
+      }
+      
       console.log(`🔗 Matching ${user.username} with ${waitingPlayer.user.username}`);
       return this.createMultiplayerGameAuth(waitingPlayer, { connection, connectionId, user });
     } else {
@@ -657,6 +611,17 @@ class GameManager {
     console.log(`  👤 Player1 (first to join): ${player1Data.user.username} (ID: ${player1Data.user.id}) → role: player1`);
     console.log(`  👤 Player2 (second to join): ${player2Data.user.username} (ID: ${player2Data.user.id}) → role: player2`);
     
+    // Validate both connections before creating game
+    if (!player1Data.connection || player1Data.connection.readyState !== 1) {
+      console.error(`❌ Player1 ${player1Data.user.username} has invalid connection, cannot create game`);
+      return null;
+    }
+    
+    if (!player2Data.connection || player2Data.connection.readyState !== 1) {
+      console.error(`❌ Player2 ${player2Data.user.username} has invalid connection, cannot create game`);
+      return null;
+    }
+    
     const roomId = this.generateRoomId();
     const gameState = new GameState();
     const gameLoop = new GameLoop(gameState);
@@ -670,7 +635,10 @@ class GameManager {
       authenticatedPlayers: new Map([
         [player1Data.connectionId, player1Data.user],
         [player2Data.connectionId, player2Data.user]
-      ])
+      ]),
+      gameStartTime: Date.now(),
+      wasActive: false,
+      gameProcessed: false
     };
 
     this.games.set(roomId, gameRoom);
@@ -887,7 +855,14 @@ class GameManager {
       }
       
       // Mark game as active (including countdown periods)
+      const wasInactive = !gameRoom.wasActive;
       gameRoom.wasActive = true;
+      
+      // Track when game actually starts (when it becomes active with ball moving)
+      if (wasInactive && gameState.gameActive && !gameRoom.actualGameStartTime) {
+        gameRoom.actualGameStartTime = Date.now();
+        console.log(`🎮 Game ${roomId} actually started (ball is now moving) at ${gameRoom.actualGameStartTime}`);
+      }
       
       // Update game physics (this will handle countdown internally)
       gameRoom.gameLoop.updateGame();
@@ -996,15 +971,6 @@ class GameManager {
     // Remove from waiting queue if present
     this.waitingPlayers = this.waitingPlayers.filter(p => p.connectionId !== connectionId);
 
-    // Remove from direct invite waiting map if present
-    if (player.directInviteId) {
-      const entry = this.directInviteWaiting.get(player.directInviteId);
-      if (entry && entry.connectionId === connectionId) {
-        this.directInviteWaiting.delete(player.directInviteId);
-        console.log(`🧹 Cleared direct invite waiting entry ${player.directInviteId} for ${player.user?.username || connectionId}`);
-      }
-    }
-
     // Remove from tournament queue if present
     if (player.user && player.user.id) {
       const removed = this.tournamentManager.removePlayerFromQueue(player.user.id);
@@ -1078,14 +1044,8 @@ class GameManager {
               
               console.log(`🏆 Awarding win by disconnection: ${winnerData.user.username} defeats ${disconnectedData.user.username} (${winnerScore}-${loserScore})`);
               
-              // Send final game state to winner immediately showing they won
-              if (winnerData.connection && winnerData.connection.readyState === 1) {
-                winnerData.connection.send(JSON.stringify({
-                  type: 'gameState',
-                  state: currentState
-                }));
-                console.log(`📤 Sent final game state to winner ${winnerData.user.username}`);
-              }
+              // DON'T send game state - will cause frozen screen
+              // Instead, let the processGameCompletion send the win screen directly
               
               // Stop the game loop for this room
               if (gameRoom.gameInterval) {
@@ -1236,6 +1196,32 @@ class GameManager {
       // USE MATCHMAKING'S PROVEN DATABASE UPDATE
       // ========================================
       
+      // Ensure gameEndTime is set (safety check)
+      if (!gameRoom.gameEndTime) {
+        console.log(`⚠️ Tournament game: gameEndTime not set for room ${roomId}, setting it now`);
+        gameRoom.gameEndTime = Date.now();
+      }
+      
+      // Calculate duration with safety check
+      // Priority: actualGameStartTime > gameStartTime > use a fallback
+      let startTime = gameRoom.actualGameStartTime || gameRoom.gameStartTime;
+      
+      if (!startTime) {
+        console.warn(`⚠️ Tournament: No start time found for room ${roomId}, using fallback`);
+        startTime = gameRoom.gameEndTime - 60000; // Assume 60 second game as fallback
+      }
+      
+      const gameDuration = Math.floor((gameRoom.gameEndTime - startTime) / 1000);
+      
+      console.log(`🔍 Tournament duration debug:`, {
+        gameStartTime: gameRoom.gameStartTime,
+        actualGameStartTime: gameRoom.actualGameStartTime,
+        gameEndTime: gameRoom.gameEndTime,
+        usingStartTime: startTime,
+        calculatedDuration: gameDuration,
+        willUseActual: !!gameRoom.actualGameStartTime
+      });
+      
       // Create game result object (same format as matchmaking)
       const gameResult = {
         player1Id: player1Data.user.id,
@@ -1243,7 +1229,7 @@ class GameManager {
         player1Score: scores.player1,
         player2Score: scores.player2,
         gameMode: 'tournament',
-        gameDuration: Math.floor((gameRoom.gameEndTime - gameRoom.gameStartTime) / 1000),
+        gameDuration: gameDuration,
         tournamentStage: gameRoom.tournamentStage // Add tournament stage
       };
       
@@ -1487,16 +1473,36 @@ class GameManager {
         return await this.processTournamentMatch(roomId, gameRoom, gameState);
       }
       
+      // Ensure gameEndTime is set (safety check)
+      if (!gameRoom.gameEndTime) {
+        console.log(`⚠️ gameEndTime not set for room ${roomId}, setting it now`);
+        gameRoom.gameEndTime = Date.now();
+      }
+      
       // Calculate game duration for logging
-      const gameDuration = gameRoom.gameStartTime 
-        ? Math.floor((gameRoom.gameEndTime - gameRoom.gameStartTime) / 1000)
-        : 0;
+      // Priority: actualGameStartTime > gameStartTime > use a fallback (should never happen)
+      let startTime = gameRoom.actualGameStartTime || gameRoom.gameStartTime;
+      
+      // If for some reason we don't have a start time, use a reasonable estimate
+      // Assume game was created when room was made
+      if (!startTime) {
+        console.warn(`⚠️ No start time found for room ${roomId}, this should not happen!`);
+        startTime = gameRoom.gameEndTime - 60000; // Assume 60 second game as fallback
+      }
+      
+      const gameDuration = Math.floor((gameRoom.gameEndTime - startTime) / 1000);
       
       console.log(`🔍 Duration debug:`, {
         gameStartTime: gameRoom.gameStartTime,
+        actualGameStartTime: gameRoom.actualGameStartTime,
         gameEndTime: gameRoom.gameEndTime,
-        rawDuration: gameRoom.gameEndTime - gameRoom.gameStartTime,
-        calculatedDuration: gameDuration
+        usingStartTime: startTime,
+        rawDuration: gameRoom.gameEndTime - startTime,
+        calculatedDuration: gameDuration,
+        hasStartTime: !!startTime,
+        hasEndTime: !!gameRoom.gameEndTime,
+        willUseActual: !!gameRoom.actualGameStartTime,
+        willUseFallback: !gameRoom.actualGameStartTime && !gameRoom.gameStartTime
       });
       
       const totalScore = gameState.player1.score + gameState.player2.score;
@@ -1574,6 +1580,9 @@ class GameManager {
       console.log(`🎯 CRITICAL DEBUG - Game completion data:`, {
         roomId: roomId,
         gameEndTime: gameRoom.gameEndTime,
+        actualGameStartTime: gameRoom.actualGameStartTime,
+        gameStartTime: gameRoom.gameStartTime,
+        calculatedDuration: gameDuration,
         gameState: {
           player1Score: gameState.player1.score,
           player2Score: gameState.player2.score,
@@ -1587,6 +1596,7 @@ class GameManager {
           player2Id: gameResult.player2Id,
           player1Score: gameResult.player1Score,
           player2Score: gameResult.player2Score,
+          gameDuration: gameResult.gameDuration,
           whoWon: gameResult.player1Score > gameResult.player2Score ? 
             `Player1 (${actualPlayer1Info?.user?.username || 'disconnected'})` : 
             `Player2 (${actualPlayer2Info?.user?.username || 'disconnected'})`

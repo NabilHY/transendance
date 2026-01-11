@@ -160,12 +160,11 @@ class WinScreenData {
     }
 
     /**
-     * Format duration from milliseconds to readable string
+     * Format duration from seconds to readable string
      */
-    formatDuration(milliseconds) {
-        if (!milliseconds) return '0s';
+    formatDuration(seconds) {
+        if (!seconds || seconds <= 0) return '0s';
         
-        const seconds = Math.floor(milliseconds / 1000);
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         

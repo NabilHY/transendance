@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Crown, Zap } from 'lucide-react';
 import { getAvatarUrl } from '@/lib/avatar';
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { umGetUser } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -94,8 +95,6 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
       );
     }
 
-    const avatar = playerAvatars.get(player.userId);
-
     return (
       <div style={{
         ...styles.player,
@@ -107,11 +106,16 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
             <Zap style={{ width: '12px', height: '12px' }} />
           </div>
         )}
-        <img
-          src={avatar || '/default-avatar.png'}
-          alt={player.username}
-          style={styles.playerAvatar}
-        />
+        <div style={{ flexShrink: 0 }}>
+          <PlayerAvatar 
+            user={{
+              id: player.userId,
+              username: player.username,
+              profile_pic: player.avatar
+            }} 
+            size="small" 
+          />
+        </div>
         <div style={styles.playerName}>{player.username}</div>
         {isWinner && (
           <Crown style={{

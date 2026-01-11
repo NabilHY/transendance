@@ -209,12 +209,13 @@ class QuadPongManager {
     initialState.gameActive = false;
 
     // Start the countdown after 4 seconds (match ready screen duration)
-    setTimeout(() => {
+    const countdownTimeout = setTimeout(() => {
       if (this.quadGames.has(roomId)) {
         console.log(`⏰ [QUAD] Starting countdown for room ${roomId} after Match Ready screen`);
         gameState.start();
       }
     }, 4000);
+    gameRoom.countdownTimeout = countdownTimeout;
 
     // Create game loop
     const gameInterval = setInterval(() => {
@@ -229,6 +230,13 @@ class QuadPongManager {
       gameState.update();
       
       const state = gameState.getState();
+      
+      // Track when game actually starts (when it becomes active with ball moving)
+      if (state.gameActive && !currentGameRoom.actualGameStartTime) {
+        currentGameRoom.actualGameStartTime = Date.now();
+        currentGameRoom.wasActive = true; // Mark that game has started (for disconnection logic)
+        console.log(`🎮 [QUAD] Game ${roomId} actually started (ball is now moving) at ${currentGameRoom.actualGameStartTime}`);
+      }
       
       // Check for winner
       if (state.winner) {
@@ -256,8 +264,15 @@ class QuadPongManager {
         return; // Don't broadcast after game ends
       }
       
-      // Only broadcast if game is still active
-      if (state.gameActive) {
+      // Broadcast during countdown (countdown > 0) or when game is active
+      if (state.gameActive || state.countdown >= 0) {
+        // Only log countdown broadcasts to avoid spam during active game
+        if (state.countdown >= 0 && !state.gameActive) {
+          // Log every 10th frame during countdown to reduce spam
+          if (Math.random() < 0.05) {
+            console.log(`📡 [QUAD] Broadcasting countdown state: ${state.countdown}`);
+          }
+        }
         this.broadcastQuadGameState(roomId, state);
       }
     }, 1000 / 60); // 60 FPS
@@ -323,6 +338,12 @@ class QuadPongManager {
     }
 
     gameRoom.gameProcessed = true;
+    
+    // Ensure gameEndTime is set (safety check)
+    if (!gameRoom.gameEndTime) {
+      console.log(`⚠️ [QUAD] gameEndTime not set for room ${roomId}, setting it now`);
+      gameRoom.gameEndTime = Date.now();
+    }
 
     const scores = {
       team1: gameRoom.finalScores?.team1Score || gameState.team1Score || 0,
@@ -424,8 +445,40 @@ class QuadPongManager {
     console.log(`  Player3 (${team2UserIds[0]}): ${p3RankBefore} → ${p3RankAfter} (${p3RankAfter - p3RankBefore})`);
     console.log(`  Player4 (${team2UserIds[1]}): ${p4RankBefore} → ${p4RankAfter} (${p4RankAfter - p4RankBefore})`);
 
+    // Calculate duration with safety check
+    // Priority: actualGameStartTime > gameStartTime > use a fallback
+    let startTime = gameRoom.actualGameStartTime || gameRoom.gameStartTime;
+    
+    if (!startTime) {
+      console.warn(`⚠️ [QUAD] No start time found for room ${roomId}, using fallback`);
+      startTime = gameRoom.gameEndTime - 60000; // Assume 60 second game as fallback
+    }
+    
+    const gameDuration = Math.floor((gameRoom.gameEndTime - startTime) / 1000);
+    
+    console.log(`🔍 [QUAD] Duration debug:`, {
+      gameStartTime: gameRoom.gameStartTime,
+      actualGameStartTime: gameRoom.actualGameStartTime,
+      gameEndTime: gameRoom.gameEndTime,
+      usingStartTime: startTime,
+      calculatedDuration: gameDuration,
+      hasStartTime: !!startTime,
+      hasEndTime: !!gameRoom.gameEndTime,
+      willUseActual: !!gameRoom.actualGameStartTime
+    });
+    
     // Log game to history (one entry for the whole match with all 4 players)
-    const gameDuration = Math.floor((gameRoom.gameEndTime - gameRoom.gameStartTime) / 1000);
+    console.log(`📝 [QUAD] About to log game history with data:`, {
+      player1Id: team1UserIds[0],
+      player2Id: team1UserIds[1],
+      player3Id: team2UserIds[0],
+      player4Id: team2UserIds[1],
+      team1Score: scores.team1,
+      team2Score: scores.team2,
+      winner: team1Won ? team1UserIds[0] : team2UserIds[0],
+      team1Won
+    });
+    
     await this.statsHandler.logGameHistory({
       player1Id: team1UserIds[0],
       player2Id: team1UserIds[1],
@@ -455,6 +508,7 @@ class QuadPongManager {
     });
 
     console.log(`✅ [QUAD] Stats updated for all players`);
+    console.log(`📝 [QUAD] Game history logged for match with players: ${team1UserIds.join(', ')} vs ${team2UserIds.join(', ')}`);
 
     // Send win screens to all players
     await this.sendQuadWinScreens(gameRoom, team1Won, statsBeforeMap, scores);
@@ -462,11 +516,16 @@ class QuadPongManager {
 
   // Send win screens to all quad players (only connected ones)
   async sendQuadWinScreens(gameRoom, team1Won, statsBeforeMap, scores) {
+    console.log(`📺 [QUAD] sendQuadWinScreens called - team1Won: ${team1Won}`);
+    console.log(`📺 [QUAD] authenticatedPlayers size: ${gameRoom.authenticatedPlayers.size}`);
+    
     // Get all user info from authenticated players map
     const allPlayers = Array.from(gameRoom.authenticatedPlayers.entries()).map(([connId, user]) => {
       // Find if this player is still connected
       const playerData = this.quadPlayers.get(connId);
       const team = gameRoom.teams.team1.includes(user.id) ? 'team1' : 'team2';
+      
+      console.log(`📺 [QUAD] Checking player ${user.username}: connId=${connId}, team=${team}, hasPlayerData=${!!playerData}, connected=${playerData && playerData.connection && playerData.connection.readyState === 1}`);
       
       return {
         connectionId: connId,
@@ -476,6 +535,10 @@ class QuadPongManager {
         connection: playerData?.connection
       };
     });
+
+    console.log(`📺 [QUAD] Total players to process: ${allPlayers.length}`);
+    console.log(`📺 [QUAD] Connected players: ${allPlayers.filter(p => p.connected).length}`);
+    console.log(`📺 [QUAD] Disconnected players: ${allPlayers.filter(p => !p.connected).length}`);
 
     // Send win screens only to connected players
     for (const player of allPlayers) {
@@ -567,96 +630,76 @@ class QuadPongManager {
         
         // Check if game is already finished
         const state = gameRoom.gameState.getState();
-        const gameAlreadyEnded = state.winner !== null || !state.gameActive;
+        const gameAlreadyEnded = state.winner !== null;
         
-        // Only end game if BOTH players from one team have left
-        if (team1Count === 0 || team2Count === 0) {
-          console.log(`🏆 [QUAD] A team has no players left - ending game`);
-          console.log(`🔍 [QUAD] Game state: winner=${state.winner}, gameActive=${state.gameActive}, gameAlreadyEnded=${gameAlreadyEnded}`);
-          console.log(`🔍 [QUAD] Game interval exists: ${!!gameRoom.gameInterval}`);
-          console.log(`🔍 [QUAD] Remaining players in room: ${Array.from(gameRoom.players).join(', ')}`);
+        console.log(`[QUAD] Game state: gameActive=${state.gameActive}, countdown=${state.countdown}, winner=${state.winner}`);
+        
+        const totalPlayersRemaining = team1Count + team2Count;
+        
+        // End game if: an ENTIRE team disconnected OR less than 2 players remain total
+        if (team1Count === 0 || team2Count === 0 || totalPlayersRemaining < 2) {
+          console.log(`[QUAD] Ending game due to disconnection - Team1: ${team1Count}, Team2: ${team2Count}, Total: ${totalPlayersRemaining}`);
           
-          // Stop game loop immediately
-          if (gameRoom.gameInterval) {
-            console.log(`⏹️  [QUAD] Clearing game interval for room ${player.roomId}`);
-            clearInterval(gameRoom.gameInterval);
-            gameRoom.gameInterval = null;
-          } else {
-            console.log(`ℹ️  [QUAD] Game interval was already null (game already ended)`);
-          }
-          
-          // Stop the game state
-          state.gameActive = false;
-          
-          // If game wasn't already processed, process it now
+          // Always process with stats (like matchmaking) - award win to remaining team
           if (!gameAlreadyEnded) {
-            // Determine winning team (team with players left wins)
-            const winningTeam = team1Count > 0 ? 'team1' : 'team2';
+            console.log(`[QUAD] Processing disconnect with stats - awarding win to remaining team`);
             
-            console.log(`🎉 [QUAD] Awarding win to ${winningTeam} due to opponent team disconnect`);
+            // Stop game loop immediately
+            if (gameRoom.gameInterval) {
+              console.log(`⏹️  [QUAD] Clearing game interval for room ${player.roomId}`);
+              clearInterval(gameRoom.gameInterval);
+              gameRoom.gameInterval = null;
+            }
+            
+            // Stop countdown timeout if still pending (during match ready)
+            if (gameRoom.countdownTimeout) {
+              console.log(`⏰ [QUAD] Clearing pending countdown timeout`);
+              clearTimeout(gameRoom.countdownTimeout);
+              gameRoom.countdownTimeout = null;
+            }
+            
+            // Stop the game state and cleanup
+            state.gameActive = false;
+            gameRoom.gameState.cleanup(); // Clear countdown interval if any
+            
+            // Determine winning team (team with more/any players wins)
+            const winningTeam = team1Count > team2Count ? 'team1' : 'team2';
+            const losingTeam = winningTeam === 'team1' ? 'team2' : 'team1';
+            
+            console.log(`🎉 [QUAD] Awarding win to ${winningTeam} (Team1=${team1Count}, Team2=${team2Count}) due to opponent disconnect`);
             console.log(`📋 [QUAD] Team rosters - Team1: [${gameRoom.teams.team1.join(', ')}], Team2: [${gameRoom.teams.team2.join(', ')}]`);
-            console.log(`🏆 [QUAD] ${winningTeam} players (both connected and disconnected) will receive WIN`);
-            console.log(`❌ [QUAD] ${winningTeam === 'team1' ? 'team2' : 'team1'} players (both) will receive LOSS`);
             
-            // Set final score - winning team gets 5 (or keeps current score if already ahead)
+            // Set final score - winning team gets max score
             if (winningTeam === 'team1') {
               state.team1Score = Math.max(state.team1Score, 5);
             } else {
               state.team2Score = Math.max(state.team2Score, 5);
             }
             state.winner = winningTeam;
+            gameRoom.finalScores = {
+              team1Score: state.team1Score,
+              team2Score: state.team2Score
+            };
             gameRoom.gameEndTime = Date.now();
             
-            console.log(`📊 [QUAD] Calling processQuadGameCompletion with final scores: ${state.team1Score}-${state.team2Score}, winner: ${winningTeam}`);
+            console.log(`📊 [QUAD] Processing game completion with final scores: ${state.team1Score}-${state.team2Score}, winner: ${winningTeam}`);
+            console.log(`🔍 [QUAD] gameRoom has ${gameRoom.authenticatedPlayers.size} authenticated players`);
+            console.log(`🔍 [QUAD] gameRoom has ${gameRoom.players.size} connected players`);
             
-            // Process game completion with stats (for all 4 players including disconnected ones)
+            // Process game completion with stats - this will send win screens to all 4 players
             await this.processQuadGameCompletion(player.roomId, gameRoom, state);
+            console.log(`✅ [QUAD] Game completion processed - win screens should be sent`);
           } else {
-            console.log(`⏭️  [QUAD] Game already ended and processed, just cleaning up`);
-          }
-          
-          // Notify any remaining players that the game has ended
-          console.log(`📢 [QUAD] About to notify ${gameRoom.players.size} remaining players`);
-          for (const remainingId of gameRoom.players) {
-            const remainingPlayer = this.quadPlayers.get(remainingId);
-            console.log(`🔍 [QUAD] Checking player ${remainingId}: exists=${!!remainingPlayer}, hasConnection=${!!remainingPlayer?.connection}, readyState=${remainingPlayer?.connection?.readyState}`);
-            if (remainingPlayer && remainingPlayer.connection && remainingPlayer.connection.readyState === 1) {
-              console.log(`📤 [QUAD] Sending gameEnded message to ${remainingPlayer.user?.username}`);
-              try {
-                remainingPlayer.connection.send(JSON.stringify({
-                  type: 'gameEnded',
-                  reason: 'opponentTeamLeft',
-                  message: 'Opponent team disconnected. You win!'
-                }));
-                console.log(`✅ [QUAD] Successfully sent gameEnded to ${remainingPlayer.user?.username}`);
-              } catch (err) {
-                console.error(`❌ [QUAD] Failed to send gameEnded to ${remainingPlayer.user?.username}:`, err);
-              }
-            } else {
-              console.log(`⚠️  [QUAD] Skipping notification for player ${remainingId} - not connected`);
-            }
+            console.log(`⏭️  [QUAD] Game already ended - just cleaning up disconnect`);
           }
           
         } else if (team1Count >= 1 && team2Count >= 1) {
           // Both teams still have at least one player - game continues
-          
-          // Only notify if game is still active (not ended)
           if (!gameAlreadyEnded) {
-            console.log(`✅ [QUAD] Game continues with remaining players (Team1: ${team1Count}, Team2: ${team2Count})`);
-            
-            // Notify remaining players about the disconnection
-            for (const remainingId of gameRoom.players) {
-              const remainingPlayer = this.quadPlayers.get(remainingId);
-              if (remainingPlayer && remainingPlayer.connection && remainingPlayer.connection.readyState === 1) {
-                remainingPlayer.connection.send(JSON.stringify({
-                  type: 'playerLeft',
-                  message: `A player from ${disconnectedTeam} left. Game continues.`,
-                  team: disconnectedTeam
-                }));
-              }
-            }
+            console.log(`✅ [QUAD] Game continues - both teams still have players (Team1: ${team1Count}, Team2: ${team2Count})`);
+            // Don't send any messages - just let the game continue naturally
           } else {
-            console.log(`🏁 [QUAD] Game already ended - no notification sent for disconnect`);
+            console.log(`🏁 [QUAD] Game already ended - ignoring disconnect during cleanup`);
           }
         }
 

@@ -344,7 +344,8 @@
   overflow: hidden;
 }
 
-.statCard::before {
+/* Removed animated stripe for better performance during gameplay */
+/* .statCard::before {
   content: '';
   position: absolute;
   top: 0;
@@ -353,16 +354,16 @@
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
   animation: scan 3s linear infinite;
-}
+} */
 
-@keyframes scan {
+/* @keyframes scan {
   0% {
     transform: translateX(-100%);
   }
   100% {
     transform: translateX(100%);
   }
-}
+} */
 
 .statCard:hover {
   background: rgba(0, 240, 255, 0.08);
@@ -525,6 +526,9 @@
 .playerName {
   font-size: 12px;
   color: #6b7593;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .badge {

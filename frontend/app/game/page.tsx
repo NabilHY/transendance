@@ -25,7 +25,6 @@ export default function GamePage() {
   const { loading: authLoading, isAuthenticated: isLoggedIn } = useRequireAuth();
   const tournamentWaitingTimeoutRef = useRef<any>(null);
   const matchReadyCountdownRef = useRef<any>(null);
-  const directAutoConnectRef = useRef(false);
   
   // Game state
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -44,7 +43,6 @@ export default function GamePage() {
   const [quadWaitingInfo, setQuadWaitingInfo] = useState<QuadWaitingInfo | null>(null);
   const [quadWinScreenData, setQuadWinScreenData] = useState<QuadWinScreenData | null>(null);
   const [matchHistoryRefresh, setMatchHistoryRefresh] = useState<number>(0);
-  const [directGameInfo, setDirectGameInfo] = useState<{ opponentId: string; inviteId: string } | null>(null);
 
   // WebSocket connection
   const {
@@ -118,6 +116,8 @@ export default function GamePage() {
   // Fetch player stats
   const refreshPlayerStats = async () => {
     await fetchPlayerStats(getAuthTokenWithUser, setPlayerStats, setAuthError);
+    // Also refresh match history when stats are refreshed
+    setMatchHistoryRefresh(prev => prev + 1);
   };
 
   // Check authentication on mount
@@ -137,32 +137,6 @@ export default function GamePage() {
     };
     checkAuth();
   }, [isLoggedIn, authLoading]);
-
-  // Detect direct match link: /game?mode=direct&opponentId=...&inviteId=...
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const mode = params.get('mode');
-    const opponentId = params.get('opponentId');
-    const inviteId = params.get('inviteId');
-
-    if (mode === 'direct' && opponentId && inviteId) {
-      setDirectGameInfo({ opponentId, inviteId });
-      setGameMode('direct');
-    } else {
-      setDirectGameInfo(null);
-    }
-  }, []);
-
-  // Auto-connect for direct matches once auth is ready
-  useEffect(() => {
-    if (directAutoConnectRef.current) return;
-    if (authLoading || !isLoggedIn) return;
-    if (!directGameInfo) return;
-
-    directAutoConnectRef.current = true;
-    console.log('🎯 Auto-connecting direct match:', directGameInfo);
-    connectWebSocket('direct', undefined, directGameInfo);
-  }, [authLoading, isLoggedIn, directGameInfo, connectWebSocket]);
 
   // Handle page refresh/close - disconnect from websocket
   useEffect(() => {
@@ -243,15 +217,32 @@ export default function GamePage() {
 
   // Handle restart
   const handleRestart = () => {
-    console.log("Restarting game...");
+    console.log("Restarting game...", { gameType: playerInfo?.gameType, gameMode });
     
-    if (playerInfo?.gameType === 'solo') {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        sendMessage({ type: "reset" });
-      }
+    // For AI and coop (solo) modes, disconnect and reconnect
+    if (playerInfo?.gameType === 'solo' || playerInfo?.gameType === 'ai') {
+      // Clear current state
       setGameState(null);
-      setScreen("game");
+      setWinScreenData(null);
+      setScreen("start");
+      
+      // Disconnect and reconnect with the same mode
+      disconnectWebSocket();
+      
+      // Small delay to ensure clean reconnection
+      setTimeout(async () => {
+        if (playerInfo?.gameType === 'ai') {
+          // Restart AI game with same difficulty
+          console.log("🤖 Restarting AI game with difficulty:", aiDifficulty);
+          await connectWebSocket('ai', aiDifficulty);
+        } else {
+          // Restart coop/solo game
+          console.log("👥 Restarting coop game");
+          await connectWebSocket('solo');
+        }
+      }, 100);
     } else {
+      // For multiplayer games, send reset message
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         sendMessage({ type: "reset" });
       }
@@ -356,6 +347,7 @@ export default function GamePage() {
             winScreenData={winScreenData}
             quadWinScreenData={quadWinScreenData}
             gameState={gameState}
+            playerInfo={playerInfo}
             onRestart={handleRestart}
             onMainMenu={handleMainMenu}
           />

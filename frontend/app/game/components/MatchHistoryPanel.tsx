@@ -119,10 +119,18 @@ export const MatchHistoryPanel: React.FC<MatchHistoryPanelProps> = ({ userId, is
   };
 
   const isWinner = (match: MatchHistoryEntry) => {
-    return match.winner_id === userId || 
-           (match.game_type === 'quad' && 
-            (match.winner_id === match.player1_id || match.winner_id === match.player2_id) && 
-            (userId === match.player1_id || userId === match.player2_id));
+    if (match.game_type === 'quad') {
+      // For quad games, check which team the current user is on and which team won
+      const isTeam1 = userId === match.player1_id || userId === match.player2_id;
+      const isTeam2 = userId === match.player3_id || userId === match.player4_id;
+      const team1Won = match.winner_id === match.player1_id || match.winner_id === match.player2_id;
+      const team2Won = match.winner_id === match.player3_id || match.winner_id === match.player4_id;
+      
+      return (isTeam1 && team1Won) || (isTeam2 && team2Won);
+    } else {
+      // For 1v1 games, simply check if winner_id matches userId
+      return match.winner_id === userId;
+    }
   };
 
   return (

@@ -7,9 +7,6 @@ const fastify = Fastify({
   logger: false
 });
 
-// Register metrics plugin
-fastify.register(require('./plugins/metrics'));
-
 // Manual CORS handling for all routes
 fastify.addHook('preHandler', async (request, reply) => {
   // Get the origin from the request

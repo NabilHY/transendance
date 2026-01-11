@@ -55,7 +55,7 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({
   });
   
   const [opponentData, setOpponentData] = useState<PlayerCardData>({
-    username: opponent.username || '',
+    username: opponent.username || 'Opponent',
     avatarUrl: null,
     level: opponent.level || 1,
     rankTier: opponent.rankTier || 'Bronze',
@@ -63,6 +63,10 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({
   });
   
   const [countdownValue, setCountdownValue] = useState(countdown);
+
+  console.log('🎮 Match Ready Screen - Current Player:', currentPlayer);
+  console.log('🎮 Match Ready Screen - Opponent:', opponent);
+  console.log('🎮 Match Ready Screen - Opponent Data State:', opponentData);
 
   // Fetch current player data
   useEffect(() => {
@@ -118,12 +122,17 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({
   // Fetch opponent data
   useEffect(() => {
     const opponentId = opponent?.id;
-    if (!opponentId) return;
+    if (!opponentId) {
+      console.log('⚠️ No opponent ID, setting opponent data with just username');
+      setOpponentData(prev => ({ ...prev, loading: false }));
+      return;
+    }
     
     let cancelled = false;
     
     const fetchOpponentData = async () => {
       try {
+        console.log('🔄 Fetching opponent data for ID:', opponentId);
         const csrfToken = await ensureCsrf();
         const response = await umGetUser(opponentId, csrfToken);
         
@@ -131,6 +140,7 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({
         
         if (response.ok && response.data) {
           const userData = response.data as UMUser;
+          console.log('✅ Opponent data fetched:', userData);
           
           const userWithAvatar: UserWithAvatar = {
             id: userData.id,
@@ -146,16 +156,21 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({
             useCache: true
           });
           
+          console.log('🖼️ Opponent avatar URL:', avatarUrl);
+          
           setOpponentData({
-            username: userData.username,
+            username: userData.username || opponent.username || 'Opponent',
             avatarUrl: avatarUrl || null,
             level: (userData as any).level || 1,
             rankTier: (userData as any).rankTier || 'Bronze',
             loading: false
           });
+        } else {
+          console.log('⚠️ Failed to fetch opponent data, using fallback');
+          setOpponentData(prev => ({ ...prev, loading: false }));
         }
       } catch (error) {
-        console.error('Error fetching opponent data:', error);
+        console.error('❌ Error fetching opponent data:', error);
         if (!cancelled) {
           setOpponentData(prev => ({ ...prev, loading: false }));
         }
@@ -164,7 +179,7 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({
     
     fetchOpponentData();
     return () => { cancelled = true; };
-  }, [opponent?.id, ensureCsrf]);
+  }, [opponent?.id, opponent?.username, ensureCsrf]);
 
   // Countdown timer
   useEffect(() => {
@@ -190,7 +205,22 @@ export const GameMatchReadyScreen: React.FC<MatchReadyScreenProps> = ({
   };
 
   const renderPlayerCard = (data: PlayerCardData, label: string) => {
-    const initials = data.username.substring(0, 2).toUpperCase();
+    // Use proper initials generation - try to get 2 chars for better visual
+    // Updated v2: Better initials handling for avatars
+    let initials = '?';
+    if (data.username && data.username.length > 0) {
+      // If username has multiple words, take first letter of each
+      const parts = data.username.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        initials = (parts[0][0] + parts[1][0]).toUpperCase();
+      } else {
+        // For single word, take first 2 characters for better visuals
+        const cleanUsername = data.username.trim();
+        initials = cleanUsername.substring(0, Math.min(2, cleanUsername.length)).toUpperCase();
+      }
+    }
+    
+    console.log(`🎨 Rendering ${label} card - username: "${data.username}", initials: "${initials}", avatarUrl: ${data.avatarUrl ? 'YES' : 'NO'}, loading: ${data.loading}`);
 
     return (
       <div style={{

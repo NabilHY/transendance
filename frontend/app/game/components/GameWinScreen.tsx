@@ -4,12 +4,13 @@ import React, { useEffect } from 'react';
 import { Trophy, Gamepad2, Home, BarChart3 } from 'lucide-react';
 import { useGameSounds } from '../hooks/useGameSounds';
 import styles from '../styles.module.css';
-import type { WinScreenData, QuadWinScreenData, GameState } from '../types';
+import type { WinScreenData, QuadWinScreenData, GameState, PlayerInfo } from '../types';
 
 interface GameWinScreenProps {
   winScreenData: WinScreenData | null;
   quadWinScreenData?: QuadWinScreenData | null;
   gameState: GameState | null;
+  playerInfo?: PlayerInfo | null;
   onRestart: () => void;
   onMainMenu: () => void;
 }
@@ -18,6 +19,7 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
   winScreenData,
   quadWinScreenData,
   gameState,
+  playerInfo,
   onRestart,
   onMainMenu
 }) => {
@@ -32,6 +34,10 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
       sounds.playLoss();
     }
   }, []);  // Only run once on mount
+  
+  // Check if this is a solo/AI/coop game
+  const isSoloGame = playerInfo?.gameType === 'solo' || playerInfo?.gameType === 'ai';
+  
   // Handle quad mode win screen
   if (quadWinScreenData) {
     const isWinner = quadWinScreenData.won;
@@ -458,25 +464,109 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
   }
   
   if (!winScreenData) {
+    // Solo/AI/Coop mode - Simple win screen with play again button
+    const winner = gameState?.winner || 'Player 1';
+    const isPlayer1Winner = winner === 'Player 1';
+    const player1Score = gameState?.player1?.score || 0;
+    const player2Score = gameState?.player2?.score || 0;
+    
+    // Determine game mode label
+    let gameModeLabel = 'Practice Mode';
+    let opponent = 'Player 2';
+    if (playerInfo?.gameType === 'ai') {
+      gameModeLabel = 'AI Match';
+      opponent = 'AI Opponent';
+    } else if (playerInfo?.gameType === 'solo') {
+      gameModeLabel = 'Local Coop';
+      opponent = 'Player 2';
+    }
+    
     return (
       <div className={styles.container}>
         <div className={styles.card} style={{ 
           maxWidth: "600px", 
           margin: "0 auto",
-          textAlign: "center"
+          borderColor: isPlayer1Winner ? "#34ce57" : "#ff9595"
         }}>
-          <div className={styles.cardHeader}>
+          {/* Badge showing game mode */}
+          <div style={{
+            textAlign: "center",
+            marginBottom: "16px"
+          }}>
+            <span className={styles.badge}>
+              {gameModeLabel}
+            </span>
+          </div>
+          
+          <div className={styles.cardHeader} style={{ textAlign: "center" }}>
             <h1 style={{
               fontSize: "36px",
-              color: gameState?.winner === 'Player 1' ? "#34ce57" : "#ff9595",
+              color: isPlayer1Winner ? "#34ce57" : "#ff9595",
               margin: 0,
               fontWeight: 700
             }}>
-              🎉 {gameState?.winner} Wins! 🎉
+              {isPlayer1Winner ? "🎉 YOU WIN! 🎉" : "💔 YOU LOSE 💔"}
             </h1>
             <p style={{ fontSize: "18px", color: "#8c96b6", margin: "16px 0 0 0" }}>
-              Final Score: {gameState?.player1?.score || 0} - {gameState?.player2?.score || 0}
+              {winner} Wins!
             </p>
+            <p style={{ fontSize: "16px", color: "#6b7593", margin: "8px 0 0 0" }}>
+              Final Score: {player1Score} - {player2Score}
+            </p>
+          </div>
+          
+          {/* Score Cards */}
+          <div style={{ 
+            display: "grid", 
+            gridTemplateColumns: "1fr 1fr", 
+            gap: "16px",
+            marginTop: "24px"
+          }}>
+            <div className={styles.card} style={{ 
+              padding: "20px",
+              background: isPlayer1Winner ? "rgba(52, 206, 87, 0.1)" : "rgba(12, 20, 35, 0.85)",
+              border: `2px solid ${isPlayer1Winner ? "rgba(52, 206, 87, 0.3)" : "#1b253f"}`,
+              textAlign: "center"
+            }}>
+              <div style={{ fontSize: "14px", color: "#8c96b6", marginBottom: "8px" }}>
+                Player 1 (You)
+              </div>
+              <div style={{ 
+                fontSize: "32px", 
+                fontWeight: 700, 
+                color: isPlayer1Winner ? "#34ce57" : "#e4ecff" 
+              }}>
+                {player1Score}
+              </div>
+              {isPlayer1Winner && (
+                <div style={{ fontSize: "12px", color: "#34ce57", marginTop: "8px" }}>
+                  ✅ Winner
+                </div>
+              )}
+            </div>
+            
+            <div className={styles.card} style={{ 
+              padding: "20px",
+              background: !isPlayer1Winner ? "rgba(52, 206, 87, 0.1)" : "rgba(12, 20, 35, 0.85)",
+              border: `2px solid ${!isPlayer1Winner ? "rgba(52, 206, 87, 0.3)" : "#1b253f"}`,
+              textAlign: "center"
+            }}>
+              <div style={{ fontSize: "14px", color: "#8c96b6", marginBottom: "8px" }}>
+                {opponent}
+              </div>
+              <div style={{ 
+                fontSize: "32px", 
+                fontWeight: 700, 
+                color: !isPlayer1Winner ? "#34ce57" : "#e4ecff" 
+              }}>
+                {player2Score}
+              </div>
+              {!isPlayer1Winner && (
+                <div style={{ fontSize: "12px", color: "#34ce57", marginTop: "8px" }}>
+                  ✅ Winner
+                </div>
+              )}
+            </div>
           </div>
           
           <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: "32px" }}>
@@ -648,7 +738,7 @@ export const GameWinScreen: React.FC<GameWinScreenProps> = ({
           </h3>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
             <span style={{ color: "#8c96b6", fontSize: "14px" }}><strong>Duration:</strong></span>
-            <span style={{ color: "#e4ecff", fontSize: "14px" }}>{matchData.duration}</span>
+            <span style={{ color: "#e4ecff", fontSize: "14px" }}>{matchData?.duration || 'N/A'}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span style={{ color: "#8c96b6", fontSize: "14px" }}><strong>Winner:</strong></span>

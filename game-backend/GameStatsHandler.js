@@ -199,6 +199,9 @@ class GameStatsHandler {
         // Get rank info from the updated rank points
         const rankInfo = this.progression.getRankInfo(newRankPoints);
         
+        // Calculate player level based on experience points
+        const levelInfo = this.progression.calculateLevel(newExperience);
+        
         // Calculate win rate
         const winRate = newGamesPlayed > 0 ? (newGamesWon / newGamesPlayed * 100) : 0;
 
@@ -206,6 +209,8 @@ class GameStatsHandler {
             outcome: gameOutcome,
             experienceGained: rewards.experience,
             rankPointsChange: rewards.rankPoints,
+            newExperience: newExperience,
+            newLevel: levelInfo.level,
             newRankPoints: newRankPoints,
             newRank: `${rankInfo.tier} ${rankInfo.level}`,
             newStreak: newStreak,
@@ -229,7 +234,7 @@ class GameStatsHandler {
         `;
 
         const params = [
-            1, // Simple level for now
+            levelInfo.level,
             newExperience,
             newRankPoints,
             `${rankInfo.tier} ${rankInfo.level}`,

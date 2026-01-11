@@ -93,9 +93,10 @@ class QuadPongState {
     this.gameState.team2Player1.dy = 0;
     this.gameState.team2Player2.dy = 0;
 
+    console.log(`[QUAD] Starting countdown interval, initial countdown: ${this.gameState.countdown}`);
     this.countdownInterval = setInterval(() => {
       this.gameState.countdown -= 1;
-      console.log(`[QUAD] Countdown: ${this.gameState.countdown}`);
+      console.log(`[QUAD] ⏲️  Countdown: ${this.gameState.countdown} (gameActive: ${this.gameState.gameActive})`);
 
       if (this.gameState.countdown < 0) {
         clearInterval(this.countdownInterval);
@@ -103,11 +104,12 @@ class QuadPongState {
         this.gameState.ball.dx = dx;
         this.gameState.ball.dy = dy;
         this.gameState.gameActive = true;
+        console.log(`[QUAD] 🎮 GO! Game started! Ball speed: dx=${dx}, dy=${dy}, baseSpeed=${this.baseSpeed}`);
         // Clear countdown display after GO
         setTimeout(() => {
           this.gameState.countdown = -1;
+          console.log(`[QUAD] Countdown cleared to -1`);
         }, 500);
-        console.log(`[QUAD] Game started! Ball speed: dx=${dx}, dy=${dy}, baseSpeed=${this.baseSpeed}`);
       }
     }, 1000);
   }

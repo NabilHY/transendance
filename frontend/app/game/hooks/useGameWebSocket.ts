@@ -7,7 +7,7 @@ import type { GameState, QuadGameState, PlayerInfo, GameMode, AIDifficulty, Game
 interface UseGameWebSocketReturn {
   wsRef: React.MutableRefObject<WebSocket | null>;
   isConnected: boolean;
-  connect: (gameMode: GameMode, aiDifficulty?: AIDifficulty, directGameInfo?: { opponentId: string; inviteId: string }) => Promise<void>;
+  connect: (gameMode: GameMode, aiDifficulty?: AIDifficulty) => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: any) => void;
 }
@@ -57,7 +57,7 @@ export const useGameWebSocket = (
     }
   }, []);
 
-  const connect = useCallback(async (gameMode: GameMode, aiDifficulty?: AIDifficulty, directGameInfo?: { opponentId: string; inviteId: string }) => {
+  const connect = useCallback(async (gameMode: GameMode, aiDifficulty?: AIDifficulty) => {
     // Close existing connection if any
     disconnect();
 
@@ -75,16 +75,11 @@ export const useGameWebSocket = (
     setAuthError(null);
 
     // Dynamic WebSocket URL:
-    // - If NEXT_PUBLIC_WS_URL is set, use it and proxy via nginx at /api/game/ws
-    // - Otherwise, if we're on a public origin (80/443/no explicit port), use same-origin /api/game/ws
-    // - Otherwise (local dev), connect directly to :4322/ws
-    const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const isPublicOrigin = !window.location.port || window.location.port === '80' || window.location.port === '443';
+    // - Prod (behind nginx TLS): NEXT_PUBLIC_WS_URL should be like "wss://10.32.110.187" and we connect via /api/game/ws
+    // - Dev: connect directly to game-backend on :4322/ws
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL
       ? `${process.env.NEXT_PUBLIC_WS_URL}/api/game/ws?token=${encodeURIComponent(token)}`
-      : isPublicOrigin
-        ? `${wsScheme}://${window.location.host}/api/game/ws?token=${encodeURIComponent(token)}`
-        : `${wsScheme}://${window.location.hostname}:4322/ws?token=${encodeURIComponent(token)}`;
+      : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:4322/ws?token=${encodeURIComponent(token)}`;
     
     console.log(`🔗 Connecting to WebSocket: ${wsUrl.replace(/token=[^&]+/, 'token=***')}`);
     const ws = new WebSocket(wsUrl);
@@ -130,52 +125,42 @@ export const useGameWebSocket = (
         if (gameMode === 'ai' && aiDifficulty) {
           joinMessage.aiDifficulty = aiDifficulty;
         }
-
-        if (gameMode === 'direct') {
-          if (!directGameInfo?.inviteId || !directGameInfo?.opponentId) {
-            setAuthError('Invalid direct match link.');
-            setIsConnected(false);
-            ws.close();
-            return;
-          }
-          joinMessage.directInvite = {
-            inviteId: directGameInfo.inviteId,
-            opponentId: parseInt(directGameInfo.opponentId, 10)
-          };
-        }
         ws.send(JSON.stringify(joinMessage));
       } else if (message.type === 'waiting' || message.type === 'waitingForOpponent') {
         setScreen("waiting");
         setPlayerInfo({ ...message, user: message.user });
-      } else if ((message as any).type === 'directMatchError') {
-        const err = (message as any).error || 'Failed to start direct match.';
-        console.error('❌ Direct match error:', err);
-        setAuthError(err);
-        setIsConnected(false);
-        ws.close();
-        return;
       } else if (message.type === 'gameJoined') {
-        // Show match ready screen first
-        setScreen("matchReady");
-        // Preserve existing user data from auth and merge with game data
-        setPlayerInfo((prev) => ({
-          ...prev,
+        // Determine if this is a solo/AI/coop game or multiplayer
+        const isSoloGame = message.gameMode === 'solo' || message.gameMode === 'ai';
+        
+        // Use user data from gameJoined message (backend sends complete user object)
+        setPlayerInfo({
           role: message.playerRole,
           roomId: message.roomId,
-          gameType: message.gameMode || 'multiplayer',
+          gameType: message.gameType || message.gameMode || 'multiplayer',
           opponent: message.opponent,
-          user: prev?.user || prev // Keep existing user data from authSuccess
-        }));
+          user: message.user // Use user data from backend
+        });
         setGameState(message.gameState);
         
-        // Show match ready screen for 4 seconds (3 second countdown + 1 second buffer) before game
-        if (matchReadyCountdownRef.current) {
-          clearTimeout(matchReadyCountdownRef.current);
-        }
-        matchReadyCountdownRef.current = setTimeout(() => {
+        if (isSoloGame) {
+          // For solo/AI games, go directly to game screen
+          // The countdown will show in the game canvas
           setScreen("game");
-          matchReadyCountdownRef.current = null;
-        }, 4000);
+          console.log(`🎮 ${message.gameMode} game starting - going directly to game screen`);
+        } else {
+          // For multiplayer games, show match ready screen first
+          setScreen("matchReady");
+          
+          // Show match ready screen for 4 seconds (3 second countdown + 1 second buffer) before game
+          if (matchReadyCountdownRef.current) {
+            clearTimeout(matchReadyCountdownRef.current);
+          }
+          matchReadyCountdownRef.current = setTimeout(() => {
+            setScreen("game");
+            matchReadyCountdownRef.current = null;
+          }, 4000);
+        }
       } else if (message.type === 'tournamentQueued') {
         setScreen("tournamentWaiting");
         setTournamentQueue({
@@ -295,17 +280,12 @@ export const useGameWebSocket = (
         setPlayerInfo(null);
         setGameState(null);
       } else if (message.type === 'playerLeft') {
-        // For quad games, just show a console message, don't reset the screen
-        // The game will continue or end with proper win screens
+        // For quad games, just log it - game continues naturally with remaining players
         console.log('Player left:', message.message);
-        // Don't show alert or reset screen - let the game handle it naturally
       } else if (message.type === 'gameEnded') {
-        // Game ended due to team disconnection
-        console.log('Game ended:', message.reason, message.message);
-        if (message.reason === 'opponentTeamLeft') {
-          // Show a brief message before resetting
-          alert(message.message || 'Opponent team disconnected. You win!');
-        }
+        // Game ended due to team disconnection - win screen already sent via quadGameResult
+        console.log('Game ended:', message.reason);
+        // Don't show alert - the win screen will display properly
         setScreen("start");
         setPlayerInfo(null);
         setGameState(null);
@@ -315,13 +295,22 @@ export const useGameWebSocket = (
         setPlayerInfo(null);
         setGameState(null);
       } else if (message.type === 'opponentDisconnected') {
-        alert(message.message || "Your opponent disconnected. You win!");
+        // Opponent disconnected - win screen should be sent separately
+        console.log('Opponent disconnected:', message.message);
         setScreen("start");
         setPlayerInfo(null);
         setGameState(null);
         setWinScreenData(null);
+      } else if (message.type === 'matchCanceled') {
+        console.log('⚠️ Match canceled:', message.reason);
+        // Match canceled before game started - just reset to start screen
+        setScreen("start");
+        setPlayerInfo(null);
+        setGameState(null);
+        setWinScreenData(null);
+        setMatchReadyInfo(null);
       } else if (message.type === 'gameAborted') {
-        alert(message.message || "Game was cancelled due to disconnection.");
+        console.log('⚠️ Game aborted:', message.message);
         setScreen("start");
         setPlayerInfo(null);
         setGameState(null);
@@ -359,6 +348,14 @@ export const useGameWebSocket = (
         }, 4000);
       } else if (message.type === 'quadGameResult') {
         console.log('[QUAD] Game result:', message);
+        
+        // Clear any pending match ready countdown (team may have disconnected during match ready)
+        if (matchReadyCountdownRef.current) {
+          clearTimeout(matchReadyCountdownRef.current);
+          matchReadyCountdownRef.current = null;
+          console.log('⏱️ [QUAD] Cleared match ready countdown due to early game result');
+        }
+        
         setQuadWinScreenData(message as unknown as QuadWinScreenData);
         setScreen("end");
       } else if (message.type === 'quadGameAborted') {
@@ -370,6 +367,13 @@ export const useGameWebSocket = (
         setQuadWaitingInfo(null);
       } else if (message.type === 'gameResult') {
         console.log('[MATCHMAKING] Game result received:', message);
+        
+        // Clear any pending match ready countdown (opponent may have disconnected during match ready)
+        if (matchReadyCountdownRef.current) {
+          clearTimeout(matchReadyCountdownRef.current);
+          matchReadyCountdownRef.current = null;
+          console.log('⏱️ Cleared match ready countdown due to early game result');
+        }
         
         // Transform backend data structure to frontend expected structure
         const playerData = {

@@ -165,8 +165,13 @@ export function getInitials(user: UserWithAvatar): string {
   if (user.first_name && user.last_name) {
     return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
   }
-  if (user.username) {
-    return user.username[0].toUpperCase();
+  if (user.username && user.username.length > 0) {
+    // Try to get 2 characters from username for better visual
+    if (user.username.length >= 2) {
+      return user.username.substring(0, 2).toUpperCase();
+    } else {
+      return user.username[0].toUpperCase();
+    }
   }
   return '?';
 }

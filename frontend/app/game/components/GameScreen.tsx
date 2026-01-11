@@ -5,6 +5,7 @@ import { renderGame, renderQuadGame } from '../utils/canvas';
 import { getRankInfo } from '../utils/rank';
 import { detectSoundEvents } from '../utils/soundEvents';
 import { useGameSounds } from '../hooks/useGameSounds';
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import styles from '../styles.module.css';
 import type { GameState, QuadGameState, PlayerInfo, PlayerStats } from '../types';
 
@@ -189,9 +190,15 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, quadGameState
               <div className={styles.scoreLabel}>Player 1</div>
               <div className={styles.scoreValue}>{gameState?.player1?.score || 0}</div>
               <div className={styles.playerName}>
-                {playerInfo?.role === 'player1' 
-                  ? `👤 ${playerInfo?.user?.username || 'You'}` 
-                  : `👤 ${playerInfo?.opponent?.username || 'Opponent'}`}
+                <PlayerAvatar 
+                  user={playerInfo?.role === 'player1' ? playerInfo?.user : playerInfo?.opponent} 
+                  size="medium" 
+                />
+                <span style={{ marginLeft: '8px' }}>
+                  {playerInfo?.role === 'player1' 
+                    ? playerInfo?.user?.username || 'You'
+                    : playerInfo?.opponent?.username || 'Opponent'}
+                </span>
               </div>
             </div>
             
@@ -227,10 +234,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, quadGameState
               <div className={styles.scoreValue} style={{ textAlign: "right" }}>
                 {gameState?.player2?.score || 0}
               </div>
-              <div className={styles.playerName} style={{ textAlign: "right" }}>
-                {playerInfo?.role === 'player2' 
-                  ? `👤 ${playerInfo?.user?.username || 'You'}` 
-                  : `👤 ${playerInfo?.opponent?.username || 'Opponent'}`}
+              <div className={styles.playerName} style={{ textAlign: "right", flexDirection: 'row-reverse' }}>
+                <PlayerAvatar 
+                  user={playerInfo?.role === 'player2' ? playerInfo?.user : playerInfo?.opponent} 
+                  size="medium" 
+                />
+                <span style={{ marginRight: '8px' }}>
+                  {playerInfo?.role === 'player2' 
+                    ? playerInfo?.user?.username || 'You'
+                    : playerInfo?.opponent?.username || 'Opponent'}
+                </span>
               </div>
             </div>
           </div>

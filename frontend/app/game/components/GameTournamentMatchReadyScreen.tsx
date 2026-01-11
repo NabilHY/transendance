@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Gamepad2, Clock } from 'lucide-react';
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import styles from '../styles.module.css';
 import type { MatchReadyInfo, PlayerInfo } from '../types';
 
@@ -46,11 +47,19 @@ export const GameTournamentMatchReadyScreen: React.FC<GameTournamentMatchReadySc
             padding: "24px",
             background: "rgba(52, 206, 87, 0.1)",
             border: "2px solid rgba(52, 206, 87, 0.3)",
-            borderRadius: "16px"
+            borderRadius: "16px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "16px"
           }}>
-            <div style={{ fontSize: "12px", color: "#8c96b6", marginBottom: "12px" }}>YOU</div>
+            <div style={{ fontSize: "12px", color: "#8c96b6", marginBottom: "4px" }}>YOU</div>
+            <PlayerAvatar 
+              user={playerInfo?.user} 
+              size="large" 
+            />
             <div style={{ fontSize: "24px", fontWeight: 700, color: "#34ce57" }}>
-              {playerInfo?.username || "Player"}
+              {playerInfo?.user?.username || "Player"}
             </div>
           </div>
           
@@ -67,9 +76,17 @@ export const GameTournamentMatchReadyScreen: React.FC<GameTournamentMatchReadySc
             padding: "24px",
             background: "rgba(255, 149, 149, 0.1)",
             border: "2px solid rgba(255, 149, 149, 0.3)",
-            borderRadius: "16px"
+            borderRadius: "16px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "16px"
           }}>
-            <div style={{ fontSize: "12px", color: "#8c96b6", marginBottom: "12px" }}>OPPONENT</div>
+            <div style={{ fontSize: "12px", color: "#8c96b6", marginBottom: "4px" }}>OPPONENT</div>
+            <PlayerAvatar 
+              user={matchReadyInfo.opponent} 
+              size="large" 
+            />
             <div style={{ fontSize: "24px", fontWeight: 700, color: "#ff9595" }}>
               {matchReadyInfo.opponent?.username || "Opponent"}
             </div>

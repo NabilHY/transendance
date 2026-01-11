@@ -227,13 +227,6 @@ export const renderQuadGame = (
   ctx.fill();
   ctx.restore();
 
-  // Team scores
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 24px Arial";
-  ctx.textAlign = "center";
-  ctx.fillText(`Team 1: ${state.team1Score}`, canvas.width / 4, 30);
-  ctx.fillText(`Team 2: ${state.team2Score}`, (canvas.width * 3) / 4, 30);
-
   // Countdown - Neon red hollow styling with "GO" text
   if (state.countdown !== undefined && state.countdown >= 0 && state.countdown <= 3) {
     ctx.save();
