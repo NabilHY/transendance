@@ -639,9 +639,12 @@ class QuadPongManager {
         const state = gameRoom.gameState.getState();
         const gameAlreadyEnded = state.winner !== null;
         
-        console.log(`[QUAD] Game state: gameActive=${state.gameActive}, countdown=${state.countdown}, winner=${state.winner}`);
+        console.log(`[QUAD] Game state: gameActive=${state.gameActive}, countdown=${state.countdown}, winner=${state.winner}, gameAlreadyEnded=${gameAlreadyEnded}`);
         
         const totalPlayersRemaining = team1Count + team2Count;
+        
+        console.log(`🔍 [QUAD] Disconnect check: team1Count=${team1Count}, team2Count=${team2Count}, totalPlayersRemaining=${totalPlayersRemaining}`);
+        console.log(`🔍 [QUAD] Will end game? ${team1Count === 0 || team2Count === 0 || totalPlayersRemaining < 2}`);
         
         // End game if: an ENTIRE team disconnected OR less than 2 players remain total
         if (team1Count === 0 || team2Count === 0 || totalPlayersRemaining < 2) {
