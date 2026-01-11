@@ -372,7 +372,10 @@ class WebSocketHandler {
           
           // Also remove from quad pong if they were in quad mode
           if (playerInfo && playerInfo.gameType === 'quad') {
-            await this.quadPongManager.removePlayer(playerInfo.connectionId);
+            const quadConnectionId = this.quadPongManager.findConnectionIdBySocket(connection.socket);
+            if (quadConnectionId) {
+              await this.quadPongManager.removePlayer(quadConnectionId);
+            }
           }
         });
       });

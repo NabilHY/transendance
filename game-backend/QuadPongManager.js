@@ -650,8 +650,8 @@ class QuadPongManager {
         if (team1Count === 0 || team2Count === 0 || totalPlayersRemaining < 2) {
           console.log(`[QUAD] Ending game due to disconnection - Team1: ${team1Count}, Team2: ${team2Count}, Total: ${totalPlayersRemaining}`);
           
-          // Always process with stats (like matchmaking) - award win to remaining team
-          if (!gameAlreadyEnded) {
+          // Process disconnect win UNLESS already processed (prevent double processing)
+          if (!gameRoom.gameProcessed) {
             console.log(`[QUAD] Processing disconnect with stats - awarding win to remaining team`);
             
             // Stop game loop immediately
@@ -671,6 +671,9 @@ class QuadPongManager {
             // Stop the game state and cleanup
             state.gameActive = false;
             gameRoom.gameState.cleanup(); // Clear countdown interval if any
+            
+            // Broadcast final stopped state to remaining players
+            this.broadcastQuadGameState(player.roomId, state);
             
             // Determine winning team (team with more/any players wins)
             const winningTeam = team1Count > team2Count ? 'team1' : 'team2';
@@ -700,7 +703,7 @@ class QuadPongManager {
             await this.processQuadGameCompletion(player.roomId, gameRoom, state);
             console.log(`✅ [QUAD] Game completion processed - win screens should be sent`);
           } else {
-            console.log(`⏭️  [QUAD] Game already ended - just cleaning up disconnect`);
+            console.log(`⏭️  [QUAD] Game already processed - skipping duplicate processing`);
           }
           
         } else if (team1Count >= 1 && team2Count >= 1) {
