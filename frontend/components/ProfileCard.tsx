@@ -19,7 +19,9 @@ interface ProfileCardProps {
     games_played: number;
     games_won: number;
     win_rate: number;
-    
+    current_streak: number;
+    rank_tier: string;
+    player_level: number;
   };
 }
 
@@ -148,6 +150,24 @@ export function ProfileCard({ profile, isCurrentUser, onAddFriend, friendshipSta
             </div> */}
             <div className="stat-label">Win Rate</div>
           </div>
+
+<div className="stat-card">
+            {/* <div className="stat-number">{profile.total_games}</div> */}
+            <div className="stat-number">{playerStats ? playerStats.player_level : '—'}</div>
+            <div className="stat-label">Level</div>
+          </div>
+          <div className="stat-card">
+            {/* <div className="stat-number">{profile.total_wins}</div> */}
+            <div className="stat-number">{playerStats ? playerStats.current_streak : '—'}</div>
+            <div className="stat-label">current streak</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{playerStats ? playerStats.rank_tier : '—'}</div>
+              {/* {profile.win_rate > 0 ? profile.win_rate.toFixed(0) : '—'}%
+            </div> */}
+            <div className="stat-label">rank</div>
+          </div>
+
         </div>
       </div>
     </div>
