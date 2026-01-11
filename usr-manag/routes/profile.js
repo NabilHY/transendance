@@ -13,18 +13,36 @@ module.exports = async function (fastify) {
         const { username, first_name, last_name, profile_pic } = profile;
         const userId = req.user.id;
 
-        const changes = fastify.db.prepare(`
-            UPDATE users SET
-                username = ?,
-                first_name = ?,
-                last_name = ?,
-                profile_pic = ?,
-                updated_at = datetime('now')
-            WHERE id = ?
-        `).run(username, first_name, last_name, profile_pic, userId).changes;
+        // Only update profile_pic if it's explicitly provided
+        // This prevents overwriting the Google OAuth picture during profile completion
+        if (profile_pic !== undefined) {
+            const changes = fastify.db.prepare(`
+                UPDATE users SET
+                    username = ?,
+                    first_name = ?,
+                    last_name = ?,
+                    profile_pic = ?,
+                    updated_at = datetime('now')
+                WHERE id = ?
+            `).run(username, first_name, last_name, profile_pic, userId).changes;
 
-        if (changes === 0) {
-            return rep.code(404).send({ error: 'Profile not found' });
+            if (changes === 0) {
+                return rep.code(404).send({ error: 'Profile not found' });
+            }
+        } else {
+            // Don't update profile_pic if it's not provided - preserve existing value
+            const changes = fastify.db.prepare(`
+                UPDATE users SET
+                    username = ?,
+                    first_name = ?,
+                    last_name = ?,
+                    updated_at = datetime('now')
+                WHERE id = ?
+            `).run(username, first_name, last_name, userId).changes;
+
+            if (changes === 0) {
+                return rep.code(404).send({ error: 'Profile not found' });
+            }
         }
 
         return { success: true };

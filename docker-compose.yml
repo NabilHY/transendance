@@ -12,7 +12,7 @@ services:
       - ./db-init:/usr/src/app
       - db_init_node_modules:/usr/src/app/node_modules
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:${DB_INIT_PORT:-3005}/health"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:$${DB_INIT_PORT:-3005}/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12

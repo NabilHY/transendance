@@ -16,7 +16,7 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:${DB_INIT_PORT:-3005}/health"]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 12
       start_period: 60s
 

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 FROM node:20-slim
 
 # Install build dependencies for native modules (sqlite3) and curl for health checks
@@ -14,8 +15,9 @@ WORKDIR /usr/src/app
 # Copy package files first for better caching
 COPY package*.json ./
 
-# Install dependencies (will be overwritten by bind mount, but needed for initial build)
-RUN npm install --production
+# Install dependencies with BuildKit cache mount (much faster on rebuilds)
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --production --no-audit --no-fund
 
 # Copy application code
 COPY . .
