@@ -117,7 +117,8 @@ class TournamentManager {
         semiFinals: [],
         finals: []
       },
-      champion: null
+      champion: null,
+      bracketShownForRound: new Set() // Track which rounds have had bracket shown
     };
 
     this.tournaments.set(tournamentId, tournament);
@@ -411,15 +412,27 @@ class TournamentManager {
         matchId: `quarter_${m.match}`,
         player1: m.player1 ? {
           userId: m.player1.user.id,
-          username: m.player1.user.username
+          username: m.player1.user.username,
+          first_name: m.player1.user.first_name,
+          last_name: m.player1.user.last_name,
+          profile_pic: m.player1.user.profilePic || m.player1.user.profile_pic,
+          avatar_updated_at: m.player1.user.avatar_updated_at
         } : null,
         player2: m.player2 ? {
           userId: m.player2.user.id,
-          username: m.player2.user.username
+          username: m.player2.user.username,
+          first_name: m.player2.user.first_name,
+          last_name: m.player2.user.last_name,
+          profile_pic: m.player2.user.profilePic || m.player2.user.profile_pic,
+          avatar_updated_at: m.player2.user.avatar_updated_at
         } : null,
         winner: m.winner ? {
           userId: m.winner.user.id,
-          username: m.winner.user.username
+          username: m.winner.user.username,
+          first_name: m.winner.user.first_name,
+          last_name: m.winner.user.last_name,
+          profile_pic: m.winner.user.profilePic || m.winner.user.profile_pic,
+          avatar_updated_at: m.winner.user.avatar_updated_at
         } : null,
         stage: 'quarter',
         isComplete: m.winner !== null
@@ -432,15 +445,27 @@ class TournamentManager {
         matchId: `semi_${m.match}`,
         player1: m.player1 ? {
           userId: m.player1.user.id,
-          username: m.player1.user.username
+          username: m.player1.user.username,
+          first_name: m.player1.user.first_name,
+          last_name: m.player1.user.last_name,
+          profile_pic: m.player1.user.profilePic || m.player1.user.profile_pic,
+          avatar_updated_at: m.player1.user.avatar_updated_at
         } : null,
         player2: m.player2 ? {
           userId: m.player2.user.id,
-          username: m.player2.user.username
+          username: m.player2.user.username,
+          first_name: m.player2.user.first_name,
+          last_name: m.player2.user.last_name,
+          profile_pic: m.player2.user.profilePic || m.player2.user.profile_pic,
+          avatar_updated_at: m.player2.user.avatar_updated_at
         } : null,
         winner: m.winner ? {
           userId: m.winner.user.id,
-          username: m.winner.user.username
+          username: m.winner.user.username,
+          first_name: m.winner.user.first_name,
+          last_name: m.winner.user.last_name,
+          profile_pic: m.winner.user.profilePic || m.winner.user.profile_pic,
+          avatar_updated_at: m.winner.user.avatar_updated_at
         } : null,
         stage: 'semi',
         isComplete: m.winner !== null
@@ -453,15 +478,27 @@ class TournamentManager {
       matchId: `final_${f.match}`,
       player1: f.player1 ? {
         userId: f.player1.user.id,
-        username: f.player1.user.username
+        username: f.player1.user.username,
+        first_name: f.player1.user.first_name,
+        last_name: f.player1.user.last_name,
+        profile_pic: f.player1.user.profilePic || f.player1.user.profile_pic,
+        avatar_updated_at: f.player1.user.avatar_updated_at
       } : null,
       player2: f.player2 ? {
         userId: f.player2.user.id,
-        username: f.player2.user.username
+        username: f.player2.user.username,
+        first_name: f.player2.user.first_name,
+        last_name: f.player2.user.last_name,
+        profile_pic: f.player2.user.profilePic || f.player2.user.profile_pic,
+        avatar_updated_at: f.player2.user.avatar_updated_at
       } : null,
       winner: f.winner ? {
         userId: f.winner.user.id,
-        username: f.winner.user.username
+        username: f.winner.user.username,
+        first_name: f.winner.user.first_name,
+        last_name: f.winner.user.last_name,
+        profile_pic: f.winner.user.profilePic || f.winner.user.profile_pic,
+        avatar_updated_at: f.winner.user.avatar_updated_at
       } : null,
       stage: 'final',
       isComplete: f.winner !== null

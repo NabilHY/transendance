@@ -1513,12 +1513,29 @@ class GameManager {
           // Get tournament and bracket data
           const tournament = this.tournamentManager.getTournament(gameRoom.tournamentId);
           if (tournament) {
+            // Check if bracket has already been shown for this round
+            const roundKey = `${tournament.status}_${tournamentResult.nextRound}`;
+            if (tournament.bracketShownForRound && tournament.bracketShownForRound.has(roundKey)) {
+              console.log(`⏭️ Bracket already shown for ${roundKey}, skipping duplicate broadcast`);
+              return; // Exit early to prevent duplicate bracket + match creation
+            }
+            
+            // Mark this round as having bracket shown
+            if (!tournament.bracketShownForRound) {
+              tournament.bracketShownForRound = new Set();
+            }
+            tournament.bracketShownForRound.add(roundKey);
+            console.log(`✅ Marked bracket as shown for round: ${roundKey}`);
+            
             const bracketData = this.tournamentManager.getBracketForFrontend(tournament);
             console.log(`📋 Bracket data:`, JSON.stringify(bracketData, null, 2));
             
             // Determine if this is the first bracket (after quarters) or subsequent
             const isFirstBracket = tournament.status === 'semi_finals' && tournamentResult.nextRound === 'semi_finals';
-            const bracketDelay = isFirstBracket ? 15000 : 8000; // 15s for first, 8s for rest
+            // Bracket delay needs to account for: bracket display time + time for players to transition
+            // Match Ready screen is 4s, countdown is 3s, so we need bracket to show long enough
+            // before the next match starts
+            const bracketDelay = isFirstBracket ? 12000 : 10000; // 12s for first, 10s for rest
             
             console.log(`📊 Bracket timing: ${isFirstBracket ? 'FIRST' : 'SUBSEQUENT'} bracket, showing for ${bracketDelay/1000} seconds`);
             

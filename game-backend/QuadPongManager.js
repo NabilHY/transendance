@@ -612,24 +612,42 @@ class QuadPongManager {
       const gameRoom = this.quadGames.get(player.roomId);
       if (gameRoom) {
         const disconnectedTeam = player.team;
+        const disconnectedUserId = player.user?.id;
         
         console.log(`🔍 [QUAD] Before removal - gameRoom.players size: ${gameRoom.players.size}`);
-        console.log(`🔍 [QUAD] Disconnecting player: ${player.user?.username}, team: ${disconnectedTeam}, connectionId: ${connectionId}`);
+        console.log(`🔍 [QUAD] Disconnecting player: ${player.user?.username}, team: ${disconnectedTeam}, connectionId: ${connectionId}, userId: ${disconnectedUserId}`);
         
         gameRoom.players.delete(connectionId);
         
         console.log(`🔍 [QUAD] After removal - gameRoom.players size: ${gameRoom.players.size}`);
         
-        // Count remaining players per team
+        // Count remaining players per team by checking team rosters against connected players
+        // We use the original team rosters and check if those users are still connected
         let team1Count = 0;
         let team2Count = 0;
         
+        // Build map of currently connected user IDs
+        const connectedUserIds = new Set();
         for (const remainingId of gameRoom.players) {
           const remainingPlayer = this.quadPlayers.get(remainingId);
-          console.log(`🔍 [QUAD] Checking remaining player: ${remainingId}, found: ${!!remainingPlayer}, team: ${remainingPlayer?.team}`);
-          if (remainingPlayer) {
-            if (remainingPlayer.team === 'team1') team1Count++;
-            if (remainingPlayer.team === 'team2') team2Count++;
+          if (remainingPlayer && remainingPlayer.user) {
+            connectedUserIds.add(remainingPlayer.user.id);
+          }
+        }
+        
+        console.log(`🔍 [QUAD] Connected user IDs: ${Array.from(connectedUserIds).join(', ')}`);
+        console.log(`🔍 [QUAD] Team1 roster (user IDs): ${gameRoom.teams.team1.join(', ')}`);
+        console.log(`🔍 [QUAD] Team2 roster (user IDs): ${gameRoom.teams.team2.join(', ')}`);
+        
+        // Count how many players from each team roster are still connected
+        for (const userId of gameRoom.teams.team1) {
+          if (connectedUserIds.has(userId)) {
+            team1Count++;
+          }
+        }
+        for (const userId of gameRoom.teams.team2) {
+          if (connectedUserIds.has(userId)) {
+            team2Count++;
           }
         }
         
