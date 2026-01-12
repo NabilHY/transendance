@@ -84,6 +84,7 @@ export default function UsersPage() {
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [friendshipStatusByUserId, setFriendshipStatusByUserId] = useState<Record<number, string | null>>({});
     const [invitationsReceivedByUserId, setInvitationsReceivedByUserId] = useState<Record<number, boolean>>({});
+    const [blockConfirmation, setBlockConfirmation] = useState<UMUser | null>(null);
 
     useEffect(() => {
         if (!authLoading) {
@@ -199,21 +200,25 @@ export default function UsersPage() {
     };
 
     const handleBlockUser = async (targetUser: UMUser) => {
-        if (!currentUser) return;
+        setBlockConfirmation(targetUser);
+    };
 
-        setActionLoading(targetUser.id);
+    const handleConfirmBlock = async () => {
+        if (!blockConfirmation) return;
+
+        setActionLoading(blockConfirmation.id);
         try {
             await blockUserAction(
-                targetUser,
-                String(currentUser.id),
-                (loading) => setActionLoading(loading ? targetUser.id : null),
+                blockConfirmation,
+                String(blockConfirmation.id),
+                (loading) => setActionLoading(loading ? blockConfirmation.id : null),
             );
-
             // Keep behavior consistent with previous implementation: refresh the list after blocking.
             await fetchUsers();
             setFriendshipStatusByUserId({});
         } finally {
             setActionLoading(null);
+            setBlockConfirmation(null);
         }
     };
 
@@ -255,6 +260,34 @@ export default function UsersPage() {
 
     return (
         <main className={`${baseStyles.page} ${styles.page}`}>
+            {/* Block Confirmation Modal */}
+            {blockConfirmation && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modal}>
+                        <h2 className={styles.modalTitle}>Block User</h2>
+                        <p className={styles.modalMessage}>
+                            Are you sure you want to block <strong>{blockConfirmation.username}</strong>? They won't be able to send you friend requests or interact with you.
+                        </p>
+                        <div className={styles.modalActions}>
+                            <button
+                                onClick={() => setBlockConfirmation(null)}
+                                disabled={actionLoading === blockConfirmation.id}
+                                className={styles.modalCancelBtn}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmBlock}
+                                disabled={actionLoading === blockConfirmation.id}
+                                className={styles.modalConfirmBtn}
+                            >
+                                {actionLoading === blockConfirmation.id ? 'Blocking...' : 'Yes, Block User'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className={`${baseStyles.container} ${styles.container}`}>
                 {/* Navigation Header */}
                 <div className={styles.navHeader}>

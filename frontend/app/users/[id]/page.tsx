@@ -38,6 +38,7 @@ export default function UserDetailPage() {
     const [invitationReceived, setInvitationReceived] = useState<boolean>(false);
     const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
     const [statsError, setStatsError] = useState<string | null>(null);
+    const [blockConfirmation, setBlockConfirmation] = useState(false);
     const router = useRouter();
     const { user: currentUser, ensureCsrf } = useAuth();
 
@@ -127,12 +128,106 @@ export default function UserDetailPage() {
     };
 
     const handleBlockUserHandler = async () => {
-        await handleBlockUser(user, userId, setActionLoading);
+        setBlockConfirmation(true);
+    };
+
+    const handleConfirmBlock = async () => {
+        setActionLoading(true);
+        try {
+            await handleBlockUser(user, userId, setActionLoading);
+        } finally {
+            setActionLoading(false);
+            setBlockConfirmation(false);
+        }
     };
 
     if (authLoading) {
         return <LoadingScreen />;
     }
+
+    const ConfirmBlockModal = () => (
+        <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+        }}>
+            <div style={{
+                background: '#0b111f',
+                border: '1px solid #1b253f',
+                borderRadius: '16px',
+                padding: '32px',
+                maxWidth: '400px',
+                width: '90%',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+            }}>
+                <h2 style={{
+                    margin: '0 0 16px 0',
+                    fontSize: '20px',
+                    fontWeight: 700,
+                    color: '#e4ecff',
+                }}>Block User</h2>
+                <p style={{
+                    margin: '0 0 24px 0',
+                    fontSize: '15px',
+                    color: '#8c96b6',
+                    lineHeight: '1.5',
+                }}>
+                    Are you sure you want to block <strong>{user?.username}</strong>? They won't be able to send you friend requests or interact with you.
+                </p>
+                <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    justifyContent: 'flex-end',
+                }}>
+                    <button
+                        onClick={() => setBlockConfirmation(false)}
+                        disabled={actionLoading}
+                        style={{
+                            flex: 1,
+                            padding: '10px 16px',
+                            background: '#1b253f',
+                            color: '#8c96b6',
+                            border: '1px solid #2a3d5a',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            cursor: actionLoading ? 'not-allowed' : 'pointer',
+                            opacity: actionLoading ? 0.5 : 1,
+                            transition: 'all 0.2s ease',
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleConfirmBlock}
+                        disabled={actionLoading}
+                        style={{
+                            flex: 1,
+                            padding: '10px 16px',
+                            background: '#ff4757',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            cursor: actionLoading ? 'not-allowed' : 'pointer',
+                            opacity: actionLoading ? 0.7 : 1,
+                            transition: 'all 0.2s ease',
+                        }}
+                    >
+                        {actionLoading ? 'Blocking...' : 'Yes, Block User'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 
     if (error || !user) {
         return (
@@ -179,6 +274,7 @@ export default function UserDetailPage() {
                 '--card-bg': 'rgba(15, 20, 35, 0.85)',
             }}
         >
+            {blockConfirmation && <ConfirmBlockModal />}
             {user && playerStats !== null && (
                 <>
                     <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 24}}>
