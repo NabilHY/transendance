@@ -209,8 +209,9 @@ services:
       - ft_transendance
     environment:
       - GF_SERVER_HTTP_PORT=${GRAFANA_PORT:-4010}
-      # Security: Disable default admin/admin creation
-      - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true
+      # Admin credentials are loaded from .env.prod via env_file
+      # Make sure GF_SECURITY_ADMIN_USER and GF_SECURITY_ADMIN_PASSWORD are set in .env.prod
+      # Note: GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION must be false (or unset) for env vars to work
       # Security: Disable anonymous access (explicit)
       - GF_AUTH_ANONYMOUS_ENABLED=false
       # Security Headers: HSTS
