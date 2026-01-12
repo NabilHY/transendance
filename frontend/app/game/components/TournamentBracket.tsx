@@ -10,7 +10,10 @@ import { useAuth } from '@/context/AuthContext';
 interface BracketPlayer {
   userId: number;
   username: string;
-  avatar?: string;
+  profile_pic?: string;
+  avatar_updated_at?: number;
+  first_name?: string;
+  last_name?: string;
   isWinner?: boolean;
 }
 
@@ -111,7 +114,10 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
             user={{
               id: player.userId,
               username: player.username,
-              profile_pic: player.avatar
+              profile_pic: player.profile_pic,
+              avatar_updated_at: player.avatar_updated_at,
+              first_name: player.first_name,
+              last_name: player.last_name
             }} 
             size="small" 
           />

@@ -56,6 +56,15 @@ class TournamentManager {
     
     this.playerQueue.push(playerData);
     console.log(`🎪 ${user.username} joined tournament queue (${this.playerQueue.length}/${this.REQUIRED_PLAYERS})`);
+    console.log(`🔍 User avatar fields:`, {
+      profile_pic: user.profile_pic,
+      profilePic: user.profilePic,
+      first_name: user.first_name,
+      firstName: user.firstName,
+      last_name: user.last_name,
+      lastName: user.lastName,
+      avatar_updated_at: user.avatar_updated_at
+    });
 
     // Check if we have enough players to start
     if (this.playerQueue.length >= this.REQUIRED_PLAYERS) {
@@ -405,6 +414,20 @@ class TournamentManager {
    */
   getBracketForFrontend(tournament) {
     const matches = [];
+    
+    // Debug log to see what user data looks like
+    console.log(`🔍 [BRACKET DEBUG] Checking first player user data:`, {
+      hasPlayer: !!tournament.bracket.quarterFinals[0]?.player1,
+      user: tournament.bracket.quarterFinals[0]?.player1?.user ? {
+        id: tournament.bracket.quarterFinals[0].player1.user.id,
+        username: tournament.bracket.quarterFinals[0].player1.user.username,
+        profile_pic: tournament.bracket.quarterFinals[0].player1.user.profile_pic,
+        profilePic: tournament.bracket.quarterFinals[0].player1.user.profilePic,
+        first_name: tournament.bracket.quarterFinals[0].player1.user.first_name,
+        firstName: tournament.bracket.quarterFinals[0].player1.user.firstName,
+        avatar_updated_at: tournament.bracket.quarterFinals[0].player1.user.avatar_updated_at
+      } : null
+    });
 
     // Quarter finals
     tournament.bracket.quarterFinals.forEach(m => {
@@ -413,25 +436,25 @@ class TournamentManager {
         player1: m.player1 ? {
           userId: m.player1.user.id,
           username: m.player1.user.username,
-          first_name: m.player1.user.first_name,
-          last_name: m.player1.user.last_name,
-          profile_pic: m.player1.user.profilePic || m.player1.user.profile_pic,
+          first_name: m.player1.user.first_name || m.player1.user.firstName,
+          last_name: m.player1.user.last_name || m.player1.user.lastName,
+          profile_pic: m.player1.user.profile_pic || m.player1.user.profilePic,
           avatar_updated_at: m.player1.user.avatar_updated_at
         } : null,
         player2: m.player2 ? {
           userId: m.player2.user.id,
           username: m.player2.user.username,
-          first_name: m.player2.user.first_name,
-          last_name: m.player2.user.last_name,
-          profile_pic: m.player2.user.profilePic || m.player2.user.profile_pic,
+          first_name: m.player2.user.first_name || m.player2.user.firstName,
+          last_name: m.player2.user.last_name || m.player2.user.lastName,
+          profile_pic: m.player2.user.profile_pic || m.player2.user.profilePic,
           avatar_updated_at: m.player2.user.avatar_updated_at
         } : null,
         winner: m.winner ? {
           userId: m.winner.user.id,
           username: m.winner.user.username,
-          first_name: m.winner.user.first_name,
-          last_name: m.winner.user.last_name,
-          profile_pic: m.winner.user.profilePic || m.winner.user.profile_pic,
+          first_name: m.winner.user.first_name || m.winner.user.firstName,
+          last_name: m.winner.user.last_name || m.winner.user.lastName,
+          profile_pic: m.winner.user.profile_pic || m.winner.user.profilePic,
           avatar_updated_at: m.winner.user.avatar_updated_at
         } : null,
         stage: 'quarter',
@@ -446,25 +469,25 @@ class TournamentManager {
         player1: m.player1 ? {
           userId: m.player1.user.id,
           username: m.player1.user.username,
-          first_name: m.player1.user.first_name,
-          last_name: m.player1.user.last_name,
-          profile_pic: m.player1.user.profilePic || m.player1.user.profile_pic,
+          first_name: m.player1.user.first_name || m.player1.user.firstName,
+          last_name: m.player1.user.last_name || m.player1.user.lastName,
+          profile_pic: m.player1.user.profile_pic || m.player1.user.profilePic,
           avatar_updated_at: m.player1.user.avatar_updated_at
         } : null,
         player2: m.player2 ? {
           userId: m.player2.user.id,
           username: m.player2.user.username,
-          first_name: m.player2.user.first_name,
-          last_name: m.player2.user.last_name,
-          profile_pic: m.player2.user.profilePic || m.player2.user.profile_pic,
+          first_name: m.player2.user.first_name || m.player2.user.firstName,
+          last_name: m.player2.user.last_name || m.player2.user.lastName,
+          profile_pic: m.player2.user.profile_pic || m.player2.user.profilePic,
           avatar_updated_at: m.player2.user.avatar_updated_at
         } : null,
         winner: m.winner ? {
           userId: m.winner.user.id,
           username: m.winner.user.username,
-          first_name: m.winner.user.first_name,
-          last_name: m.winner.user.last_name,
-          profile_pic: m.winner.user.profilePic || m.winner.user.profile_pic,
+          first_name: m.winner.user.first_name || m.winner.user.firstName,
+          last_name: m.winner.user.last_name || m.winner.user.lastName,
+          profile_pic: m.winner.user.profile_pic || m.winner.user.profilePic,
           avatar_updated_at: m.winner.user.avatar_updated_at
         } : null,
         stage: 'semi',
@@ -479,25 +502,25 @@ class TournamentManager {
       player1: f.player1 ? {
         userId: f.player1.user.id,
         username: f.player1.user.username,
-        first_name: f.player1.user.first_name,
-        last_name: f.player1.user.last_name,
-        profile_pic: f.player1.user.profilePic || f.player1.user.profile_pic,
+        first_name: f.player1.user.first_name || f.player1.user.firstName,
+        last_name: f.player1.user.last_name || f.player1.user.lastName,
+        profile_pic: f.player1.user.profile_pic || f.player1.user.profilePic,
         avatar_updated_at: f.player1.user.avatar_updated_at
       } : null,
       player2: f.player2 ? {
         userId: f.player2.user.id,
         username: f.player2.user.username,
-        first_name: f.player2.user.first_name,
-        last_name: f.player2.user.last_name,
-        profile_pic: f.player2.user.profilePic || f.player2.user.profile_pic,
+        first_name: f.player2.user.first_name || f.player2.user.firstName,
+        last_name: f.player2.user.last_name || f.player2.user.lastName,
+        profile_pic: f.player2.user.profile_pic || f.player2.user.profilePic,
         avatar_updated_at: f.player2.user.avatar_updated_at
       } : null,
       winner: f.winner ? {
         userId: f.winner.user.id,
         username: f.winner.user.username,
-        first_name: f.winner.user.first_name,
-        last_name: f.winner.user.last_name,
-        profile_pic: f.winner.user.profilePic || f.winner.user.profile_pic,
+        first_name: f.winner.user.first_name || f.winner.user.firstName,
+        last_name: f.winner.user.last_name || f.winner.user.lastName,
+        profile_pic: f.winner.user.profile_pic || f.winner.user.profilePic,
         avatar_updated_at: f.winner.user.avatar_updated_at
       } : null,
       stage: 'final',

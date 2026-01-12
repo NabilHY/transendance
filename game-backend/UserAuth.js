@@ -122,6 +122,12 @@ class UserAuth {
                     email: user.email,
                     username: user.username || `User${user.id}`,
                     name: user.name || user.first_name || 'Unknown',
+                    // Include both snake_case and camelCase for compatibility
+                    first_name: user.first_name,
+                    firstName: user.first_name,
+                    last_name: user.last_name,
+                    lastName: user.last_name,
+                    profile_pic: user.profile_pic,
                     profilePic: user.profile_pic,
                     avatar_updated_at: user.avatar_updated_at,
                     profileCompleted: user.profile_completed,

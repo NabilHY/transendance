@@ -448,8 +448,15 @@ class GameManager {
       // Notify all players that tournament is starting
       const tournament = this.tournamentManager.getTournament(result.tournamentId);
       if (tournament) {
-        // Create first round matches (quarter-finals)
-        this.createTournamentMatches(tournament);
+        // Delay before creating first round matches to give players time to see the initial bracket
+        const initialBracketDelay = 8000; // 8 seconds to see initial matchups
+        console.log(`⏳ Showing initial tournament bracket for ${initialBracketDelay/1000} seconds...`);
+        
+        setTimeout(() => {
+          console.log(`🚀 Starting quarter-finals matches now!`);
+          // Create first round matches (quarter-finals)
+          this.createTournamentMatches(tournament);
+        }, initialBracketDelay);
       }
       
       // Clean bracket data - remove connection objects to avoid circular JSON
@@ -492,7 +499,7 @@ class GameManager {
   }
 
   // Create tournament matches for the current round
-  createTournamentMatches(tournament) {
+  async createTournamentMatches(tournament) {
     console.log(`📋 Creating matches for tournament ${tournament.id}, status: ${tournament.status}`);
     console.log(`📊 Current players in GameManager: ${this.players.size}`);
     
@@ -535,6 +542,129 @@ class GameManager {
         
         if (!player1ConnectionId || !player2ConnectionId) {
           console.log(`❌ Could not find connections for tournament match ${match.match} - P1: ${player1ConnectionId}, P2: ${player2ConnectionId}`);
+          
+          // CRITICAL: Handle disconnected player case
+          // If one player is connected and the other disconnected, award win to connected player
+          if (player1ConnectionId && !player2ConnectionId) {
+            console.log(`🏆 AUTO-ADVANCE: Player 2 (${player2Data.user.username}) disconnected, awarding win to Player 1 (${player1Data.user.username})`);
+            
+            // Record the win for player1
+            const autoWinResult = this.tournamentManager.recordMatchResult(
+              tournament.id,
+              match.match,
+              player1Data.user.id
+            );
+            
+            if (autoWinResult.success) {
+              // Update player stats for auto-advance (5-0 forfeit win)
+              const autoWinGameResult = {
+                player1Id: player1Data.user.id,
+                player2Id: player2Data.user.id,
+                player1Score: 5, // Winner gets max score
+                player2Score: 0, // Disconnected player gets 0
+                gameMode: 'tournament',
+                gameDuration: 0, // Instant forfeit
+                tournamentStage: tournament.status // Current tournament stage
+              };
+              
+              try {
+                await this.statsHandler.processGameCompletion(autoWinGameResult);
+                console.log(`✅ Stats updated for auto-advance: ${player1Data.user.username} wins by forfeit`);
+              } catch (error) {
+                console.error(`❌ Error updating stats for auto-advance:`, error);
+              }
+              
+              // Send notification to connected player
+              const connectedPlayer = this.players.get(player1ConnectionId);
+              if (connectedPlayer && connectedPlayer.connection && connectedPlayer.connection.readyState === 1) {
+                connectedPlayer.connection.send(JSON.stringify({
+                  type: 'tournamentMatchResult',
+                  won: true,
+                  opponentUsername: player2Data.user.username,
+                  ratingChange: 0,
+                  xpGain: 0,
+                  round: autoWinResult.nextRound || 'complete',
+                  tournamentComplete: autoWinResult.tournamentComplete || false,
+                  isTournamentWinner: autoWinResult.status === 'tournament_complete',
+                  waitingForNextRound: !autoWinResult.tournamentComplete && autoWinResult.nextRound,
+                  opponentDisconnected: true,
+                  stats: {
+                    oldRating: 0,
+                    newRating: 0,
+                    oldXp: 0,
+                    newXp: 0,
+                    oldLevel: 1,
+                    newLevel: 1
+                  }
+                }));
+              }
+              
+              console.log(`✅ Auto-advance completed for match ${match.match}`);
+              // Continue to check if round is complete
+              continue;
+            }
+          } else if (player2ConnectionId && !player1ConnectionId) {
+            console.log(`🏆 AUTO-ADVANCE: Player 1 (${player1Data.user.username}) disconnected, awarding win to Player 2 (${player2Data.user.username})`);
+            
+            // Record the win for player2
+            const autoWinResult = this.tournamentManager.recordMatchResult(
+              tournament.id,
+              match.match,
+              player2Data.user.id
+            );
+            
+            if (autoWinResult.success) {
+              // Update player stats for auto-advance (5-0 forfeit win)
+              const autoWinGameResult = {
+                player1Id: player1Data.user.id,
+                player2Id: player2Data.user.id,
+                player1Score: 0, // Disconnected player gets 0
+                player2Score: 5, // Winner gets max score
+                gameMode: 'tournament',
+                gameDuration: 0, // Instant forfeit
+                tournamentStage: tournament.status // Current tournament stage
+              };
+              
+              try {
+                await this.statsHandler.processGameCompletion(autoWinGameResult);
+                console.log(`✅ Stats updated for auto-advance: ${player2Data.user.username} wins by forfeit`);
+              } catch (error) {
+                console.error(`❌ Error updating stats for auto-advance:`, error);
+              }
+              
+              // Send notification to connected player
+              const connectedPlayer = this.players.get(player2ConnectionId);
+              if (connectedPlayer && connectedPlayer.connection && connectedPlayer.connection.readyState === 1) {
+                connectedPlayer.connection.send(JSON.stringify({
+                  type: 'tournamentMatchResult',
+                  won: true,
+                  opponentUsername: player1Data.user.username,
+                  ratingChange: 0,
+                  xpGain: 0,
+                  round: autoWinResult.nextRound || 'complete',
+                  tournamentComplete: autoWinResult.tournamentComplete || false,
+                  isTournamentWinner: autoWinResult.status === 'tournament_complete',
+                  waitingForNextRound: !autoWinResult.tournamentComplete && autoWinResult.nextRound,
+                  opponentDisconnected: true,
+                  stats: {
+                    oldRating: 0,
+                    newRating: 0,
+                    oldXp: 0,
+                    newXp: 0,
+                    oldLevel: 1,
+                    newLevel: 1
+                  }
+                }));
+              }
+              
+              console.log(`✅ Auto-advance completed for match ${match.match}`);
+              // Continue to check if round is complete
+              continue;
+            }
+          }
+          
+          // If both disconnected, skip this match (unlikely but handle gracefully)
+          console.log(`⚠️ Both players disconnected for match ${match.match}, skipping`);
           continue;
         }
         
@@ -553,6 +683,31 @@ class GameManager {
     for (const matchInfo of matchConnections) {
       console.log(`🔨 Creating match ${matchInfo.match.match}: ${matchInfo.player1Data.user.username} vs ${matchInfo.player2Data.user.username}`);
       this.createTournamentMatch(tournament.id, matchInfo);
+    }
+    
+    // THIRD PASS: Check if all matches were auto-advanced (no actual matches created)
+    // This happens when all opponents disconnected
+    if (matchConnections.length === 0 && matches.length > 0) {
+      console.log(`🔍 All matches in round were auto-advanced due to disconnections`);
+      
+      // Check if round is complete after auto-advances
+      const tournamentAfterAutoAdvance = this.tournamentManager.getTournament(tournament.id);
+      if (tournamentAfterAutoAdvance) {
+        const allMatchesComplete = matches.every(m => m.winner !== null);
+        
+        if (allMatchesComplete) {
+          console.log(`✅ Round complete after auto-advances! Advancing tournament...`);
+          
+          // Trigger next round creation after delay
+          setTimeout(() => {
+            const updatedTournament = this.tournamentManager.getTournament(tournament.id);
+            if (updatedTournament && updatedTournament.status !== 'completed') {
+              console.log(`🚀 Creating next round matches after auto-advance`);
+              this.createTournamentMatches(updatedTournament);
+            }
+          }, 3000); // 3 second delay before next round
+        }
+      }
     }
   }
 
@@ -649,10 +804,16 @@ class GameManager {
       player1Data.connection.send(JSON.stringify({
         ...matchStartMsg,
         playerRole: 'player1',
+        user: player1Data.user,  // Add user field for frontend
         opponent: {
           id: player2Data.user.id,
           username: player2Data.user.username,
-          profile_pic: player2Data.user.profilePic,
+          first_name: player2Data.user.first_name || player2Data.user.firstName,
+          firstName: player2Data.user.firstName || player2Data.user.first_name,
+          last_name: player2Data.user.last_name || player2Data.user.lastName,
+          lastName: player2Data.user.lastName || player2Data.user.last_name,
+          profile_pic: player2Data.user.profile_pic || player2Data.user.profilePic,
+          profilePic: player2Data.user.profilePic || player2Data.user.profile_pic,
           avatar_updated_at: player2Data.user.avatar_updated_at
         }
       }));
@@ -662,10 +823,16 @@ class GameManager {
       player2Data.connection.send(JSON.stringify({
         ...matchStartMsg,
         playerRole: 'player2',
+        user: player2Data.user,  // Add user field for frontend
         opponent: {
           id: player1Data.user.id,
           username: player1Data.user.username,
-          profile_pic: player1Data.user.profilePic,
+          first_name: player1Data.user.first_name || player1Data.user.firstName,
+          firstName: player1Data.user.firstName || player1Data.user.first_name,
+          last_name: player1Data.user.last_name || player1Data.user.lastName,
+          lastName: player1Data.user.lastName || player1Data.user.last_name,
+          profile_pic: player1Data.user.profile_pic || player1Data.user.profilePic,
+          profilePic: player1Data.user.profilePic || player1Data.user.profile_pic,
           avatar_updated_at: player1Data.user.avatar_updated_at
         }
       }));
@@ -823,7 +990,12 @@ class GameManager {
           id: player2Data.user.id,
           username: player2Data.user.username,
           name: player2Data.user.name,
-          profile_pic: player2Data.user.profilePic,
+          first_name: player2Data.user.first_name || player2Data.user.firstName,
+          firstName: player2Data.user.firstName || player2Data.user.first_name,
+          last_name: player2Data.user.last_name || player2Data.user.lastName,
+          lastName: player2Data.user.lastName || player2Data.user.last_name,
+          profile_pic: player2Data.user.profile_pic || player2Data.user.profilePic,
+          profilePic: player2Data.user.profilePic || player2Data.user.profile_pic,
           avatar_updated_at: player2Data.user.avatar_updated_at,
           level: player2Data.user.gameStats?.level || 1,
           rankTier: player2Data.user.gameStats?.rankTier || 'Bronze'
@@ -841,7 +1013,12 @@ class GameManager {
           id: player1Data.user.id,
           username: player1Data.user.username,
           name: player1Data.user.name,
-          profile_pic: player1Data.user.profilePic,
+          first_name: player1Data.user.first_name || player1Data.user.firstName,
+          firstName: player1Data.user.firstName || player1Data.user.first_name,
+          last_name: player1Data.user.last_name || player1Data.user.lastName,
+          lastName: player1Data.user.lastName || player1Data.user.last_name,
+          profile_pic: player1Data.user.profile_pic || player1Data.user.profilePic,
+          profilePic: player1Data.user.profilePic || player1Data.user.profile_pic,
           avatar_updated_at: player1Data.user.avatar_updated_at,
           level: player1Data.user.gameStats?.level || 1,
           rankTier: player1Data.user.gameStats?.rankTier || 'Bronze'
@@ -1532,10 +1709,16 @@ class GameManager {
             
             // Determine if this is the first bracket (after quarters) or subsequent
             const isFirstBracket = tournament.status === 'semi_finals' && tournamentResult.nextRound === 'semi_finals';
+            console.log(`🔍 [BRACKET TIMING DEBUG]`);
+            console.log(`   tournament.status: ${tournament.status}`);
+            console.log(`   tournamentResult.nextRound: ${tournamentResult.nextRound}`);
+            console.log(`   isFirstBracket: ${isFirstBracket}`);
+            
             // Bracket delay needs to account for: bracket display time + time for players to transition
             // Match Ready screen is 4s, countdown is 3s, so we need bracket to show long enough
             // before the next match starts
-            const bracketDelay = isFirstBracket ? 12000 : 10000; // 12s for first, 10s for rest
+            // NOTE: Using 4 seconds for intermediate brackets (after quarters and semis)
+            const bracketDelay = 4000; // 4 seconds for all intermediate brackets
             
             console.log(`📊 Bracket timing: ${isFirstBracket ? 'FIRST' : 'SUBSEQUENT'} bracket, showing for ${bracketDelay/1000} seconds`);
             

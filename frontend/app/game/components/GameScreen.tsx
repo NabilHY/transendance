@@ -190,15 +190,26 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, quadGameState
               <div className={styles.scoreLabel}>Player 1</div>
               <div className={styles.scoreValue}>{gameState?.player1?.score || 0}</div>
               <div className={styles.playerName}>
-                <PlayerAvatar 
-                  user={playerInfo?.role === 'player1' ? playerInfo?.user : playerInfo?.opponent} 
-                  size="medium" 
-                />
-                <span style={{ marginLeft: '8px' }}>
-                  {playerInfo?.role === 'player1' 
-                    ? playerInfo?.user?.username || 'You'
-                    : playerInfo?.opponent?.username || 'Opponent'}
-                </span>
+                {(() => {
+                  const player1User = playerInfo?.role === 'player1' ? playerInfo?.user : playerInfo?.opponent;
+                  const isMultiplayer = playerInfo?.gameType === 'multiplayer' || playerInfo?.gameType === 'tournament';
+                  console.log('🔍 [GameScreen] Player 1 user data:', player1User);
+                  return (
+                    <>
+                      {isMultiplayer && (
+                        <PlayerAvatar 
+                          user={player1User} 
+                          size="medium" 
+                        />
+                      )}
+                      <span style={{ marginLeft: isMultiplayer ? '8px' : '0' }}>
+                        {playerInfo?.role === 'player1' 
+                          ? `(You) ${playerInfo?.user?.username || 'You'}`
+                          : playerInfo?.opponent?.username || 'Opponent'}
+                      </span>
+                    </>
+                  );
+                })()}
               </div>
             </div>
             
@@ -235,15 +246,26 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, quadGameState
                 {gameState?.player2?.score || 0}
               </div>
               <div className={styles.playerName} style={{ textAlign: "right", flexDirection: 'row-reverse' }}>
-                <PlayerAvatar 
-                  user={playerInfo?.role === 'player2' ? playerInfo?.user : playerInfo?.opponent} 
-                  size="medium" 
-                />
-                <span style={{ marginRight: '8px' }}>
-                  {playerInfo?.role === 'player2' 
-                    ? playerInfo?.user?.username || 'You'
-                    : playerInfo?.opponent?.username || 'Opponent'}
-                </span>
+                {(() => {
+                  const player2User = playerInfo?.role === 'player2' ? playerInfo?.user : playerInfo?.opponent;
+                  const isMultiplayer = playerInfo?.gameType === 'multiplayer' || playerInfo?.gameType === 'tournament';
+                  console.log('🔍 [GameScreen] Player 2 user data:', player2User);
+                  return (
+                    <>
+                      {isMultiplayer && (
+                        <PlayerAvatar 
+                          user={player2User} 
+                          size="medium" 
+                        />
+                      )}
+                      <span style={{ marginRight: isMultiplayer ? '8px' : '0' }}>
+                        {playerInfo?.role === 'player2' 
+                          ? `(You) ${playerInfo?.user?.username || 'You'}`
+                          : playerInfo?.opponent?.username || 'Opponent'}
+                      </span>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
