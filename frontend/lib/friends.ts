@@ -208,15 +208,15 @@ export const handleBlockUser = async (
     user: UMUser | null,
     userId: string,
     setActionLoading: Setter<boolean>,
-    confirmFn: (message: string) => boolean = confirm,
+    // confirmFn: (message: string) => boolean = confirm,
 ) => {
     if (!user) return;
 
     const base = process.env.NEXT_PUBLIC_USR_MANAG_URL ?? getApiUrls().usrManag;
 
-    if (!confirmFn('Are you sure you want to block this user?')) {
-        return;
-    }
+    // if (!confirmFn('Are you sure you want to block this user?')) {
+    //     return;
+    // }
 
     setActionLoading(true);
     try {
