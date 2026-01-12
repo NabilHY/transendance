@@ -1,0 +1,71 @@
+.container {
+  min-height: 100dvh;
+  padding: 0px 24px;
+  background: radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #e4ecff;
+}
+
+.mainContent {
+  width: 100%;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.chatSection {
+  display: flex;
+  flex: 1;
+  gap: 1px;
+  /* background: #1a1a1a; */
+}
+
+
+.rightPanel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 1px;
+}
+
+.loadingContainer {
+  height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at top, rgba(20, 40, 80, 0.6), transparent 60%), #040912;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #e4ecff;
+}
+
+.loadingContent {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.loadingSpinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(228, 236, 255, 0.3);
+  border-top: 3px solid #e4ecff;
+  border-radius: 50%;
+  animation: chatSpin 1s linear infinite;
+}
+
+.loadingText {
+  color: #8c96b6;
+  font-size: 15px;
+  margin: 0;
+}
+
+@keyframes chatSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
