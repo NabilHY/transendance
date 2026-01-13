@@ -144,6 +144,7 @@ build-prod:
 
 prod-up:
 	@echo "🚀 Starting production services..."
+	docker compose -f docker-compose.prod.yml up db-init >/dev/null 2>1&
 	docker compose -f docker-compose.prod.yml up -d
 	@echo "✅ Production services started!"
 
