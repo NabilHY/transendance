@@ -58,6 +58,9 @@ fastify.addHook('preHandler', async (request, reply) => {
 
 fastify.register(fastifyWebsocket);
 
+// Register metrics plugin (must be before routes)
+fastify.register(require('./plugins/metrics'));
+
 // Add health check endpoint
 fastify.get('/health', async (request, reply) => {
   return { status: 'healthy', timestamp: new Date().toISOString() };
